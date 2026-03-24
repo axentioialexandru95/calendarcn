@@ -91,27 +91,29 @@ export function CalendarToolbar({
       )}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-center gap-2">
-          <ToolbarButton
-            aria-label="Previous range"
-            onClick={() => onNavigate(-1)}
-            size="icon-sm"
-            tone="ghost"
-          >
-            <CaretLeftIcon className="size-4" />
-          </ToolbarButton>
-          <ToolbarButton
-            aria-label="Next range"
-            onClick={() => onNavigate(1)}
-            size="icon-sm"
-            tone="ghost"
-          >
-            <CaretRightIcon className="size-4" />
-          </ToolbarButton>
-          <ToolbarButton onClick={onToday} size="sm" tone="outline">
-            Today
-          </ToolbarButton>
-          <div className="ml-2 min-w-0">
+        <div className="flex min-w-0 flex-wrap items-start gap-2 sm:items-center">
+          <div className="flex shrink-0 items-center gap-2">
+            <ToolbarButton
+              aria-label="Previous range"
+              onClick={() => onNavigate(-1)}
+              size="icon-sm"
+              tone="ghost"
+            >
+              <CaretLeftIcon className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              aria-label="Next range"
+              onClick={() => onNavigate(1)}
+              size="icon-sm"
+              tone="ghost"
+            >
+              <CaretRightIcon className="size-4" />
+            </ToolbarButton>
+            <ToolbarButton onClick={onToday} size="sm" tone="outline">
+              Today
+            </ToolbarButton>
+          </div>
+          <div className="min-w-0 basis-full pt-1 sm:ml-2 sm:basis-auto sm:pt-0">
             <p
               className={getCalendarSlotClassName(
                 classNames,
@@ -138,7 +140,7 @@ export function CalendarToolbar({
             className={getCalendarSlotClassName(
               classNames,
               "viewSwitcher",
-              "flex flex-wrap items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1"
+              "flex w-full flex-wrap items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1 sm:w-auto"
             )}
           >
             {availableViews.map((item) => {

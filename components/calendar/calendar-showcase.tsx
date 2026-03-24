@@ -267,7 +267,7 @@ function CalendarShowcaseSurface({
 
   if (variant === "embed") {
     return (
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <CalendarShowcaseConfigPanel
           activeConfigTokens={activeConfigTokens}
           config={demoConfig}
@@ -288,9 +288,9 @@ function CalendarShowcaseSurface({
   }
 
   return (
-    <main className="min-h-svh bg-background px-3 py-3 text-foreground md:px-4 md:py-4">
-      <div className="grid min-h-[calc(100svh-1.5rem)] gap-3 lg:grid-cols-[18rem_1fr]">
-        <aside className="flex flex-col justify-between rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-muted/25 p-5">
+    <main className="min-h-svh bg-background px-2 py-2 text-foreground sm:px-3 sm:py-3 md:px-4 md:py-4">
+      <div className="grid gap-3 lg:min-h-[calc(100svh-1.5rem)] lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <aside className="order-2 flex min-w-0 flex-col justify-between rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-muted/25 p-4 sm:p-5 lg:order-1">
           <div className="space-y-8">
             <div className="space-y-3">
               <CalendarCnLogo
@@ -367,7 +367,7 @@ function CalendarShowcaseSurface({
             </Button>
           </div>
         </aside>
-        <div className="space-y-3">
+        <div className="order-1 min-w-0 space-y-3 lg:order-2">
           <CalendarShowcaseConfigPanel
             activeConfigTokens={activeConfigTokens}
             compact
@@ -409,7 +409,7 @@ function CalendarShowcaseConfigPanel({
     <section
       className={cn(
         "rounded-[calc(var(--radius)*1.45)] border border-border/70 bg-card/90 shadow-xs",
-        compact ? "p-4" : "p-5"
+        compact ? "p-4" : "p-4 sm:p-5"
       )}
     >
       <div className="space-y-4">
@@ -427,7 +427,7 @@ function CalendarShowcaseConfigPanel({
           </p>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {(
             Object.entries(demoPresets) as Array<
               [
@@ -488,7 +488,7 @@ function CalendarShowcaseConfigPanel({
             {activeConfigTokens.map((token) => (
               <span
                 key={token}
-                className="rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 font-mono text-[11px] text-foreground"
+                className="max-w-full break-all rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 font-mono text-[11px] leading-5 whitespace-normal text-foreground"
               >
                 {token}
               </span>
