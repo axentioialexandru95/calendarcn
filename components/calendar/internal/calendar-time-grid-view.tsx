@@ -22,7 +22,10 @@ import {
   isToday,
   setMinuteOfDay,
 } from "../utils"
-import { CalendarEventCard, getResolvedAccentColor } from "./calendar-event-card"
+import {
+  CalendarEventCard,
+  getResolvedAccentColor,
+} from "./calendar-event-card"
 import {
   slotHeight,
   type SharedViewProps,
@@ -49,7 +52,9 @@ export function CalendarDayView(
     maxHour: number
   }
 ) {
-  return <CalendarTimeGridView {...props} days={[startOfDay(props.anchorDate)]} />
+  return (
+    <CalendarTimeGridView {...props} days={[startOfDay(props.anchorDate)]} />
+  )
 }
 
 function CalendarTimeGridView(props: TimeGridViewProps) {
@@ -93,7 +98,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
     return () => {
       window.removeEventListener("pointerup", handlePointerUp)
     }
-  }, [commitDraft, draft])
+  }, [draft])
 
   return (
     <div className="min-h-0 flex-1 overflow-auto">
@@ -170,7 +175,10 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
           <div className="relative border-r border-border/70">
             {Array.from({ length: slotCount }).map((_, index) => {
               const minute = minMinute + index * props.slotDuration
-              const labelDate = setMinuteOfDay(startOfDay(props.days[0]), minute)
+              const labelDate = setMinuteOfDay(
+                startOfDay(props.days[0]),
+                minute
+              )
 
               return (
                 <div
@@ -293,6 +301,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                             index
                           )}
                           classNames={props.classNames}
+                          dragInstanceId={`time-grid:${day.toISOString()}:${item.occurrence.occurrenceId}`}
                           event={item.occurrence}
                           interactive={props.interactive}
                           onEventKeyCommand={props.onEventKeyCommand}
@@ -300,7 +309,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           renderEvent={props.renderEvent}
                           selected={
                             props.selectedEventId ===
-                            item.occurrence.sourceEventId
+                            item.occurrence.occurrenceId
                           }
                           showResizeHandles
                           timeLabel={getEventMetaLabel(
@@ -380,12 +389,13 @@ function AllDayDropZone({
               index
             )}
             classNames={classNames}
+            dragInstanceId={`all-day:${day.toISOString()}:${occurrence.occurrenceId}`}
             event={occurrence}
             interactive={interactive}
             onEventKeyCommand={onEventKeyCommand}
             onSelect={onSelect}
             renderEvent={renderEvent}
-            selected={selectedEventId === occurrence.sourceEventId}
+            selected={selectedEventId === occurrence.occurrenceId}
             timeLabel={getEventMetaLabel(occurrence, timeZone)}
             variant="all-day"
           />

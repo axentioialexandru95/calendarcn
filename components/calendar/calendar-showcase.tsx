@@ -15,8 +15,10 @@ import { buildDemoEvents, buildDemoResources } from "@/lib/calendar-demo-data"
 
 export function CalendarShowcase({
   initialDateIso,
+  variant = "standalone",
 }: {
   initialDateIso: string
+  variant?: "embed" | "standalone"
 }) {
   const [initialDate] = React.useState(() => new Date(initialDateIso))
   const resources = React.useState(() => buildDemoResources())[0]
@@ -31,6 +33,76 @@ export function CalendarShowcase({
       resourceId: "product",
     },
   })
+
+  const calendar = (
+    <CalendarRoot
+      date={controller.date}
+      events={controller.events}
+      onDateChange={controller.setDate}
+      onEventCreate={controller.handleEventCreate}
+      onEventMove={controller.handleEventMove}
+      onEventResize={controller.handleEventResize}
+      onNavigate={controller.step}
+      onSelectedEventChange={controller.setSelectedEventId}
+      onToday={controller.goToToday}
+      onViewChange={controller.setView}
+      resources={resources}
+      selectedEventId={controller.selectedEventId}
+      timeZone="Europe/Bucharest"
+      view={controller.view}
+    />
+  )
+
+  if (variant === "embed") {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 rounded-[calc(var(--radius)*1.4)] border border-border/70 bg-background/80 px-4 py-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.55)] backdrop-blur md:flex-row md:items-center md:justify-between md:px-5">
+          <div className="space-y-2">
+            <p className="text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
+              Live surface
+            </p>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Switch views, drag sessions to new times, resize from the edge, or
+              create a fresh block by dragging across open time.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 md:items-end">
+            <div className="flex flex-wrap gap-2">
+              {resources.map((resource) => (
+                <span
+                  key={resource.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/75 px-3 py-1.5 text-xs text-foreground"
+                >
+                  <span
+                    className="size-2 rounded-full"
+                    style={{ backgroundColor: resource.color }}
+                  />
+                  {resource.label}
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={controller.goToToday}
+                size="sm"
+                variant="outline"
+              >
+                Jump to today
+              </Button>
+              <Button
+                onClick={() => controller.setView("month")}
+                size="sm"
+                variant="ghost"
+              >
+                Open month view
+              </Button>
+            </div>
+          </div>
+        </div>
+        {calendar}
+      </div>
+    )
+  }
 
   return (
     <main className="min-h-svh bg-background px-3 py-3 text-foreground md:px-4 md:py-4">
@@ -111,22 +183,7 @@ export function CalendarShowcase({
             </Button>
           </div>
         </aside>
-        <CalendarRoot
-          date={controller.date}
-          events={controller.events}
-          onDateChange={controller.setDate}
-          onEventCreate={controller.handleEventCreate}
-          onEventMove={controller.handleEventMove}
-          onEventResize={controller.handleEventResize}
-          onNavigate={controller.step}
-          onSelectedEventChange={controller.setSelectedEventId}
-          onToday={controller.goToToday}
-          onViewChange={controller.setView}
-          resources={resources}
-          selectedEventId={controller.selectedEventId}
-          timeZone="Europe/Bucharest"
-          view={controller.view}
-        />
+        {calendar}
       </div>
     </main>
   )

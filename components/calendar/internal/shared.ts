@@ -4,6 +4,7 @@ import type {
   CalendarClassNames,
   CalendarCreateOperation,
   CalendarEvent,
+  CalendarEventVariant,
   CalendarEventRenderer,
   CalendarMoveOperation,
   CalendarOccurrence,
@@ -89,9 +90,4 @@ export type CalendarAgendaViewProps = SharedViewProps & {
   }
 }
 
-export type EventVariant =
-  | "month"
-  | "all-day"
-  | "time-grid"
-  | "agenda"
-  | "overlay"
+export type EventVariant = CalendarEventVariant

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 
 import {
   DndContext,
@@ -7,6 +8,7 @@ import {
   closestCorners,
   useSensor,
   useSensors,
+  type ClientRect,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
@@ -30,16 +32,10 @@ import {
   shiftDate,
 } from "../utils"
 import { CalendarAgendaView } from "./calendar-agenda-view"
-import {
-  EventSurface,
-  getResolvedAccentColor,
-} from "./calendar-event-card"
+import { EventSurface, getResolvedAccentColor } from "./calendar-event-card"
 import { CalendarMonthView } from "./calendar-month-view"
 import { CalendarToolbar } from "./calendar-toolbar"
-import {
-  CalendarDayView,
-  CalendarWeekView,
-} from "./calendar-time-grid-view"
+import { CalendarDayView, CalendarWeekView } from "./calendar-time-grid-view"
 import {
   defaultMaxHour,
   defaultMinHour,
@@ -90,6 +86,9 @@ export function CalendarRoot({
   const [activeDrag, setActiveDrag] = React.useState<CalendarDragData | null>(
     null
   )
+  const [activeDragRect, setActiveDragRect] = React.useState<ClientRect | null>(
+    null
+  )
   const [liveAnnouncement, setLiveAnnouncement] = React.useState("")
 
   React.useEffect(() => {
@@ -101,7 +100,7 @@ export function CalendarRoot({
   }
 
   function handleSelectEvent(occurrence: CalendarOccurrence) {
-    onSelectedEventChange?.(occurrence.sourceEventId)
+    onSelectedEventChange?.(occurrence.occurrenceId)
     onEventSelect?.(occurrence)
   }
 
@@ -244,6 +243,10 @@ export function CalendarRoot({
     }
 
     setActiveDrag(dragData)
+    setActiveDragRect(
+      event.active.rect.current.initial ??
+        getDragSurfaceRect(event.activatorEvent.target)
+    )
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -251,6 +254,7 @@ export function CalendarRoot({
     const target = event.over?.data.current as CalendarDropTarget | undefined
 
     setActiveDrag(null)
+    setActiveDragRect(null)
 
     if (!dragData || !target) {
       return
@@ -262,6 +266,23 @@ export function CalendarRoot({
     }
 
     resizeOccurrenceWithTarget(dragData.occurrence, dragData.edge, target)
+  }
+
+  function getDragSurfaceRect(target: EventTarget | null): ClientRect | null {
+    if (!(target instanceof Element)) {
+      return null
+    }
+
+    return (
+      target
+        .closest<HTMLElement>("[data-calendar-drag-surface]")
+        ?.getBoundingClientRect() ?? null
+    )
+  }
+
+  function handleDragCancel() {
+    setActiveDrag(null)
+    setActiveDragRect(null)
   }
 
   function handleEventKeyCommand(
@@ -361,6 +382,36 @@ export function CalendarRoot({
     timeZone,
     weekStartsOn,
   }
+  const dragOverlay = (
+    <DragOverlay>
+      {activeDrag ? (
+        <EventSurface
+          accentColor={getResolvedAccentColor(
+            activeDrag.occurrence,
+            getEventColor
+          )}
+          className={getCalendarSlotClassName(
+            classNames,
+            "dragOverlay",
+            activeDragRect ? undefined : "w-64 max-w-[80vw]"
+          )}
+          event={activeDrag.occurrence}
+          overlay
+          renderEvent={renderEvent}
+          style={
+            activeDragRect
+              ? {
+                  width: activeDragRect.width,
+                  height: activeDragRect.height,
+                }
+              : undefined
+          }
+          timeLabel={getEventMetaLabel(activeDrag.occurrence, timeZone)}
+          variant={activeDrag.variant}
+        />
+      ) : null}
+    </DragOverlay>
+  )
 
   return (
     <div
@@ -383,6 +434,7 @@ export function CalendarRoot({
       />
       <DndContext
         collisionDetection={closestCorners}
+        onDragCancel={handleDragCancel}
         onDragEnd={handleDragEnd}
         onDragStart={handleDragStart}
         sensors={sensors}
@@ -418,25 +470,7 @@ export function CalendarRoot({
             />
           ) : null}
         </div>
-        <DragOverlay>
-          {activeDrag ? (
-            <EventSurface
-              accentColor={getResolvedAccentColor(
-                activeDrag.occurrence,
-                getEventColor
-              )}
-              className={getCalendarSlotClassName(
-                classNames,
-                "dragOverlay",
-                "w-64 max-w-[80vw]"
-              )}
-              event={activeDrag.occurrence}
-              renderEvent={renderEvent}
-              timeLabel={getEventMetaLabel(activeDrag.occurrence, timeZone)}
-              variant="overlay"
-            />
-          ) : null}
-        </DragOverlay>
+        {isHydrated ? createPortal(dragOverlay, document.body) : null}
       </DndContext>
       <p aria-live="polite" className="sr-only">
         {liveAnnouncement}

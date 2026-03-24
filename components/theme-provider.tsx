@@ -3,17 +3,24 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+import {
+  DEFAULT_CALENDARCN_THEME,
+  calendarCnThemeNames,
+  toggleCalendarCnTheme,
+} from "@/components/marketing/calendarcn-theme-config"
+
 function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
   return (
     <NextThemesProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
       {...props}
+      attribute="data-theme"
+      defaultTheme={DEFAULT_CALENDARCN_THEME}
+      disableTransitionOnChange
+      enableSystem={false}
+      themes={calendarCnThemeNames}
     >
       <ThemeHotkey />
       {children}
@@ -35,7 +42,7 @@ function isTypingTarget(target: EventTarget | null) {
 }
 
 function ThemeHotkey() {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { setTheme, theme } = useTheme()
 
   React.useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -55,7 +62,7 @@ function ThemeHotkey() {
         return
       }
 
-      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+      setTheme(toggleCalendarCnTheme(theme))
     }
 
     window.addEventListener("keydown", onKeyDown)
@@ -63,7 +70,7 @@ function ThemeHotkey() {
     return () => {
       window.removeEventListener("keydown", onKeyDown)
     }
-  }, [resolvedTheme, setTheme])
+  }, [setTheme, theme])
 
   return null
 }

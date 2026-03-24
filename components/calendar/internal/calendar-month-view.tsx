@@ -14,7 +14,10 @@ import {
   isOutsideMonth,
   isToday,
 } from "../utils"
-import { CalendarEventCard, getResolvedAccentColor } from "./calendar-event-card"
+import {
+  CalendarEventCard,
+  getResolvedAccentColor,
+} from "./calendar-event-card"
 import { maxMonthEvents, type SharedViewProps } from "./shared"
 
 export function CalendarMonthView(props: SharedViewProps) {
@@ -115,12 +118,13 @@ function MonthDayCell({
               index
             )}
             classNames={classNames}
+            dragInstanceId={`month:${day.toISOString()}:${occurrence.occurrenceId}`}
             event={occurrence}
             interactive={interactive}
             onEventKeyCommand={onEventKeyCommand}
             onSelect={onSelectEvent}
             renderEvent={renderEvent}
-            selected={selectedEventId === occurrence.sourceEventId}
+            selected={selectedEventId === occurrence.occurrenceId}
             timeLabel={getEventMetaLabel(occurrence, timeZone)}
             variant="month"
           />

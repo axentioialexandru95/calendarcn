@@ -44,11 +44,6 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
       calendarId: "product",
       calendarLabel: "Product",
       resourceId: "product",
-      recurrence: {
-        frequency: "daily",
-        interval: 1,
-        count: 10,
-      },
     },
     {
       id: "crit",
@@ -90,12 +85,6 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
       calendarId: "product",
       calendarLabel: "Product",
       resourceId: "product",
-      recurrence: {
-        frequency: "weekly",
-        interval: 1,
-        count: 8,
-        byWeekday: [2, 4],
-      },
     },
     {
       id: "dinner",
@@ -129,12 +118,6 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
       calendarId: "design",
       calendarLabel: "Design",
       resourceId: "design",
-      recurrence: {
-        frequency: "weekly",
-        interval: 1,
-        count: 10,
-        byWeekday: [3],
-      },
     },
   ]
 }

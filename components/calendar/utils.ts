@@ -55,12 +55,12 @@ type RecurrenceCursorContext = {
   rangeEnd: Date
 }
 
-export type CalendarVisibleRange = {
+type CalendarVisibleRange = {
   start: Date
   end: Date
 }
 
-export type DayEventLayout = {
+type DayEventLayout = {
   occurrence: CalendarOccurrence
   column: number
   columns: number
@@ -192,27 +192,11 @@ export function setMinuteOfDay(day: Date, minuteOfDay: number) {
   })
 }
 
-export function roundMinuteOfDay(minuteOfDay: number, step: number) {
-  return Math.max(
-    0,
-    Math.min(MINUTES_IN_DAY, Math.round(minuteOfDay / step) * step)
-  )
-}
-
-export function getMinuteOfDay(date: Date) {
+function getMinuteOfDay(date: Date) {
   return date.getHours() * 60 + date.getMinutes()
 }
 
-export function getEventDurationInMinutes(
-  event: Pick<CalendarEvent, "start" | "end">
-) {
-  return Math.max(
-    15,
-    Math.round((event.end.getTime() - event.start.getTime()) / 60_000)
-  )
-}
-
-export function formatTimeRange(
+function formatTimeRange(
   start: Date,
   end: Date,
   timeZone?: string,
@@ -310,7 +294,9 @@ function expandRecurringEvent(
         break
       }
 
-      if (intersectsRange(cursor, nextEnd, context.rangeStart, context.rangeEnd)) {
+      if (
+        intersectsRange(cursor, nextEnd, context.rangeStart, context.rangeEnd)
+      ) {
         occurrences.push(createOccurrence(event, cursor, nextEnd, seriesIndex))
       }
 
@@ -457,7 +443,9 @@ function expandRecurringEvent(
       break
     }
 
-    if (intersectsRange(cursor, nextEnd, context.rangeStart, context.rangeEnd)) {
+    if (
+      intersectsRange(cursor, nextEnd, context.rangeStart, context.rangeEnd)
+    ) {
       occurrences.push(createOccurrence(event, cursor, nextEnd, seriesIndex))
     }
 
@@ -501,11 +489,15 @@ export function getDayEvents(occurrences: CalendarOccurrence[], day: Date) {
 }
 
 export function getAllDayEvents(occurrences: CalendarOccurrence[], day: Date) {
-  return getDayEvents(occurrences, day).filter((occurrence) => occurrence.allDay)
+  return getDayEvents(occurrences, day).filter(
+    (occurrence) => occurrence.allDay
+  )
 }
 
-export function getTimedEvents(occurrences: CalendarOccurrence[], day: Date) {
-  return getDayEvents(occurrences, day).filter((occurrence) => !occurrence.allDay)
+function getTimedEvents(occurrences: CalendarOccurrence[], day: Date) {
+  return getDayEvents(occurrences, day).filter(
+    (occurrence) => !occurrence.allDay
+  )
 }
 
 export function getDayLayout(
@@ -513,7 +505,7 @@ export function getDayLayout(
   day: Date,
   minMinute = 0,
   maxMinute = MINUTES_IN_DAY
-) {
+): DayEventLayout[] {
   const segments = getTimedEvents(occurrences, day)
     .map((occurrence) => {
       const dayStart = startOfDay(day)
@@ -550,7 +542,7 @@ export function getDayLayout(
       return left.startMinute - right.startMinute
     })
 
-  const groups: typeof segments[] = []
+  const groups: (typeof segments)[] = []
   let active: typeof segments = []
   let currentGroup: typeof segments = []
 
@@ -676,14 +668,15 @@ export function clampResize(
   return nextDate
 }
 
-export function intersectsRange(
+function intersectsRange(
   start: Date,
   end: Date,
   rangeStart: Date,
   rangeEnd: Date
 ) {
   return (
-    start.getTime() <= rangeEnd.getTime() && end.getTime() >= rangeStart.getTime()
+    start.getTime() <= rangeEnd.getTime() &&
+    end.getTime() >= rangeStart.getTime()
   )
 }
 
@@ -696,7 +689,9 @@ function hashString(value: string) {
 export function getDaySpan(event: Pick<CalendarEvent, "start" | "end">) {
   return Math.max(
     1,
-    Math.ceil((event.end.getTime() - event.start.getTime()) / MILLISECONDS_IN_DAY)
+    Math.ceil(
+      (event.end.getTime() - event.start.getTime()) / MILLISECONDS_IN_DAY
+    )
   )
 }
 
@@ -734,4 +729,3 @@ export function isOutsideMonth(day: Date, anchorDate: Date) {
 export function isToday(day: Date) {
   return isSameDay(day, new Date())
 }
-

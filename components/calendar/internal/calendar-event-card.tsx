@@ -15,15 +15,13 @@ import type {
   CalendarEventRenderer,
   CalendarOccurrence,
 } from "../types"
-import {
-  getCalendarSlotClassName,
-  getOccurrenceAccentColor,
-} from "../utils"
+import { getCalendarSlotClassName, getOccurrenceAccentColor } from "../utils"
 import type { EventVariant } from "./shared"
 
 type CalendarEventCardProps = {
   accentColor: string
   classNames?: CalendarClassNames
+  dragInstanceId: string
   event: CalendarOccurrence
   interactive: boolean
   onEventKeyCommand: (
@@ -43,13 +41,17 @@ type EventSurfaceProps = {
   ariaLabel?: string
   attributes?: DraggableAttributes
   className?: string
+  dragInstanceId?: string
   event: CalendarOccurrence
   isDragging?: boolean
   listeners?: DraggableSyntheticListeners
+  overlay?: boolean
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void
   onSelect?: () => void
   renderEvent?: CalendarEventRenderer
+  selected?: boolean
   showResizeHandles?: boolean
+  style?: CSSProperties
   timeLabel: string
   variant: EventVariant
 }
@@ -57,6 +59,7 @@ type EventSurfaceProps = {
 export function CalendarEventCard({
   accentColor,
   classNames,
+  dragInstanceId,
   event,
   interactive,
   onEventKeyCommand,
@@ -71,10 +74,11 @@ export function CalendarEventCard({
   const dragEnabled = interactive && !disabled
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
-      id: `event:${event.occurrenceId}`,
+      id: `event:${dragInstanceId}`,
       data: {
         kind: "event",
         occurrence: event,
+        variant,
       } satisfies CalendarDragData,
       disabled: !dragEnabled,
     })
@@ -90,18 +94,15 @@ export function CalendarEventCard({
         accentColor={accentColor}
         ariaLabel={`${event.title}. ${timeLabel}.`}
         attributes={dragEnabled ? attributes : undefined}
-        className={getSlotClassNameForEvent(
-          classNames,
-          variant,
-          selected,
-          isDragging
-        )}
+        className={getEventSlotClassName(classNames, variant)}
+        dragInstanceId={dragInstanceId}
         event={event}
         isDragging={isDragging}
         listeners={dragEnabled ? listeners : undefined}
         onKeyDown={(keyEvent) => onEventKeyCommand(event, keyEvent)}
         onSelect={() => onSelect(event)}
         renderEvent={renderEvent}
+        selected={selected}
         showResizeHandles={showResizeHandles && interactive}
         timeLabel={timeLabel}
         variant={variant}
@@ -115,13 +116,17 @@ export function EventSurface({
   ariaLabel,
   attributes,
   className,
+  dragInstanceId,
   event,
   isDragging = false,
   listeners,
+  overlay = false,
   onKeyDown,
   onSelect,
   renderEvent,
+  selected,
   showResizeHandles,
+  style,
   timeLabel,
   variant,
 }: EventSurfaceProps) {
@@ -137,11 +142,13 @@ export function EventSurface({
   ) : (
     <div className="min-w-0 space-y-0.5">
       {!isCompact ? (
-        <p className="truncate text-[10px] font-medium tracking-[0.24em] text-foreground/70 uppercase">
+        <p className="truncate text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
           {timeLabel}
         </p>
       ) : null}
-      <p className="truncate leading-tight font-medium">{event.title}</p>
+      <p className="truncate leading-tight font-medium text-card-foreground">
+        {event.title}
+      </p>
       {!isCompact && event.location ? (
         <p className="truncate text-[11px] text-muted-foreground">
           {event.location}
@@ -158,27 +165,44 @@ export function EventSurface({
   return (
     <button
       aria-label={ariaLabel}
-      className={className}
+      className={cn(
+        getEventSurfaceClassName(variant, selected, isDragging, overlay),
+        className
+      )}
+      data-calendar-drag-surface="true"
+      data-selected={selected ? "true" : undefined}
       onClick={onSelect}
       onKeyDown={onKeyDown}
-      style={getEventSurfaceStyle(accentColor, variant, isDragging)}
+      style={{
+        ...getEventSurfaceStyle(),
+        ...style,
+      }}
       type="button"
       {...attributes}
       {...listeners}
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-1.5 bottom-1.5 left-1.5 w-0.5 rounded-full"
+        style={{ backgroundColor: accentColor }}
+      />
       {showResizeHandles ? (
         <>
           <ResizeHandle
             accentColor={accentColor}
+            dragInstanceId={dragInstanceId}
             edge="start"
             event={event}
             interactive
+            variant={variant}
           />
           <ResizeHandle
             accentColor={accentColor}
+            dragInstanceId={dragInstanceId}
             edge="end"
             event={event}
             interactive
+            variant={variant}
           />
         </>
       ) : null}
@@ -199,21 +223,26 @@ export function getResolvedAccentColor(
 
 function ResizeHandle({
   accentColor,
+  dragInstanceId,
   edge,
   event,
   interactive,
+  variant,
 }: {
   accentColor: string
+  dragInstanceId?: string
   edge: "start" | "end"
   event: CalendarOccurrence
   interactive: boolean
+  variant: EventVariant
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `resize:${edge}:${event.occurrenceId}`,
+    id: `resize:${edge}:${dragInstanceId ?? event.occurrenceId}`,
     data: {
       kind: "resize",
       occurrence: event,
       edge,
+      variant,
     } satisfies CalendarDragData,
     disabled: !interactive,
   })
@@ -222,25 +251,31 @@ function ResizeHandle({
     <span
       ref={setNodeRef}
       className={cn(
-        "absolute inset-x-2 z-10 h-2 rounded-full",
+        "absolute inset-x-0 z-10 h-3",
         edge === "start"
           ? "top-0 -translate-y-1/2 cursor-ns-resize"
           : "bottom-0 translate-y-1/2 cursor-ns-resize"
       )}
-      style={{
-        backgroundColor: isDragging ? accentColor : `${accentColor}88`,
-      }}
       {...(interactive ? attributes : undefined)}
       {...(interactive ? listeners : undefined)}
-    />
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute top-1/2 left-3 h-1 w-5 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
+          selectedHandleVisibilityClass(isDragging)
+        )}
+        style={{
+          backgroundColor: isDragging ? accentColor : `${accentColor}88`,
+        }}
+      />
+    </span>
   )
 }
 
-function getSlotClassNameForEvent(
+function getEventSlotClassName(
   classNames: CalendarClassNames | undefined,
-  variant: EventVariant,
-  selected: boolean | undefined,
-  isDragging: boolean
+  variant: EventVariant
 ) {
   const slot =
     variant === "month"
@@ -249,33 +284,41 @@ function getSlotClassNameForEvent(
         ? "agendaEvent"
         : "timeGridEvent"
 
-  return getCalendarSlotClassName(
-    classNames,
-    slot,
-    cn(
-      "relative w-full min-w-0 overflow-hidden rounded-[calc(var(--radius)*0.95)] border px-2 py-2 text-left shadow-sm transition outline-none",
-      variant === "month" || variant === "all-day"
-        ? "px-2 py-1.5 text-xs"
-        : "h-full text-sm",
-      variant === "agenda" ? "min-h-20" : "",
-      selected ? "ring-2 ring-ring/70" : "",
-      isDragging ? "opacity-70" : "hover:-translate-y-px hover:shadow-md"
-    )
+  return getCalendarSlotClassName(classNames, slot)
+}
+
+function getEventSurfaceStyle(): CSSProperties {
+  return {
+    borderColor: "var(--color-border)",
+    backgroundColor: "var(--color-card)",
+    color: "var(--color-card-foreground)",
+  }
+}
+
+function getEventSurfaceClassName(
+  variant: EventVariant,
+  selected: boolean | undefined,
+  isDragging: boolean,
+  overlay: boolean
+) {
+  return cn(
+    "group/event relative w-full min-w-0 overflow-hidden rounded-[min(var(--radius-sm),4px)] border px-2 py-2 pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+    variant === "month" || variant === "all-day"
+      ? "px-2 py-1.5 pl-3 text-xs"
+      : "text-sm",
+    variant === "agenda" ? "min-h-20" : "",
+    variant === "time-grid" ? "h-full" : "",
+    selected ? "border-ring ring-2 ring-ring/60" : "",
+    overlay
+      ? "pointer-events-none shadow-sm"
+      : isDragging
+        ? "opacity-0"
+        : "hover:border-foreground/15"
   )
 }
 
-function getEventSurfaceStyle(
-  accentColor: string,
-  variant: EventVariant,
-  isDragging: boolean
-): CSSProperties {
-  const intensity =
-    variant === "time-grid" ? "22%" : variant === "overlay" ? "26%" : "14%"
-
-  return {
-    borderColor: `color-mix(in oklab, ${accentColor} 45%, var(--color-border))`,
-    background: `color-mix(in oklab, ${accentColor} ${intensity}, var(--color-background))`,
-    boxShadow: `inset 3px 0 0 ${accentColor}`,
-    opacity: isDragging ? 0.72 : 1,
-  }
+function selectedHandleVisibilityClass(isDragging: boolean) {
+  return isDragging
+    ? "opacity-100"
+    : "group-data-[selected=true]/event:opacity-100"
 }

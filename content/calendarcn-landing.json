@@ -1,0 +1,156 @@
+{
+  "brand": "CalendarCN",
+  "nav": [
+    {
+      "label": "Components",
+      "href": "#components"
+    },
+    {
+      "label": "Capabilities",
+      "href": "#capabilities"
+    },
+    {
+      "label": "Themes",
+      "href": "#themes"
+    }
+  ],
+  "hero": {
+    "badge": "Shadcn-first calendar primitives",
+    "title": "A proper component landing page for the calendar, not a poster.",
+    "body": "CalendarCN packages a real scheduling surface for shadcn apps: reusable exports, typed state contracts, token-driven styling, and an interactive demo that shows the component working as shipped.",
+    "primaryCta": {
+      "label": "Explore live themes",
+      "href": "#themes"
+    },
+    "secondaryCta": {
+      "label": "Explore the primitives",
+      "href": "#components"
+    },
+    "points": [
+      "Shadcn-ready surfaces that inherit your tokens",
+      "Month, week, day, and agenda views on one event model",
+      "Drag, resize, resource planning, and keyboard support built in"
+    ]
+  },
+  "snapshot": {
+    "eyebrow": "Library snapshot",
+    "title": "Built to sit inside your existing app shell.",
+    "body": "The calendar uses the same design tokens as the rest of the repo, so the landing page can focus on the exported component surface instead of inventing a separate brand world.",
+    "viewCountLabel": "Views",
+    "slotCountLabel": "Style slots",
+    "metrics": [
+      {
+        "label": "Event editing",
+        "value": "Create / move / resize"
+      },
+      {
+        "label": "Resources",
+        "value": "Built in"
+      }
+    ],
+    "viewsLabel": "Exported views",
+    "importLabel": "Quick import",
+    "importLines": [
+      "import { CalendarRoot, type CalendarEvent } from \"@/components/calendar\"",
+      "",
+      "const events: CalendarEvent[] = [",
+      "  { id: \"kickoff\", title: \"Kickoff\", start, end, resourceId: \"product\" },",
+      "]"
+    ]
+  },
+  "components": {
+    "eyebrow": "Core components",
+    "title": "The page now sells the component library directly.",
+    "body": "These are the pieces the repo actually exports. The landing page stays anchored in the real API instead of wrapping the calendar in unrelated presentation work.",
+    "items": [
+      {
+        "name": "CalendarRoot",
+        "title": "The full scheduler shell",
+        "body": "One entry point for date state, view switching, event operations, resources, and selection.",
+        "detail": "Use it when you want the complete scheduling experience without wiring each view by hand."
+      },
+      {
+        "name": "CalendarToolbar",
+        "title": "Navigation without extra glue",
+        "body": "Previous, next, today, and view switching are already shaped for the calendar state model.",
+        "detail": "It stays easy to restyle because the controls follow the same token system as the rest of the project."
+      },
+      {
+        "name": "Views",
+        "title": "Month, week, day, and agenda",
+        "body": "The exported views share the same event contracts, so the surface changes without changing your data layer.",
+        "detail": "That keeps demos, embedded schedules, and focused planning views aligned."
+      },
+      {
+        "name": "Types + slots",
+        "title": "Library-friendly customization",
+        "body": "Typed events, resources, and slot-level class hooks make it practical to adapt the calendar to an existing app shell.",
+        "detail": "You can keep the behavior and re-skin the surface instead of forking the component."
+      }
+    ]
+  },
+  "capabilities": {
+    "eyebrow": "Capabilities",
+    "title": "The surface behaves like a real scheduler out of the box.",
+    "body": "The value here is not just rendering events. It is shipping a calendar that already supports the interactions people expect once the schedule starts changing.",
+    "items": [
+      {
+        "icon": "calendar",
+        "title": "One model across every view",
+        "body": "Switch between planning and execution views without inventing separate state shapes for each surface."
+      },
+      {
+        "icon": "drag",
+        "title": "Direct manipulation",
+        "body": "Create on empty time, drag between slots, and resize from the edge where the schedule is already visible."
+      },
+      {
+        "icon": "interaction",
+        "title": "Practical interaction defaults",
+        "body": "Selection, keyboard nudging, and focused editing are already part of the component instead of follow-up work."
+      },
+      {
+        "icon": "theme",
+        "title": "Token-first styling",
+        "body": "The calendar sits on top of the same `background`, `card`, `border`, and `primary` tokens as the rest of a shadcn app."
+      }
+    ]
+  },
+  "integration": {
+    "eyebrow": "Integration notes",
+    "title": "Fits the way a shadcn app is usually assembled.",
+    "body": "The calendar does not need a parallel styling system. It already matches the token and component conventions the starter is using, and the extension points are specific enough for real product work.",
+    "items": [
+      "Typed `CalendarEvent` and `CalendarResource` contracts.",
+      "Handlers for create, move, resize, navigation, and selection.",
+      "Resource-aware planning for teams, tracks, rooms, or calendars.",
+      "Slot-level `classNames` overrides for local theming."
+    ]
+  },
+  "demo": {
+    "eyebrow": "Themes",
+    "title": "One live calendar, two synced theme modes.",
+    "body": "Use the navbar toggle to switch between white and dark. The whole landing page and the scheduler surface stay in sync while the component behavior remains unchanged.",
+    "backToTop": {
+      "label": "Back to top",
+      "href": "#top"
+    }
+  },
+  "footer": {
+    "eyebrow": "CalendarCN",
+    "title": "Cleaner landing page, same component underneath.",
+    "body": "The presentation layer now points back to the reusable calendar primitives and the live scheduler instead of competing with them.",
+    "externalCta": {
+      "href": "https://reactbits.dev/animations/gradual-blur",
+      "label": "See Gradual Blur on React Bits"
+    },
+    "primaryCta": {
+      "label": "Review components",
+      "href": "#components"
+    },
+    "secondaryCta": {
+      "label": "Jump to themes",
+      "href": "#themes"
+    }
+  }
+}

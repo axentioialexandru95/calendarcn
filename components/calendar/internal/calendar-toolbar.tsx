@@ -106,7 +106,11 @@ export function CalendarToolbar({
               return (
                 <Button
                   key={item}
-                  className={getCalendarSlotClassName(classNames, "viewButton")}
+                  className={getCalendarSlotClassName(
+                    classNames,
+                    "viewButton",
+                    "rounded-full"
+                  )}
                   onClick={() => onViewChange(item)}
                   size="sm"
                   variant={view === item ? "secondary" : "ghost"}

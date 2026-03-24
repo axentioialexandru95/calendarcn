@@ -18,7 +18,10 @@ import {
   getDayEvents,
   getEventMetaLabel,
 } from "../utils"
-import { CalendarEventCard, getResolvedAccentColor } from "./calendar-event-card"
+import {
+  CalendarEventCard,
+  getResolvedAccentColor,
+} from "./calendar-event-card"
 import type { CalendarAgendaViewProps } from "./shared"
 
 export function CalendarAgendaView(props: CalendarAgendaViewProps) {
@@ -118,12 +121,13 @@ function AgendaDayGroup({
               key={occurrence.occurrenceId}
               accentColor={getResolvedAccentColor(occurrence, getEventColor)}
               classNames={classNames}
+              dragInstanceId={`agenda:${day.toISOString()}:${occurrence.occurrenceId}`}
               event={occurrence}
               interactive={interactive}
               onEventKeyCommand={onEventKeyCommand}
               onSelect={onSelect}
               renderEvent={renderEvent}
-              selected={selectedEventId === occurrence.sourceEventId}
+              selected={selectedEventId === occurrence.occurrenceId}
               timeLabel={getEventMetaLabel(occurrence, timeZone)}
               variant="agenda"
             />

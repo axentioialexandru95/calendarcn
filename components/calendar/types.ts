@@ -4,6 +4,15 @@ export const calendarViews = ["month", "week", "day", "agenda"] as const
 
 export type CalendarView = (typeof calendarViews)[number]
 
+export const calendarEventVariants = [
+  "month",
+  "all-day",
+  "time-grid",
+  "agenda",
+] as const
+
+export type CalendarEventVariant = (typeof calendarEventVariants)[number]
+
 export const calendarSlots = [
   "root",
   "shell",
@@ -145,10 +154,11 @@ export type CalendarDragData =
   | {
       kind: "event"
       occurrence: CalendarOccurrence
+      variant: CalendarEventVariant
     }
   | {
       kind: "resize"
       occurrence: CalendarOccurrence
       edge: "start" | "end"
+      variant: CalendarEventVariant
     }
-
