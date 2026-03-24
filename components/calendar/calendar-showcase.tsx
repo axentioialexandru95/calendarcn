@@ -156,7 +156,7 @@ function CalendarShowcaseSurface({
     blockedRanges: CalendarRootComponentProps["blockedRanges"]
     businessHours: CalendarRootComponentProps["businessHours"]
     density: CalendarDensity
-    hiddenDays: CalendarRootComponentProps["hiddenDays"]
+    hiddenDays: NonNullable<CalendarRootComponentProps["hiddenDays"]>
     hourCycle: NonNullable<CalendarRootComponentProps["hourCycle"]>
     locale: NonNullable<CalendarRootComponentProps["locale"]>
     scrollToTime: NonNullable<CalendarRootComponentProps["scrollToTime"]>

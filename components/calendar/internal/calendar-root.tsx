@@ -491,6 +491,7 @@ export function CalendarRoot({
       (isCalendarDropTarget(event.over?.data.current)
         ? event.over?.data.current
         : undefined) ??
+      activeDropTarget ??
       lastDropTargetRef.current ??
       undefined
 
