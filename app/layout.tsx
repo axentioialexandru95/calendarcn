@@ -1,17 +1,12 @@
-import { Geist, Geist_Mono, Space_Grotesk, Noto_Serif } from "next/font/google"
+import type { Metadata } from "next"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
 
-const notoSerifHeading = Noto_Serif({subsets:['latin'],variable:'--font-heading'});
-
-const spaceGrotesk = Space_Grotesk({subsets:['latin'],variable:'--font-sans'})
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
+export const metadata: Metadata = {
+  title: "CalendarCN",
+  description: "Reusable shadcn calendar primitives with drag-and-drop views.",
+}
 
 export default function RootLayout({
   children,
@@ -22,9 +17,9 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", spaceGrotesk.variable, notoSerifHeading.variable)}
+      className="antialiased"
     >
-      <body>
+      <body className="min-h-svh bg-background text-foreground">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
