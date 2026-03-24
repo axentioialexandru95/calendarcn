@@ -70,12 +70,12 @@ export function CalendarCnHeroSection({ content }: CalendarCnHeroSectionProps) {
       </div>
 
       <div className="relative mx-auto flex min-h-[68svh] max-w-5xl items-center justify-center px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-        <div className="flex max-w-3xl flex-col items-center gap-6 text-center">
+        <div className="flex w-full max-w-3xl min-w-0 flex-col items-center gap-7 text-center sm:gap-8">
           <div className="inline-flex items-center rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             {content.badge}
           </div>
 
-          <div className="space-y-5">
+          <div className="w-full space-y-6 sm:space-y-7">
             <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
               {content.title}
             </h1>

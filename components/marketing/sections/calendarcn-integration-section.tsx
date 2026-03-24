@@ -24,31 +24,31 @@ export function CalendarCnIntegrationSection({
 }: CalendarCnIntegrationSectionProps) {
   return (
     <CalendarCnSectionFrame>
-      <div className="grid gap-8 xl:grid-cols-[0.88fr_1.12fr]">
-        <div className="space-y-6">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="min-w-0 space-y-6">
           <CalendarCnSectionHeading
             body={content.body}
             eyebrow={content.eyebrow}
             title={content.title}
           />
 
-          <article className="overflow-hidden rounded-[calc(var(--radius)*1.8)] border border-border/70 bg-card shadow-xs">
+          <article className="min-w-0 overflow-hidden rounded-[calc(var(--radius)*1.8)] border border-border/70 bg-card shadow-xs">
             <div className="border-b border-border/70 px-5 py-3">
               <p className="text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
                 {content.codeTitle}
               </p>
             </div>
-            <pre className="overflow-x-auto bg-zinc-950 px-0 py-4 text-sm leading-7">
+            <pre className="overflow-x-auto bg-zinc-950 px-0 py-4 text-xs leading-6 sm:text-sm sm:leading-7">
               <code>
                 {content.codeLines.map((line, index) => (
                   <div
                     key={`${index}-${line}`}
-                    className="grid grid-cols-[3rem_1fr] px-5"
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)] px-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:px-5"
                   >
                     <span className="pr-4 text-right text-xs text-zinc-500 select-none">
                       {index + 1}
                     </span>
-                    <span className="font-mono whitespace-pre text-zinc-100">
+                    <span className="block min-w-0 font-mono whitespace-pre text-zinc-100">
                       {highlightCodeLine(line)}
                     </span>
                   </div>
@@ -58,17 +58,17 @@ export function CalendarCnIntegrationSection({
           </article>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           {content.flow.map((item, index) => (
             <article
               key={item.title}
-              className="rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-card/90 p-5 shadow-xs"
+              className="min-w-0 rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-card/90 p-5 shadow-xs"
             >
-              <div className="flex gap-4">
+              <div className="flex min-w-0 gap-4">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-background text-sm font-semibold text-foreground">
                   {index + 1}
                 </div>
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <h3 className="text-lg font-semibold tracking-tight text-foreground">
                     {item.title}
                   </h3>

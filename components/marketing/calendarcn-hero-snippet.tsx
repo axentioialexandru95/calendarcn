@@ -31,25 +31,30 @@ export function CalendarCnHeroSnippet({ content }: CalendarCnHeroSnippetProps) {
   }
 
   return (
-    <div className="w-full max-w-2xl overflow-hidden rounded-[calc(var(--radius)*1.8)] border border-border/70 bg-card/85 text-left shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] backdrop-blur">
-      <div className="flex items-center justify-between border-b border-border/70 px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-3">
+    <div className="w-full max-w-2xl min-w-0 overflow-hidden rounded-[calc(var(--radius)*1.8)] border border-border/70 bg-card/85 text-left shadow-[0_24px_60px_-36px_rgba(15,23,42,0.55)] backdrop-blur">
+      <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-rose-400/80" />
             <span className="size-2.5 rounded-full bg-amber-400/80" />
             <span className="size-2.5 rounded-full bg-emerald-400/80" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
               {content.eyebrow}
             </p>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-medium text-foreground sm:truncate">
               {content.title}
             </p>
           </div>
         </div>
 
-        <Button onClick={handleCopy} size="sm" variant="outline">
+        <Button
+          className="w-full sm:w-auto"
+          onClick={handleCopy}
+          size="sm"
+          variant="outline"
+        >
           {copied ? (
             <CheckIcon className="size-4" weight="bold" />
           ) : (
@@ -60,20 +65,20 @@ export function CalendarCnHeroSnippet({ content }: CalendarCnHeroSnippetProps) {
       </div>
 
       <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
-        <div className="overflow-hidden rounded-[calc(var(--radius)*1.2)] border border-zinc-800/80 bg-zinc-950/95">
+        <div className="min-w-0 overflow-hidden rounded-[calc(var(--radius)*1.2)] border border-zinc-800/80 bg-zinc-950/95">
           <div className="flex items-center gap-2 border-b border-zinc-800/80 px-4 py-2.5 text-xs text-zinc-400">
             <TerminalWindowIcon className="size-4" />
             shell
           </div>
-          <pre className="overflow-x-auto px-4 py-4 text-sm leading-7">
+          <pre className="overflow-x-auto px-4 py-4 text-xs leading-6 sm:text-sm sm:leading-7">
             <code>
               {content.commands.map((line, index) => (
                 <div
                   key={`${index}-${line}`}
-                  className="grid grid-cols-[1.25rem_1fr]"
+                  className="grid grid-cols-[1.25rem_minmax(0,1fr)]"
                 >
                   <span className="text-zinc-500 select-none">$</span>
-                  <span className="font-mono whitespace-pre text-zinc-100">
+                  <span className="block min-w-0 font-mono whitespace-pre text-zinc-100">
                     {highlightCommandLine(line)}
                   </span>
                 </div>

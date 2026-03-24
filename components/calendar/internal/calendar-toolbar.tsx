@@ -140,7 +140,7 @@ export function CalendarToolbar({
             className={getCalendarSlotClassName(
               classNames,
               "viewSwitcher",
-              "flex w-full flex-wrap items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1 sm:w-auto"
+              "grid w-full grid-cols-2 gap-1 rounded-[1.35rem] border border-border/70 bg-muted/40 p-1.5 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-1 sm:rounded-full sm:p-1"
             )}
           >
             {availableViews.map((item) => {
@@ -152,7 +152,7 @@ export function CalendarToolbar({
                   className={getCalendarSlotClassName(
                     classNames,
                     "viewButton",
-                    "rounded-full"
+                    "w-full justify-center rounded-xl sm:w-auto sm:rounded-full"
                   )}
                   onClick={() => onViewChange(item)}
                   size="sm"

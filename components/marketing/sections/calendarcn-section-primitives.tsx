@@ -43,7 +43,7 @@ export function CalendarCnSectionHeading({
   title,
 }: CalendarCnSectionHeadingProps) {
   return (
-    <div className={cn("max-w-3xl space-y-3", className)}>
+    <div className={cn("max-w-3xl min-w-0 space-y-3", className)}>
       <p className="text-sm font-medium text-primary">{eyebrow}</p>
       <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
         {title}
