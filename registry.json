@@ -1,0 +1,66 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "calendarcn",
+  "homepage": "https://github.com/axentioialexandru95/calendarcn",
+  "items": [
+    {
+      "name": "calendarcn",
+      "type": "registry:block",
+      "title": "CalendarCN",
+      "description": "A shadcn-compatible scheduling surface with month, week, day, and agenda views, drag and drop, resizing, and typed event contracts.",
+      "dependencies": [
+        "@dnd-kit/core@^6.3.1",
+        "@dnd-kit/utilities@^3.2.2",
+        "@phosphor-icons/react@^2.1.10",
+        "date-fns@^4.1.0"
+      ],
+      "files": [
+        {
+          "path": "components/calendar/index.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-root.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-toolbar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-time-grid-view.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-month-view.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-agenda-view.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-event-card.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/calendar-event-context-menu.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/shared.ts",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Build the registry with `pnpm registry:build`, then install locally with `npx shadcn@latest add ./public/r/calendarcn.json` or host `/r/calendarcn.json` and add it by URL. Import `CalendarRoot` from `@/components/calendar`."
+    }
+  ]
+}

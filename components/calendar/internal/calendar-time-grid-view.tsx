@@ -1,7 +1,9 @@
+"use client"
+
 import * as React from "react"
 
 import { useDroppable } from "@dnd-kit/core"
-import { format, isSameDay, startOfDay } from "date-fns"
+import { isSameDay, startOfDay } from "date-fns"
 
 import { cn } from "@/lib/utils"
 
@@ -13,13 +15,20 @@ import type {
   CalendarOccurrence,
 } from "../types"
 import {
+  formatHourLabel,
+  formatMonthDayLabel,
   formatWeekday,
+  getBlockedSegmentsForDay,
   getAllDayEvents,
+  getBusinessHourSegmentsForDay,
   getCalendarSlotClassName,
   getDayLayout,
   getEventMetaLabel,
+  getNextVisibleDay,
+  getOutsideBusinessHourSegmentsForDay,
   getWeekDays,
   isToday,
+  parseTimeStringToMinuteOfDay,
   setMinuteOfDay,
 } from "../utils"
 import {
@@ -27,7 +36,7 @@ import {
   getResolvedAccentColor,
 } from "./calendar-event-card"
 import {
-  slotHeight,
+  type CalendarEventMenuPosition,
   type SharedViewProps,
   type TimeGridViewProps,
 } from "./shared"
@@ -41,7 +50,7 @@ export function CalendarWeekView(
   return (
     <CalendarTimeGridView
       {...props}
-      days={getWeekDays(props.anchorDate, props.weekStartsOn)}
+      days={getWeekDays(props.anchorDate, props.weekStartsOn, props.hiddenDays)}
     />
   )
 }
@@ -53,17 +62,22 @@ export function CalendarDayView(
   }
 ) {
   return (
-    <CalendarTimeGridView {...props} days={[startOfDay(props.anchorDate)]} />
+    <CalendarTimeGridView
+      {...props}
+      days={[startOfDay(getNextVisibleDay(props.anchorDate, props.hiddenDays))]}
+    />
   )
 }
 
 function CalendarTimeGridView(props: TimeGridViewProps) {
   const [draft, setDraft] = React.useState<CalendarCreateDraft | null>(null)
+  const [now, setNow] = React.useState(() => new Date())
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
   const minMinute = props.minHour * 60
   const maxMinute = props.maxHour * 60
   const totalMinutes = maxMinute - minMinute
   const slotCount = Math.max(1, totalMinutes / props.slotDuration)
-  const gridHeight = slotCount * slotHeight
+  const gridHeight = slotCount * props.slotHeight
   const commitDraft = React.useEffectEvent(() => {
     if (!draft || !props.onEventCreate) {
       return
@@ -100,8 +114,51 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
     }
   }, [draft])
 
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date())
+    }, 30_000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const container = scrollContainerRef.current
+
+    if (!container || !props.scrollToTime) {
+      return
+    }
+
+    const currentDate = new Date()
+    const targetMinute =
+      props.scrollToTime === "now"
+        ? currentDate.getHours() * 60 + currentDate.getMinutes()
+        : parseTimeStringToMinuteOfDay(props.scrollToTime)
+
+    if (targetMinute === null) {
+      return
+    }
+
+    const clampedMinute = Math.min(maxMinute, Math.max(minMinute, targetMinute))
+    const nextScrollTop = Math.max(
+      0,
+      ((clampedMinute - minMinute) / props.slotDuration) * props.slotHeight -
+        props.slotHeight * 2
+    )
+
+    container.scrollTop = nextScrollTop
+  }, [
+    maxMinute,
+    minMinute,
+    props.scrollToTime,
+    props.slotDuration,
+    props.slotHeight,
+  ])
+
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
+    <div className="min-h-0 flex-1 overflow-auto" ref={scrollContainerRef}>
       <div className="min-w-[56rem]">
         <div
           className="grid border-b border-border/70"
@@ -109,7 +166,12 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
             gridTemplateColumns: `4.5rem repeat(${props.days.length}, minmax(0, 1fr))`,
           }}
         >
-          <div className="border-r border-border/70 px-3 py-3 text-[11px] tracking-[0.24em] text-muted-foreground uppercase">
+          <div
+            className={cn(
+              "border-r border-border/70 text-[11px] tracking-[0.24em] text-muted-foreground uppercase",
+              props.density === "compact" ? "px-3 py-2.5" : "px-3 py-3"
+            )}
+          >
             Time
           </div>
           {props.days.map((day) => (
@@ -118,15 +180,26 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
               className={getCalendarSlotClassName(
                 props.classNames,
                 "timeGridHeader",
-                "border-r border-border/70 px-3 py-3 last:border-r-0"
+                cn(
+                  "border-r border-border/70 last:border-r-0",
+                  props.density === "compact" ? "px-3 py-2.5" : "px-3 py-3"
+                )
               )}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] tracking-[0.24em] text-muted-foreground uppercase">
-                    {formatWeekday(day)}
+                    {formatWeekday(day, {
+                      locale: props.locale,
+                      timeZone: props.timeZone,
+                    })}
                   </p>
-                  <p className="text-sm font-medium">{format(day, "MMM d")}</p>
+                  <p className="text-sm font-medium">
+                    {formatMonthDayLabel(day, {
+                      locale: props.locale,
+                      timeZone: props.timeZone,
+                    })}
+                  </p>
                 </div>
                 {isToday(day) ? (
                   <span className="rounded-full bg-primary/12 px-2 py-1 text-[11px] font-medium text-primary">
@@ -143,7 +216,12 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
             gridTemplateColumns: `4.5rem repeat(${props.days.length}, minmax(0, 1fr))`,
           }}
         >
-          <div className="border-r border-border/70 px-3 py-3 text-[11px] tracking-[0.24em] text-muted-foreground uppercase">
+          <div
+            className={cn(
+              "border-r border-border/70 text-[11px] tracking-[0.24em] text-muted-foreground uppercase",
+              props.density === "compact" ? "px-3 py-2.5" : "px-3 py-3"
+            )}
+          >
             All day
           </div>
           {props.days.map((day) => (
@@ -151,11 +229,16 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
               key={`all-day-${day.toISOString()}`}
               classNames={props.classNames}
               day={day}
+              density={props.density}
               events={getAllDayEvents(props.occurrences, day)}
               getEventColor={props.getEventColor}
+              hourCycle={props.hourCycle}
               interactive={props.interactive}
+              locale={props.locale}
               onEventKeyCommand={props.onEventKeyCommand}
+              onOpenContextMenu={props.onOpenContextMenu}
               onSelect={props.onSelectEvent}
+              previewOccurrenceId={props.previewOccurrenceId}
               renderEvent={props.renderEvent}
               selectedEventId={props.selectedEventId}
               timeZone={props.timeZone}
@@ -185,10 +268,16 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                   key={`time-label-${minute}`}
                   className="border-b border-border/50 px-3 text-[11px] text-muted-foreground"
                   style={{
-                    height: slotHeight,
+                    height: props.slotHeight,
                   }}
                 >
-                  {minute % 60 === 0 ? format(labelDate, "ha") : null}
+                  {minute % 60 === 0
+                    ? formatHourLabel(labelDate, {
+                        hourCycle: props.hourCycle,
+                        locale: props.locale,
+                        timeZone: props.timeZone,
+                      })
+                    : null}
                 </div>
               )
             })}
@@ -200,6 +289,13 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
               minMinute,
               maxMinute
             )
+            const currentMinuteOfDay = now.getHours() * 60 + now.getMinutes()
+            const showNowIndicator =
+              isSameDay(day, now) &&
+              currentMinuteOfDay >= minMinute &&
+              currentMinuteOfDay <= maxMinute
+            const nowIndicatorTop =
+              ((currentMinuteOfDay - minMinute) / totalMinutes) * gridHeight
 
             return (
               <div
@@ -216,14 +312,29 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                     height: gridHeight,
                   }}
                 >
+                  <TimeGridBackground
+                    blockedRanges={props.blockedRanges}
+                    businessHours={props.businessHours}
+                    day={day}
+                    gridHeight={gridHeight}
+                    maxMinute={maxMinute}
+                    minMinute={minMinute}
+                    slotDuration={props.slotDuration}
+                    slotHeight={props.slotHeight}
+                  />
                   <div
                     className="absolute inset-0 grid"
                     style={{
-                      gridTemplateRows: `repeat(${slotCount}, ${slotHeight}px)`,
+                      gridTemplateRows: `repeat(${slotCount}, ${props.slotHeight}px)`,
                     }}
                   >
                     {Array.from({ length: slotCount }).map((_, index) => {
                       const minuteOfDay = minMinute + index * props.slotDuration
+                      const slotStart = setMinuteOfDay(startOfDay(day), minuteOfDay)
+                      const slotEnd = setMinuteOfDay(
+                        startOfDay(day),
+                        Math.min(minuteOfDay + props.slotDuration, 1_440)
+                      )
 
                       return (
                         <TimeSlotDropZone
@@ -231,6 +342,14 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           classNames={props.classNames}
                           day={day}
                           draft={draft}
+                          blocked={
+                            props.blockedRanges?.some((range) =>
+                              slotStart.getTime() < range.end.getTime() &&
+                              slotEnd.getTime() > range.start.getTime()
+                            ) ?? false
+                          }
+                          hourCycle={props.hourCycle}
+                          locale={props.locale}
                           minuteOfDay={minuteOfDay}
                           onBeginCreate={() => {
                             if (!props.onEventCreate) {
@@ -265,14 +384,27 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           ((Math.min(draft.startMinute, draft.endMinute) -
                             minMinute) /
                             props.slotDuration) *
-                          slotHeight,
+                          props.slotHeight,
                         height:
                           ((Math.abs(draft.endMinute - draft.startMinute) +
                             props.slotDuration) /
                             props.slotDuration) *
-                          slotHeight,
+                          props.slotHeight,
                       }}
                     />
+                  ) : null}
+                  {showNowIndicator ? (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-20"
+                      style={{
+                        top: nowIndicatorTop,
+                      }}
+                    >
+                      <div className="relative h-0">
+                        <div className="absolute top-1/2 left-0 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_0_3px_var(--color-background)]" />
+                        <div className="h-0.5 w-full bg-primary" />
+                      </div>
+                    </div>
                   ) : null}
                   {layout.map((item, index) => {
                     const width = 100 / item.columns
@@ -285,10 +417,10 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                         style={{
                           top:
                             ((item.top - minMinute) / props.slotDuration) *
-                            slotHeight,
+                            props.slotHeight,
                           height: Math.max(
-                            slotHeight - 4,
-                            (item.height / props.slotDuration) * slotHeight
+                            props.slotHeight - 4,
+                            (item.height / props.slotDuration) * props.slotHeight
                           ),
                           left: `calc(${left}% + 0px)`,
                           width: `calc(${width}% - 0px)`,
@@ -301,11 +433,17 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                             index
                           )}
                           classNames={props.classNames}
+                          density={props.density}
                           dragInstanceId={`time-grid:${day.toISOString()}:${item.occurrence.occurrenceId}`}
                           event={item.occurrence}
                           interactive={props.interactive}
                           onEventKeyCommand={props.onEventKeyCommand}
+                          onOpenContextMenu={props.onOpenContextMenu}
                           onSelect={props.onSelectEvent}
+                          preview={
+                            props.previewOccurrenceId ===
+                            item.occurrence.occurrenceId
+                          }
                           renderEvent={props.renderEvent}
                           selected={
                             props.selectedEventId ===
@@ -314,7 +452,11 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           showResizeHandles
                           timeLabel={getEventMetaLabel(
                             item.occurrence,
-                            props.timeZone
+                            {
+                              hourCycle: props.hourCycle,
+                              locale: props.locale,
+                              timeZone: props.timeZone,
+                            }
                           )}
                           variant="time-grid"
                         />
@@ -331,17 +473,127 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
   )
 }
 
+function TimeGridBackground({
+  blockedRanges,
+  businessHours,
+  day,
+  gridHeight,
+  maxMinute,
+  minMinute,
+  slotDuration,
+  slotHeight,
+}: {
+  blockedRanges: TimeGridViewProps["blockedRanges"]
+  businessHours: TimeGridViewProps["businessHours"]
+  day: Date
+  gridHeight: number
+  maxMinute: number
+  minMinute: number
+  slotDuration: number
+  slotHeight: number
+}) {
+  const outsideBusinessHourSegments = getOutsideBusinessHourSegmentsForDay(
+    day,
+    businessHours,
+    minMinute,
+    maxMinute
+  )
+  const businessHourSegments = getBusinessHourSegmentsForDay(
+    day,
+    businessHours,
+    minMinute,
+    maxMinute
+  )
+  const blockedSegments = getBlockedSegmentsForDay(
+    day,
+    blockedRanges,
+    minMinute,
+    maxMinute
+  )
+
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {outsideBusinessHourSegments.map((segment) => (
+        <div
+          key={`outside-${segment.startMinute}-${segment.endMinute}`}
+          className="absolute inset-x-0 bg-muted/20"
+          style={{
+            height:
+              ((segment.endMinute - segment.startMinute) / slotDuration) *
+              slotHeight,
+            top:
+              ((segment.startMinute - minMinute) / slotDuration) * slotHeight,
+          }}
+        />
+      ))}
+      {businessHourSegments.map((segment) => (
+        <div
+          key={`business-${segment.startMinute}-${segment.endMinute}`}
+          className="absolute inset-x-0 border-y border-primary/10 bg-primary/[0.03]"
+          style={{
+            height:
+              ((segment.endMinute - segment.startMinute) / slotDuration) *
+              slotHeight,
+            top:
+              ((segment.startMinute - minMinute) / slotDuration) * slotHeight,
+          }}
+        />
+      ))}
+      {blockedSegments.map((segment) => (
+        <div
+          key={segment.id}
+          className="absolute inset-x-1 rounded-[calc(var(--radius)*0.7)] border"
+          style={{
+            backgroundColor: `${segment.color ?? "#be185d"}14`,
+            borderColor: `${segment.color ?? "#be185d"}33`,
+            height:
+              ((segment.endMinute - segment.startMinute) / slotDuration) *
+              slotHeight,
+            top:
+              ((segment.startMinute - minMinute) / slotDuration) * slotHeight,
+          }}
+        >
+          {segment.label ? (
+            <span
+              className="absolute left-2 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+              style={{
+                backgroundColor: `${segment.color ?? "#be185d"}22`,
+                color: segment.color ?? "#be185d",
+              }}
+            >
+              {segment.label}
+            </span>
+          ) : null}
+        </div>
+      ))}
+      <div className="absolute inset-0 shadow-[inset_0_1px_0_0_var(--color-border)]" />
+      <div
+        className="absolute inset-x-0 bottom-0 border-b border-border/50"
+        style={{ top: gridHeight - 1 }}
+      />
+    </div>
+  )
+}
+
 type AllDayDropZoneProps = {
   classNames?: CalendarClassNames
   day: Date
+  density: "comfortable" | "compact"
   events: CalendarOccurrence[]
   getEventColor?: (occurrence: CalendarOccurrence) => string
+  hourCycle?: 12 | 24
   interactive: boolean
+  locale?: string
   onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: React.KeyboardEvent<HTMLButtonElement>
   ) => void
+  onOpenContextMenu?: (
+    occurrence: CalendarOccurrence,
+    position: CalendarEventMenuPosition
+  ) => void
   onSelect: (occurrence: CalendarOccurrence) => void
+  previewOccurrenceId?: string
   renderEvent?: CalendarEventRenderer
   selectedEventId?: string
   timeZone?: string
@@ -350,11 +602,16 @@ type AllDayDropZoneProps = {
 function AllDayDropZone({
   classNames,
   day,
+  density,
   events,
   getEventColor,
+  hourCycle,
   interactive,
+  locale,
   onEventKeyCommand,
+  onOpenContextMenu,
   onSelect,
+  previewOccurrenceId,
   renderEvent,
   selectedEventId,
   timeZone,
@@ -374,7 +631,9 @@ function AllDayDropZone({
         classNames,
         "allDayLane",
         cn(
-          "min-h-18 border-r border-border/70 px-2 py-2 last:border-r-0",
+          density === "compact"
+            ? "min-h-16 border-r border-border/70 px-2 py-1.5 last:border-r-0"
+            : "min-h-18 border-r border-border/70 px-2 py-2 last:border-r-0",
           isOver ? "bg-muted/50" : ""
         )
       )}
@@ -389,14 +648,21 @@ function AllDayDropZone({
               index
             )}
             classNames={classNames}
+            density={density}
             dragInstanceId={`all-day:${day.toISOString()}:${occurrence.occurrenceId}`}
             event={occurrence}
             interactive={interactive}
             onEventKeyCommand={onEventKeyCommand}
+            onOpenContextMenu={onOpenContextMenu}
             onSelect={onSelect}
+            preview={previewOccurrenceId === occurrence.occurrenceId}
             renderEvent={renderEvent}
             selected={selectedEventId === occurrence.occurrenceId}
-            timeLabel={getEventMetaLabel(occurrence, timeZone)}
+            timeLabel={getEventMetaLabel(occurrence, {
+              hourCycle,
+              locale,
+              timeZone,
+            })}
             variant="all-day"
           />
         ))}
@@ -406,18 +672,24 @@ function AllDayDropZone({
 }
 
 type TimeSlotDropZoneProps = {
+  blocked: boolean
   classNames?: CalendarClassNames
   day: Date
   draft: CalendarCreateDraft | null
+  hourCycle?: 12 | 24
+  locale?: string
   minuteOfDay: number
   onBeginCreate: () => void
   onExtendCreate: () => void
 }
 
 function TimeSlotDropZone({
+  blocked,
   classNames,
   day,
   draft,
+  hourCycle,
+  locale,
   minuteOfDay,
   onBeginCreate,
   onExtendCreate,
@@ -434,18 +706,24 @@ function TimeSlotDropZone({
   return (
     <button
       ref={setNodeRef}
-      aria-label={`Create event at ${format(setMinuteOfDay(day, minuteOfDay), "p")} on ${format(day, "EEEE")}`}
+      aria-label={`Create event at ${formatHourLabel(setMinuteOfDay(day, minuteOfDay), {
+        hourCycle,
+        locale,
+      })} on ${formatWeekday(day, {
+        locale,
+      })}`}
       className={getCalendarSlotClassName(
         classNames,
         "timeGridSlot",
         cn(
           "border-b border-border/50 text-left transition-colors",
           isOver ? "bg-muted/70" : "",
+          blocked ? "cursor-not-allowed" : "",
           draft && isSameDay(draft.day, day) ? "cursor-crosshair" : ""
         )
       )}
       onPointerDown={(event) => {
-        if (event.button !== 0) {
+        if (event.button !== 0 || blocked) {
           return
         }
 

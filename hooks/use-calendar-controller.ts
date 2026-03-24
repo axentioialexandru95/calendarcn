@@ -13,10 +13,14 @@ import {
   applyMoveOperation,
   applyResizeOperation,
   createEventFromOperation,
+  duplicateOccurrenceAsEvent,
+  normalizeAvailableViews,
+  resolveCalendarView,
   shiftDate,
 } from "@/components/calendar/utils"
 
 type UseCalendarControllerOptions = {
+  availableViews?: CalendarView[]
   initialDate?: Date
   initialEvents?: CalendarEvent[]
   initialView?: CalendarView
@@ -27,12 +31,20 @@ export function useCalendarController(
   options: UseCalendarControllerOptions = {}
 ) {
   const [events, setEvents] = React.useState(options.initialEvents ?? [])
+  const availableViews = React.useMemo(
+    () => normalizeAvailableViews(options.availableViews),
+    [options.availableViews]
+  )
   const [date, setDateState] = React.useState(options.initialDate ?? new Date())
   const [view, setViewState] = React.useState<CalendarView>(
-    options.initialView ?? "week"
+    resolveCalendarView(options.initialView ?? "week", availableViews)
   )
   const [selectedEventId, setSelectedEventId] = React.useState<string>()
   const [isPending, startTransition] = React.useTransition()
+
+  React.useEffect(() => {
+    setViewState((currentView) => resolveCalendarView(currentView, availableViews))
+  }, [availableViews])
 
   function setDate(nextDate: Date) {
     startTransition(() => {
@@ -41,6 +53,10 @@ export function useCalendarController(
   }
 
   function setView(nextView: CalendarView) {
+    if (!availableViews.includes(nextView)) {
+      return
+    }
+
     startTransition(() => {
       setViewState(nextView)
     })
@@ -65,10 +81,60 @@ export function useCalendarController(
   }
 
   function handleEventCreate(operation: CalendarCreateOperation) {
+    setEvents((currentEvents) => {
+      const nextEvent = createEventFromOperation(
+        operation,
+        options.createDefaults
+      )
+
+      const hasDuplicate = currentEvents.some((event) => {
+        return (
+          event.title === nextEvent.title &&
+          event.start.getTime() === nextEvent.start.getTime() &&
+          event.end.getTime() === nextEvent.end.getTime() &&
+          (event.allDay ?? false) === (nextEvent.allDay ?? false) &&
+          event.resourceId === nextEvent.resourceId
+        )
+      })
+
+      if (hasDuplicate) {
+        return currentEvents
+      }
+
+      return [...currentEvents, nextEvent]
+    })
+  }
+
+  function handleEventDuplicate(
+    occurrence: CalendarMoveOperation["occurrence"]
+  ) {
     setEvents((currentEvents) => [
       ...currentEvents,
-      createEventFromOperation(operation, options.createDefaults),
+      duplicateOccurrenceAsEvent(occurrence),
     ])
+  }
+
+  function handleEventArchive(occurrence: CalendarMoveOperation["occurrence"]) {
+    setEvents((currentEvents) =>
+      currentEvents.map((event) => {
+        if (event.id !== occurrence.sourceEventId) {
+          return event
+        }
+
+        return {
+          ...event,
+          archived: true,
+        }
+      })
+    )
+    setSelectedEventId(undefined)
+  }
+
+  function handleEventDelete(occurrence: CalendarMoveOperation["occurrence"]) {
+    setEvents((currentEvents) =>
+      currentEvents.filter((event) => event.id !== occurrence.sourceEventId)
+    )
+    setSelectedEventId(undefined)
   }
 
   return {
@@ -84,8 +150,10 @@ export function useCalendarController(
     step,
     view,
     handleEventCreate,
+    handleEventArchive,
+    handleEventDelete,
+    handleEventDuplicate,
     handleEventMove,
     handleEventResize,
   }
 }
-

@@ -4,6 +4,7 @@ import * as React from "react"
 import { MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { useTheme } from "next-themes"
 
+import { CalendarCnLogo } from "@/components/marketing/calendarcn-logo"
 import {
   DEFAULT_CALENDARCN_THEME,
   toggleCalendarCnTheme,
@@ -11,17 +12,13 @@ import {
 import { cn } from "@/lib/utils"
 
 type CalendarCnFloatingNavProps = {
-  brand: string
   items: Array<{
     href: string
     label: string
   }>
 }
 
-export function CalendarCnFloatingNav({
-  brand,
-  items,
-}: CalendarCnFloatingNavProps) {
+export function CalendarCnFloatingNav({ items }: CalendarCnFloatingNavProps) {
   const { setTheme, theme } = useTheme()
   const sectionIds = React.useMemo(
     () => ["top", ...items.map((item) => item.href.replace(/^#/, ""))],
@@ -87,9 +84,14 @@ export function CalendarCnFloatingNav({
       <div className="pointer-events-auto mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/72 px-4 py-3 shadow-[0_18px_48px_-28px_rgba(15,23,42,0.5)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
         <a
           href="#top"
-          className="text-sm font-semibold tracking-tight text-foreground/92 transition-colors hover:text-foreground"
+          aria-label="calendarcn"
+          className="transition-colors hover:text-foreground"
         >
-          {brand}
+          <CalendarCnLogo
+            className="gap-2"
+            iconClassName="size-7.5 rounded-[0.9rem]"
+            labelClassName="text-[0.95rem] text-foreground/92"
+          />
         </a>
 
         <nav className="hidden items-center gap-1.5 md:flex">

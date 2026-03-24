@@ -9,20 +9,201 @@ import {
 } from "@phosphor-icons/react"
 
 import { CalendarRoot } from "@/components/calendar"
+import { CalendarCnLogo } from "@/components/marketing/calendarcn-logo"
 import { Button } from "@/components/ui/button"
 import { useCalendarController } from "@/hooks/use-calendar-controller"
-import { buildDemoEvents, buildDemoResources } from "@/lib/calendar-demo-data"
+import { cn } from "@/lib/utils"
+import {
+  buildDemoBlockedRanges,
+  buildDemoBusinessHours,
+  buildDemoEvents,
+  buildDemoResources,
+  CALENDAR_DEMO_SEED_VERSION,
+} from "@/lib/calendar-demo-data"
+import type { CalendarDensity, CalendarView } from "@/components/calendar"
+
+type CalendarShowcaseVariant = "embed" | "standalone"
+
+type DemoConfigState = {
+  compact: boolean
+  focusedViews: boolean
+  hideWeekends: boolean
+  showBlockedRanges: boolean
+  showBusinessHours: boolean
+  twentyFourHour: boolean
+}
+
+type DemoPresetId = "starter" | "workweek" | "operations"
+
+const demoPresets: Record<
+  DemoPresetId,
+  {
+    description: string
+    label: string
+    state: DemoConfigState
+  }
+> = {
+  starter: {
+    description: "All views, relaxed spacing, no scheduling constraints.",
+    label: "Starter",
+    state: {
+      compact: false,
+      focusedViews: false,
+      hideWeekends: false,
+      showBlockedRanges: false,
+      showBusinessHours: false,
+      twentyFourHour: false,
+    },
+  },
+  workweek: {
+    description: "A focused product team setup with work hours and blocked lunch.",
+    label: "Workweek",
+    state: {
+      compact: true,
+      focusedViews: true,
+      hideWeekends: true,
+      showBlockedRanges: true,
+      showBusinessHours: true,
+      twentyFourHour: true,
+    },
+  },
+  operations: {
+    description: "Seven-day scheduling with 24-hour time and release freezes.",
+    label: "Operations",
+    state: {
+      compact: false,
+      focusedViews: true,
+      hideWeekends: false,
+      showBlockedRanges: true,
+      showBusinessHours: false,
+      twentyFourHour: true,
+    },
+  },
+}
+
+const demoToggleDefinitions: Array<{
+  key: keyof DemoConfigState
+  label: string
+}> = [
+  {
+    key: "compact",
+    label: "Compact density",
+  },
+  {
+    key: "hideWeekends",
+    label: "Hide weekends",
+  },
+  {
+    key: "showBusinessHours",
+    label: "Business hours",
+  },
+  {
+    key: "showBlockedRanges",
+    label: "Blocked ranges",
+  },
+  {
+    key: "twentyFourHour",
+    label: "24h clock",
+  },
+  {
+    key: "focusedViews",
+    label: "Work views only",
+  },
+]
 
 export function CalendarShowcase({
   initialDateIso,
   variant = "standalone",
 }: {
   initialDateIso: string
-  variant?: "embed" | "standalone"
+  variant?: CalendarShowcaseVariant
+}) {
+  return (
+    <CalendarShowcaseSurface
+      key={`${initialDateIso}:${CALENDAR_DEMO_SEED_VERSION}`}
+      initialDateIso={initialDateIso}
+      variant={variant}
+    />
+  )
+}
+
+function CalendarShowcaseSurface({
+  initialDateIso,
+  variant = "standalone",
+}: {
+  initialDateIso: string
+  variant?: CalendarShowcaseVariant
 }) {
   const [initialDate] = React.useState(() => new Date(initialDateIso))
+  const [demoConfig, setDemoConfig] = React.useState<DemoConfigState>(
+    demoPresets.workweek.state
+  )
   const resources = React.useState(() => buildDemoResources())[0]
+  const blockedRanges = React.useMemo(
+    () => buildDemoBlockedRanges(initialDate),
+    [initialDate]
+  )
+  const businessHours = React.useMemo(() => buildDemoBusinessHours(), [])
+  const selectedPresetId = React.useMemo<DemoPresetId | null>(() => {
+    const matchedEntry = Object.entries(demoPresets).find(([, preset]) =>
+      isSameDemoConfigState(preset.state, demoConfig)
+    )
+
+    return (matchedEntry?.[0] as DemoPresetId | undefined) ?? null
+  }, [demoConfig])
+  const calendarConfig = React.useMemo<{
+    availableViews: CalendarView[]
+    blockedRanges: CalendarRootComponentProps["blockedRanges"]
+    businessHours: CalendarRootComponentProps["businessHours"]
+    density: CalendarDensity
+    hiddenDays: CalendarRootComponentProps["hiddenDays"]
+    hourCycle: NonNullable<CalendarRootComponentProps["hourCycle"]>
+    locale: NonNullable<CalendarRootComponentProps["locale"]>
+    scrollToTime: NonNullable<CalendarRootComponentProps["scrollToTime"]>
+  }>(() => {
+    const availableViews = demoConfig.focusedViews
+      ? (["week", "day", "agenda"] as CalendarView[])
+      : (["month", "week", "day", "agenda"] as CalendarView[])
+
+    return {
+      availableViews,
+      blockedRanges: demoConfig.showBlockedRanges ? blockedRanges : undefined,
+      businessHours: demoConfig.showBusinessHours ? businessHours : undefined,
+      density: demoConfig.compact ? "compact" : "comfortable",
+      hiddenDays: demoConfig.hideWeekends ? ([0, 6] as const) : [],
+      hourCycle: demoConfig.twentyFourHour ? (24 as const) : (12 as const),
+      locale: demoConfig.twentyFourHour ? "en-GB" : "en-US",
+      scrollToTime: demoConfig.showBusinessHours ? "08:30" : "09:00",
+    }
+  }, [blockedRanges, businessHours, demoConfig])
+  const activeConfigTokens = React.useMemo(() => {
+    const tokens = [
+      `density="${calendarConfig.density}"`,
+      `hourCycle={${calendarConfig.hourCycle}}`,
+      `locale="${calendarConfig.locale}"`,
+      `scrollToTime="${calendarConfig.scrollToTime}"`,
+    ]
+
+    if (calendarConfig.availableViews.length < 4) {
+      tokens.push('availableViews={["week", "day", "agenda"]}')
+    }
+
+    if (calendarConfig.hiddenDays.length > 0) {
+      tokens.push("hiddenDays={[0, 6]}")
+    }
+
+    if (calendarConfig.businessHours) {
+      tokens.push("businessHours={demoBusinessHours}")
+    }
+
+    if (calendarConfig.blockedRanges) {
+      tokens.push("blockedRanges={demoBlockedRanges}")
+    }
+
+    return tokens
+  }, [calendarConfig])
   const controller = useCalendarController({
+    availableViews: calendarConfig.availableViews,
     initialDate,
     initialEvents: buildDemoEvents(initialDate),
     initialView: "week",
@@ -36,17 +217,48 @@ export function CalendarShowcase({
 
   const calendar = (
     <CalendarRoot
+      createEventSheet={{
+        description:
+          "Capture the details before the appointment lands on the schedule.",
+        submitLabel: "Create appointment",
+        title: "New appointment",
+      }}
       date={controller.date}
+      eventChangeConfirmation={{
+        cancelLabel: "Keep original time",
+        confirmLabel: (context) =>
+          context.action === "move" ? "Confirm move" : "Confirm resize",
+        description: (context) =>
+          context.action === "move"
+            ? `Apply the new schedule for ${context.occurrence.title}?`
+            : `Apply the new duration for ${context.occurrence.title}?`,
+        shouldConfirm: () => true,
+        title: (context) =>
+          context.action === "move"
+            ? "Confirm appointment move"
+            : "Confirm appointment resize",
+      }}
       events={controller.events}
       onDateChange={controller.setDate}
+      onEventArchive={controller.handleEventArchive}
       onEventCreate={controller.handleEventCreate}
+      onEventDelete={controller.handleEventDelete}
+      onEventDuplicate={controller.handleEventDuplicate}
       onEventMove={controller.handleEventMove}
       onEventResize={controller.handleEventResize}
       onNavigate={controller.step}
       onSelectedEventChange={controller.setSelectedEventId}
       onToday={controller.goToToday}
       onViewChange={controller.setView}
+      availableViews={calendarConfig.availableViews}
+      blockedRanges={calendarConfig.blockedRanges}
+      businessHours={calendarConfig.businessHours}
+      density={calendarConfig.density}
+      hiddenDays={calendarConfig.hiddenDays}
+      hourCycle={calendarConfig.hourCycle}
+      locale={calendarConfig.locale}
       resources={resources}
+      scrollToTime={calendarConfig.scrollToTime}
       selectedEventId={controller.selectedEventId}
       timeZone="Europe/Bucharest"
       view={controller.view}
@@ -56,49 +268,20 @@ export function CalendarShowcase({
   if (variant === "embed") {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col gap-4 rounded-[calc(var(--radius)*1.4)] border border-border/70 bg-background/80 px-4 py-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.55)] backdrop-blur md:flex-row md:items-center md:justify-between md:px-5">
-          <div className="space-y-2">
-            <p className="text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
-              Live surface
-            </p>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Switch views, drag sessions to new times, resize from the edge, or
-              create a fresh block by dragging across open time.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 md:items-end">
-            <div className="flex flex-wrap gap-2">
-              {resources.map((resource) => (
-                <span
-                  key={resource.id}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/75 px-3 py-1.5 text-xs text-foreground"
-                >
-                  <span
-                    className="size-2 rounded-full"
-                    style={{ backgroundColor: resource.color }}
-                  />
-                  {resource.label}
-                </span>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={controller.goToToday}
-                size="sm"
-                variant="outline"
-              >
-                Jump to today
-              </Button>
-              <Button
-                onClick={() => controller.setView("month")}
-                size="sm"
-                variant="ghost"
-              >
-                Open month view
-              </Button>
-            </div>
-          </div>
-        </div>
+        <CalendarShowcaseConfigPanel
+          activeConfigTokens={activeConfigTokens}
+          config={demoConfig}
+          onPresetSelect={(presetId) => {
+            setDemoConfig(demoPresets[presetId].state)
+          }}
+          onToggle={(key) => {
+            setDemoConfig((currentConfig) => ({
+              ...currentConfig,
+              [key]: !currentConfig[key],
+            }))
+          }}
+          selectedPresetId={selectedPresetId}
+        />
         {calendar}
       </div>
     )
@@ -110,9 +293,10 @@ export function CalendarShowcase({
         <aside className="flex flex-col justify-between rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-muted/25 p-5">
           <div className="space-y-8">
             <div className="space-y-3">
-              <p className="text-[11px] tracking-[0.32em] text-muted-foreground uppercase">
-                CalendarCN
-              </p>
+              <CalendarCnLogo
+                iconClassName="size-7.5 rounded-[0.9rem]"
+                labelClassName="text-[0.92rem]"
+              />
               <div className="space-y-2">
                 <h1 className="font-heading text-3xl leading-none tracking-tight">
                   Reusable calendar primitives for shadcn surfaces.
@@ -127,7 +311,7 @@ export function CalendarShowcase({
               <FeatureRow
                 icon={CalendarDotsIcon}
                 title="Library-first"
-                body="The page is a demo shell. The calendar itself lives in reusable exported components."
+                body="The calendar is built from reusable exported components that can be dropped into your own product surfaces."
               />
               <FeatureRow
                 icon={ArrowsOutCardinalIcon}
@@ -175,17 +359,144 @@ export function CalendarShowcase({
               Jump to today
             </Button>
             <Button
-              onClick={() => controller.setView("month")}
+              onClick={() => controller.setView("agenda")}
               size="sm"
               variant="ghost"
             >
-              Open month view
+              Open agenda view
             </Button>
           </div>
         </aside>
-        {calendar}
+        <div className="space-y-3">
+          <CalendarShowcaseConfigPanel
+            activeConfigTokens={activeConfigTokens}
+            compact
+            config={demoConfig}
+            onPresetSelect={(presetId) => {
+              setDemoConfig(demoPresets[presetId].state)
+            }}
+            onToggle={(key) => {
+              setDemoConfig((currentConfig) => ({
+                ...currentConfig,
+                [key]: !currentConfig[key],
+              }))
+            }}
+            selectedPresetId={selectedPresetId}
+          />
+          {calendar}
+        </div>
       </div>
     </main>
+  )
+}
+
+function CalendarShowcaseConfigPanel({
+  activeConfigTokens,
+  compact = false,
+  config,
+  onPresetSelect,
+  onToggle,
+  selectedPresetId,
+}: {
+  activeConfigTokens: string[]
+  compact?: boolean
+  config: DemoConfigState
+  onPresetSelect: (presetId: DemoPresetId) => void
+  onToggle: (key: keyof DemoConfigState) => void
+  selectedPresetId: DemoPresetId | null
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-[calc(var(--radius)*1.45)] border border-border/70 bg-card/90 shadow-xs",
+        compact ? "p-4" : "p-5"
+      )}
+    >
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <p className="text-[11px] tracking-[0.24em] text-muted-foreground uppercase">
+            Demo configuration
+          </p>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            Switch presets or toggle the props live.
+          </h2>
+          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+            The demo is no longer pinned to one hardcoded setup. Choose a preset
+            or flip individual options to see how the same `CalendarRoot`
+            surface behaves under different configuration shapes.
+          </p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {(
+            Object.entries(demoPresets) as Array<
+              [
+                DemoPresetId,
+                {
+                  description: string
+                  label: string
+                },
+              ]
+            >
+          ).map(([presetId, preset]) => {
+            const active = selectedPresetId === presetId
+
+            return (
+              <button
+                key={presetId}
+                aria-pressed={active}
+                className={cn(
+                  "rounded-[calc(var(--radius)*1.1)] border px-4 py-3 text-left transition-colors",
+                  active
+                    ? "border-primary/40 bg-primary/[0.07]"
+                    : "border-border/70 bg-background hover:bg-muted/50"
+                )}
+                onClick={() => onPresetSelect(presetId)}
+                type="button"
+              >
+                <p className="text-sm font-semibold text-foreground">
+                  {preset.label}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  {preset.description}
+                </p>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {demoToggleDefinitions.map((toggle) => (
+            <Button
+              key={toggle.key}
+              aria-pressed={config[toggle.key]}
+              onClick={() => onToggle(toggle.key)}
+              size="xs"
+              type="button"
+              variant={config[toggle.key] ? "secondary" : "outline"}
+            >
+              {toggle.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="rounded-[calc(var(--radius)*1.05)] border border-border/70 bg-background/80 px-4 py-3">
+          <p className="text-[11px] tracking-[0.22em] text-muted-foreground uppercase">
+            Active props
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {activeConfigTokens.map((token) => (
+              <span
+                key={token}
+                className="rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 font-mono text-[11px] text-foreground"
+              >
+                {token}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -210,3 +521,18 @@ function FeatureRow({
     </div>
   )
 }
+
+function isSameDemoConfigState(
+  left: DemoConfigState,
+  right: DemoConfigState
+) {
+  return (
+    left.compact === right.compact &&
+    left.focusedViews === right.focusedViews &&
+    left.hideWeekends === right.hideWeekends &&
+    left.showBlockedRanges === right.showBlockedRanges &&
+    left.showBusinessHours === right.showBusinessHours &&
+    left.twentyFourHour === right.twentyFourHour
+  )
+}
+type CalendarRootComponentProps = React.ComponentProps<typeof CalendarRoot>

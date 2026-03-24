@@ -4,6 +4,8 @@ export const calendarViews = ["month", "week", "day", "agenda"] as const
 
 export type CalendarView = (typeof calendarViews)[number]
 
+export type CalendarDensity = "comfortable" | "compact"
+
 export const calendarEventVariants = [
   "month",
   "all-day",
@@ -43,6 +45,20 @@ export type CalendarClassNames = Partial<Record<CalendarSlot, string>>
 
 export type CalendarWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
+export type CalendarBusinessHoursWindow = {
+  days?: CalendarWeekday[]
+  start: string
+  end: string
+}
+
+export type CalendarBlockedRange = {
+  id: string
+  start: Date
+  end: Date
+  label?: string
+  color?: string
+}
+
 export type CalendarRecurrenceFrequency =
   | "daily"
   | "weekly"
@@ -73,6 +89,7 @@ export type CalendarEvent = {
   start: Date
   end: Date
   allDay?: boolean
+  archived?: boolean
   color?: string
   calendarId?: string
   calendarLabel?: string
@@ -115,6 +132,15 @@ export type CalendarCreateOperation = {
   end: Date
   allDay?: boolean
   resourceId?: string
+  title?: string
+  color?: string
+  calendarId?: string
+  calendarLabel?: string
+  timeZone?: string
+  description?: string
+  location?: string
+  readOnly?: boolean
+  data?: Record<string, unknown>
 }
 
 export type CalendarEventRenderProps = {
@@ -128,6 +154,45 @@ export type CalendarEventRenderProps = {
 export type CalendarEventRenderer = (
   props: CalendarEventRenderProps
 ) => ReactNode
+
+export type CalendarEventContextAction = "archive" | "delete" | "duplicate"
+
+export type CalendarEventChangeAction = "move" | "resize"
+
+export type CalendarEventChangeConfirmationContext =
+  | ({
+      action: "move"
+    } & CalendarMoveOperation)
+  | ({
+      action: "resize"
+    } & CalendarResizeOperation)
+
+export type CalendarEventChangeConfirmation =
+  | boolean
+  | {
+      title?:
+        | string
+        | ((context: CalendarEventChangeConfirmationContext) => string)
+      description?:
+        | string
+        | ((context: CalendarEventChangeConfirmationContext) => string)
+      confirmLabel?:
+        | string
+        | ((context: CalendarEventChangeConfirmationContext) => string)
+      cancelLabel?: string
+      shouldConfirm?: (
+        context: CalendarEventChangeConfirmationContext
+      ) => boolean
+    }
+
+export type CalendarCreateSheetConfig =
+  | boolean
+  | {
+      title?: string
+      description?: string
+      submitLabel?: string
+      cancelLabel?: string
+    }
 
 export type CalendarCreateDraft = {
   day: Date
@@ -146,9 +211,7 @@ export type CalendarSlotDropTarget = {
   minuteOfDay: number
 }
 
-export type CalendarDropTarget =
-  | CalendarDayDropTarget
-  | CalendarSlotDropTarget
+export type CalendarDropTarget = CalendarDayDropTarget | CalendarSlotDropTarget
 
 export type CalendarDragData =
   | {

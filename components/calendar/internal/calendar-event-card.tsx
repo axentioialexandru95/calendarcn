@@ -1,4 +1,6 @@
-import type { CSSProperties, KeyboardEvent } from "react"
+"use client"
+
+import type { CSSProperties, KeyboardEvent, MouseEvent } from "react"
 
 import {
   useDraggable,
@@ -11,16 +13,18 @@ import { cn } from "@/lib/utils"
 
 import type {
   CalendarClassNames,
+  CalendarDensity,
   CalendarDragData,
   CalendarEventRenderer,
   CalendarOccurrence,
 } from "../types"
 import { getCalendarSlotClassName, getOccurrenceAccentColor } from "../utils"
-import type { EventVariant } from "./shared"
+import type { CalendarEventMenuPosition, EventVariant } from "./shared"
 
 type CalendarEventCardProps = {
   accentColor: string
   classNames?: CalendarClassNames
+  density?: CalendarDensity
   dragInstanceId: string
   event: CalendarOccurrence
   interactive: boolean
@@ -28,7 +32,12 @@ type CalendarEventCardProps = {
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
   ) => void
+  onOpenContextMenu?: (
+    occurrence: CalendarOccurrence,
+    position: CalendarEventMenuPosition
+  ) => void
   onSelect: (occurrence: CalendarOccurrence) => void
+  preview?: boolean
   renderEvent?: CalendarEventRenderer
   selected?: boolean
   showResizeHandles?: boolean
@@ -41,13 +50,20 @@ type EventSurfaceProps = {
   ariaLabel?: string
   attributes?: DraggableAttributes
   className?: string
+  density?: CalendarDensity
   dragInstanceId?: string
   event: CalendarOccurrence
   isDragging?: boolean
   listeners?: DraggableSyntheticListeners
+  nodeRef?: (element: HTMLButtonElement | null) => void
   overlay?: boolean
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void
+  onOpenContextMenu?: (
+    occurrence: CalendarOccurrence,
+    position: CalendarEventMenuPosition
+  ) => void
   onSelect?: () => void
+  preview?: boolean
   renderEvent?: CalendarEventRenderer
   selected?: boolean
   showResizeHandles?: boolean
@@ -59,11 +75,14 @@ type EventSurfaceProps = {
 export function CalendarEventCard({
   accentColor,
   classNames,
+  density = "comfortable",
   dragInstanceId,
   event,
   interactive,
   onEventKeyCommand,
+  onOpenContextMenu,
   onSelect,
+  preview = false,
   renderEvent,
   selected,
   showResizeHandles,
@@ -71,7 +90,7 @@ export function CalendarEventCard({
   variant,
 }: CalendarEventCardProps) {
   const disabled = event.readOnly
-  const dragEnabled = interactive && !disabled
+  const dragEnabled = interactive && !disabled && !preview
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: `event:${dragInstanceId}`,
@@ -85,7 +104,7 @@ export function CalendarEventCard({
 
   return (
     <div
-      ref={setNodeRef}
+      className={variant === "time-grid" ? "h-full" : undefined}
       style={{
         transform: CSS.Translate.toString(transform),
       }}
@@ -95,15 +114,19 @@ export function CalendarEventCard({
         ariaLabel={`${event.title}. ${timeLabel}.`}
         attributes={dragEnabled ? attributes : undefined}
         className={getEventSlotClassName(classNames, variant)}
+        density={density}
         dragInstanceId={dragInstanceId}
         event={event}
         isDragging={isDragging}
         listeners={dragEnabled ? listeners : undefined}
+        nodeRef={dragEnabled ? setNodeRef : undefined}
         onKeyDown={(keyEvent) => onEventKeyCommand(event, keyEvent)}
+        onOpenContextMenu={onOpenContextMenu}
         onSelect={() => onSelect(event)}
+        preview={preview}
         renderEvent={renderEvent}
         selected={selected}
-        showResizeHandles={showResizeHandles && interactive}
+        showResizeHandles={showResizeHandles && interactive && !preview}
         timeLabel={timeLabel}
         variant={variant}
       />
@@ -116,13 +139,17 @@ export function EventSurface({
   ariaLabel,
   attributes,
   className,
+  density = "comfortable",
   dragInstanceId,
   event,
   isDragging = false,
   listeners,
+  nodeRef,
   overlay = false,
   onKeyDown,
+  onOpenContextMenu,
   onSelect,
+  preview = false,
   renderEvent,
   selected,
   showResizeHandles,
@@ -131,6 +158,45 @@ export function EventSurface({
   variant,
 }: EventSurfaceProps) {
   const isCompact = variant === "month" || variant === "all-day"
+  function openContextMenu(position: CalendarEventMenuPosition) {
+    if (!onOpenContextMenu || overlay) {
+      return
+    }
+
+    onSelect?.()
+    onOpenContextMenu(event, position)
+  }
+
+  function handleContextMenu(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    openContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+    })
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    onKeyDown?.(event)
+
+    if (event.defaultPrevented || !onOpenContextMenu || overlay) {
+      return
+    }
+
+    if (
+      event.key === "ContextMenu" ||
+      (event.shiftKey && event.key === "F10")
+    ) {
+      const rect = event.currentTarget.getBoundingClientRect()
+
+      event.preventDefault()
+      openContextMenu({
+        x: rect.left + rect.width / 2,
+        y: rect.top + Math.min(rect.height, 24),
+      })
+    }
+  }
+
   const content = renderEvent ? (
     renderEvent({
       occurrence: event,
@@ -140,7 +206,12 @@ export function EventSurface({
       isDragging,
     })
   ) : (
-    <div className="min-w-0 space-y-0.5">
+    <div
+      className={cn(
+        "min-w-0 space-y-0.5",
+        variant === "time-grid" ? "relative z-10" : undefined
+      )}
+    >
       {!isCompact ? (
         <p className="truncate text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
           {timeLabel}
@@ -163,30 +234,52 @@ export function EventSurface({
   )
 
   return (
-    <button
-      aria-label={ariaLabel}
+    <div
       className={cn(
-        getEventSurfaceClassName(variant, selected, isDragging, overlay),
-        className
+        "group/event relative w-full min-w-0",
+        variant === "time-grid" ? "h-full" : undefined
       )}
       data-calendar-drag-surface="true"
       data-selected={selected ? "true" : undefined}
-      onClick={onSelect}
-      onKeyDown={onKeyDown}
-      style={{
-        ...getEventSurfaceStyle(),
-        ...style,
-      }}
-      type="button"
-      {...attributes}
-      {...listeners}
+      style={style}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute top-1.5 bottom-1.5 left-1.5 w-0.5 rounded-full"
-        style={{ backgroundColor: accentColor }}
-      />
-      {showResizeHandles ? (
+      <button
+        aria-label={ariaLabel}
+        className={cn(
+          getEventSurfaceClassName(
+            density,
+            variant,
+            selected,
+            isDragging,
+            overlay,
+            preview
+          ),
+          className
+        )}
+        ref={nodeRef}
+        onClick={onSelect}
+        onContextMenu={handleContextMenu}
+        onKeyDown={handleKeyDown}
+        style={getEventSurfaceStyle()}
+        type="button"
+        {...attributes}
+        {...listeners}
+      >
+        {preview ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[inherit] border border-dashed opacity-60"
+            style={{ borderColor: accentColor }}
+          />
+        ) : null}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-1.5 bottom-1.5 left-1 w-0.5 rounded-full"
+          style={{ backgroundColor: accentColor }}
+        />
+        {content}
+      </button>
+      {showResizeHandles && !overlay ? (
         <>
           <ResizeHandle
             accentColor={accentColor}
@@ -206,8 +299,7 @@ export function EventSurface({
           />
         </>
       ) : null}
-      {content}
-    </button>
+    </div>
   )
 }
 
@@ -236,7 +328,8 @@ function ResizeHandle({
   interactive: boolean
   variant: EventVariant
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging, transform } =
+    useDraggable({
     id: `resize:${edge}:${dragInstanceId ?? event.occurrenceId}`,
     data: {
       kind: "resize",
@@ -246,24 +339,44 @@ function ResizeHandle({
     } satisfies CalendarDragData,
     disabled: !interactive,
   })
+  const dragTransform = CSS.Translate.toString(transform)
 
   return (
     <span
       ref={setNodeRef}
       className={cn(
-        "absolute inset-x-0 z-10 h-3",
+        "absolute inset-x-0 z-20 h-6 touch-none select-none",
         edge === "start"
-          ? "top-0 -translate-y-1/2 cursor-ns-resize"
-          : "bottom-0 translate-y-1/2 cursor-ns-resize"
+          ? "top-0 cursor-ns-resize"
+          : "bottom-0 cursor-ns-resize"
       )}
+      style={{
+        transform: [
+          edge === "start" ? "translateY(-50%)" : "translateY(50%)",
+          dragTransform,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      }}
       {...(interactive ? attributes : undefined)}
       {...(interactive ? listeners : undefined)}
     >
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute top-1/2 left-3 h-1 w-5 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
+          "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
           selectedHandleVisibilityClass(isDragging)
+        )}
+        style={{
+          backgroundColor: isDragging ? accentColor : `${accentColor}55`,
+        }}
+      />
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
+          selectedHandleVisibilityClass(isDragging),
+          isDragging ? "scale-100" : "scale-95"
         )}
         style={{
           backgroundColor: isDragging ? accentColor : `${accentColor}88`,
@@ -296,22 +409,28 @@ function getEventSurfaceStyle(): CSSProperties {
 }
 
 function getEventSurfaceClassName(
+  density: CalendarDensity,
   variant: EventVariant,
   selected: boolean | undefined,
   isDragging: boolean,
-  overlay: boolean
+  overlay: boolean,
+  preview: boolean
 ) {
   return cn(
-    "group/event relative w-full min-w-0 overflow-hidden rounded-[min(var(--radius-sm),4px)] border px-2 py-2 pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+    "relative w-full min-w-0 overflow-hidden rounded-[min(var(--radius-sm),4px)] border pr-[10px] pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+    density === "compact" ? "px-2 py-1.5" : "px-2 py-2",
     variant === "month" || variant === "all-day"
-      ? "px-2 py-1.5 pl-3 text-xs"
+      ? density === "compact"
+        ? "px-2 py-1 pl-3 text-[11px]"
+        : "px-2 py-1.5 pl-3 text-xs"
       : "text-sm",
     variant === "agenda" ? "min-h-20" : "",
     variant === "time-grid" ? "h-full" : "",
     selected ? "border-ring ring-2 ring-ring/60" : "",
+    preview ? "shadow-sm" : "",
     overlay
       ? "pointer-events-none shadow-sm"
-      : isDragging
+      : isDragging && !preview
         ? "opacity-0"
         : "hover:border-foreground/15"
   )

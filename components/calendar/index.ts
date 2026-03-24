@@ -1,3 +1,5 @@
+"use client"
+
 export { CalendarRoot } from "./internal/calendar-root"
 export { CalendarAgendaView } from "./internal/calendar-agenda-view"
 export { CalendarMonthView } from "./internal/calendar-month-view"
@@ -7,9 +9,16 @@ export {
   CalendarWeekView,
 } from "./internal/calendar-time-grid-view"
 export type {
+  CalendarBlockedRange,
+  CalendarBusinessHoursWindow,
   CalendarClassNames,
   CalendarCreateOperation,
+  CalendarCreateSheetConfig,
+  CalendarDensity,
   CalendarEvent,
+  CalendarEventChangeAction,
+  CalendarEventChangeConfirmation,
+  CalendarEventChangeConfirmationContext,
   CalendarEventRenderProps,
   CalendarEventRenderer,
   CalendarMoveOperation,

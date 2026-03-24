@@ -1,5 +1,6 @@
+"use client"
+
 import { useDroppable } from "@dnd-kit/core"
-import { format } from "date-fns"
 
 import { cn } from "@/lib/utils"
 
@@ -21,18 +22,31 @@ import {
 import { maxMonthEvents, type SharedViewProps } from "./shared"
 
 export function CalendarMonthView(props: SharedViewProps) {
-  const days = getMonthDays(props.anchorDate, props.weekStartsOn)
+  const days = getMonthDays(
+    props.anchorDate,
+    props.weekStartsOn,
+    props.hiddenDays
+  )
+  const columnCount = Math.max(1, 7 - props.hiddenDays.length)
 
   return (
     <div className="min-h-0 flex-1 overflow-auto">
       <div className="min-w-[48rem]">
-        <div className="grid grid-cols-7 border-b border-border/70">
-          {days.slice(0, 7).map((day) => (
+        <div
+          className="grid border-b border-border/70"
+          style={{
+            gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+          }}
+        >
+          {days.slice(0, columnCount).map((day) => (
             <div
               key={`month-heading-${day.toISOString()}`}
               className="px-3 py-2 text-xs tracking-[0.24em] text-muted-foreground uppercase"
             >
-              {format(day, "EEE")}
+              {formatWeekday(day, {
+                locale: props.locale,
+                timeZone: props.timeZone,
+              })}
             </div>
           ))}
         </div>
@@ -40,8 +54,11 @@ export function CalendarMonthView(props: SharedViewProps) {
           className={getCalendarSlotClassName(
             props.classNames,
             "monthGrid",
-            "grid grid-cols-7"
+            "grid"
           )}
+          style={{
+            gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+          }}
         >
           {days.map((day) => (
             <MonthDayCell key={day.toISOString()} day={day} {...props} />
@@ -60,11 +77,15 @@ function MonthDayCell({
   anchorDate,
   classNames,
   day,
+  density,
   getEventColor,
   interactive,
+  locale,
   occurrences,
   onEventKeyCommand,
+  onOpenContextMenu,
   onSelectEvent,
+  previewOccurrenceId,
   renderEvent,
   selectedEventId,
   timeZone,
@@ -87,7 +108,8 @@ function MonthDayCell({
         classNames,
         isOutsideMonth(day, anchorDate) ? "monthCellMuted" : "monthCell",
         cn(
-          "flex min-h-[10.5rem] flex-col gap-2 border-r border-b border-border/70 px-2 py-2 transition-colors",
+          "flex flex-col border-r border-b border-border/70 px-2 py-2 transition-colors",
+          density === "compact" ? "min-h-[9rem] gap-1.5" : "min-h-[10.5rem] gap-2",
           isOver ? "bg-muted/50" : "",
           isOutsideMonth(day, anchorDate) ? "bg-muted/25" : "bg-background"
         )
@@ -95,7 +117,10 @@ function MonthDayCell({
     >
       <div className="flex items-center justify-between">
         <span className="text-xs tracking-[0.24em] text-muted-foreground uppercase">
-          {formatWeekday(day)}
+          {formatWeekday(day, {
+            locale,
+            timeZone,
+          })}
         </span>
         <span
           className={cn(
@@ -105,7 +130,10 @@ function MonthDayCell({
               : "text-foreground"
           )}
         >
-          {formatDayNumber(day)}
+          {formatDayNumber(day, {
+            locale,
+            timeZone,
+          })}
         </span>
       </div>
       <div className="space-y-1">
@@ -118,14 +146,20 @@ function MonthDayCell({
               index
             )}
             classNames={classNames}
+            density={density}
             dragInstanceId={`month:${day.toISOString()}:${occurrence.occurrenceId}`}
             event={occurrence}
             interactive={interactive}
             onEventKeyCommand={onEventKeyCommand}
+            onOpenContextMenu={onOpenContextMenu}
             onSelect={onSelectEvent}
+            preview={previewOccurrenceId === occurrence.occurrenceId}
             renderEvent={renderEvent}
             selected={selectedEventId === occurrence.occurrenceId}
-            timeLabel={getEventMetaLabel(occurrence, timeZone)}
+            timeLabel={getEventMetaLabel(occurrence, {
+              locale,
+              timeZone,
+            })}
             variant="month"
           />
         ))}

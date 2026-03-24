@@ -1,4 +1,6 @@
-import type { ComponentType } from "react"
+"use client"
+
+import type { ComponentProps, ComponentType } from "react"
 
 import {
   CaretLeftIcon,
@@ -10,9 +12,9 @@ import {
   SquaresFourIcon,
 } from "@phosphor-icons/react"
 
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-import { calendarViews, type CalendarView } from "../types"
+import { type CalendarView } from "../types"
 import { getCalendarSlotClassName } from "../utils"
 import type { CalendarToolbarProps } from "./shared"
 
@@ -30,9 +32,45 @@ const viewIcons: Record<CalendarView, ComponentType<{ className?: string }>> = {
   agenda: ListBulletsIcon,
 }
 
+function ToolbarButton({
+  className,
+  size = "sm",
+  tone = "ghost",
+  ...props
+}: ComponentProps<"button"> & {
+  size?: "icon-sm" | "sm"
+  tone?: "default" | "ghost" | "outline" | "secondary"
+}) {
+  return (
+    <button
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-[min(var(--radius-md),10px)] border text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50",
+        size === "icon-sm" ? "size-8" : "h-8 gap-1 px-2.5",
+        tone === "default"
+          ? "border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
+          : "",
+        tone === "ghost"
+          ? "border-transparent bg-transparent hover:bg-muted hover:text-foreground"
+          : "",
+        tone === "outline"
+          ? "border-border bg-background text-foreground shadow-xs hover:bg-muted"
+          : "",
+        tone === "secondary"
+          ? "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          : "",
+        className
+      )}
+      type="button"
+      {...props}
+    />
+  )
+}
+
 export function CalendarToolbar({
+  availableViews,
   classNames,
   currentLabel,
+  density = "comfortable",
   onNavigate,
   onQuickCreate,
   onToday,
@@ -46,30 +84,33 @@ export function CalendarToolbar({
       className={getCalendarSlotClassName(
         classNames,
         "toolbar",
-        "flex flex-col gap-4 border-b border-border/70 px-4 py-4 md:px-5"
+        cn(
+          "flex flex-col border-b border-border/70 md:px-5",
+          density === "compact" ? "gap-3 px-4 py-3" : "gap-4 px-4 py-4"
+        )
       )}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-2">
-          <Button
+          <ToolbarButton
             aria-label="Previous range"
             onClick={() => onNavigate(-1)}
             size="icon-sm"
-            variant="ghost"
+            tone="ghost"
           >
             <CaretLeftIcon className="size-4" />
-          </Button>
-          <Button
+          </ToolbarButton>
+          <ToolbarButton
             aria-label="Next range"
             onClick={() => onNavigate(1)}
             size="icon-sm"
-            variant="ghost"
+            tone="ghost"
           >
             <CaretRightIcon className="size-4" />
-          </Button>
-          <Button onClick={onToday} size="sm" variant="outline">
+          </ToolbarButton>
+          <ToolbarButton onClick={onToday} size="sm" tone="outline">
             Today
-          </Button>
+          </ToolbarButton>
           <div className="ml-2 min-w-0">
             <p
               className={getCalendarSlotClassName(
@@ -100,11 +141,11 @@ export function CalendarToolbar({
               "flex flex-wrap items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1"
             )}
           >
-            {calendarViews.map((item) => {
+            {availableViews.map((item) => {
               const Icon = viewIcons[item]
 
               return (
-                <Button
+                <ToolbarButton
                   key={item}
                   className={getCalendarSlotClassName(
                     classNames,
@@ -113,19 +154,19 @@ export function CalendarToolbar({
                   )}
                   onClick={() => onViewChange(item)}
                   size="sm"
-                  variant={view === item ? "secondary" : "ghost"}
+                  tone={view === item ? "secondary" : "ghost"}
                 >
                   <Icon className="size-4" />
                   {viewLabels[item]}
-                </Button>
+                </ToolbarButton>
               )
             })}
           </div>
           {onQuickCreate ? (
-            <Button onClick={onQuickCreate} size="sm">
+            <ToolbarButton onClick={onQuickCreate} size="sm" tone="default">
               <PlusIcon className="size-4" />
               New event
-            </Button>
+            </ToolbarButton>
           ) : null}
         </div>
       </div>

@@ -1,9 +1,14 @@
 import type { KeyboardEvent } from "react"
 
 import type {
+  CalendarBlockedRange,
+  CalendarBusinessHoursWindow,
   CalendarClassNames,
   CalendarCreateOperation,
+  CalendarCreateSheetConfig,
+  CalendarDensity,
   CalendarEvent,
+  CalendarEventChangeConfirmation,
   CalendarEventVariant,
   CalendarEventRenderer,
   CalendarMoveOperation,
@@ -15,10 +20,16 @@ import type {
 } from "../types"
 
 export const slotHeight = 30
+export const compactSlotHeight = 24
 export const defaultSlotDuration = 30
 export const defaultMinHour = 6
 export const defaultMaxHour = 23
 export const maxMonthEvents = 4
+
+export type CalendarEventMenuPosition = {
+  x: number
+  y: number
+}
 
 export type CalendarRootProps = {
   date: Date
@@ -31,24 +42,40 @@ export type CalendarRootProps = {
   onEventMove?: (operation: CalendarMoveOperation) => void
   onEventResize?: (operation: CalendarResizeOperation) => void
   onEventCreate?: (operation: CalendarCreateOperation) => void
+  createEventSheet?: CalendarCreateSheetConfig
+  eventChangeConfirmation?: CalendarEventChangeConfirmation
+  onEventArchive?: (occurrence: CalendarOccurrence) => void
+  onEventDelete?: (occurrence: CalendarOccurrence) => void
+  onEventDuplicate?: (occurrence: CalendarOccurrence) => void
   onEventSelect?: (occurrence: CalendarOccurrence) => void
   onSelectedEventChange?: (id?: string) => void
   selectedEventId?: string
   timeZone?: string
   resources?: CalendarResource[]
   classNames?: CalendarClassNames
+  availableViews?: CalendarView[]
+  blockedRanges?: CalendarBlockedRange[]
+  businessHours?: CalendarBusinessHoursWindow[]
+  density?: CalendarDensity
+  hiddenDays?: CalendarWeekday[]
   weekStartsOn?: CalendarWeekday
   agendaDays?: number
+  locale?: string
   slotDuration?: number
+  slotHeight?: number
   minHour?: number
   maxHour?: number
+  hourCycle?: 12 | 24
+  scrollToTime?: "now" | string
   renderEvent?: CalendarEventRenderer
   getEventColor?: (occurrence: CalendarOccurrence) => string
 }
 
 export type CalendarToolbarProps = {
+  availableViews: CalendarView[]
   classNames?: CalendarClassNames
   currentLabel: string
+  density?: CalendarDensity
   onNavigate: (direction: -1 | 1) => void
   onQuickCreate?: () => void
   onToday: () => void
@@ -60,19 +87,32 @@ export type CalendarToolbarProps = {
 
 export type SharedViewProps = {
   anchorDate: Date
+  blockedRanges?: CalendarBlockedRange[]
+  businessHours?: CalendarBusinessHoursWindow[]
   classNames?: CalendarClassNames
+  density: CalendarDensity
   getEventColor?: (occurrence: CalendarOccurrence) => string
+  hiddenDays: CalendarWeekday[]
+  hourCycle?: 12 | 24
   interactive: boolean
+  locale?: string
   occurrences: CalendarOccurrence[]
+  previewOccurrenceId?: string
   onEventCreate?: (operation: CalendarCreateOperation) => void
   onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
   ) => void
+  onOpenContextMenu?: (
+    occurrence: CalendarOccurrence,
+    position: CalendarEventMenuPosition
+  ) => void
   onSelectEvent: (occurrence: CalendarOccurrence) => void
   renderEvent?: CalendarEventRenderer
+  scrollToTime?: "now" | string
   selectedEventId?: string
   slotDuration: number
+  slotHeight: number
   timeZone?: string
   weekStartsOn: CalendarWeekday
 }

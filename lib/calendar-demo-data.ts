@@ -1,9 +1,47 @@
 import { addDays, set } from "date-fns"
 
 import type {
+  CalendarBlockedRange,
+  CalendarBusinessHoursWindow,
   CalendarEvent,
   CalendarResource,
 } from "@/components/calendar/types"
+
+export const CALENDAR_DEMO_SEED_VERSION = "2026-03-24-config-surface-v1"
+
+export function buildDemoBusinessHours(): CalendarBusinessHoursWindow[] {
+  return [
+    {
+      days: [1, 2, 3, 4, 5],
+      start: "09:00",
+      end: "18:00",
+    },
+  ]
+}
+
+export function buildDemoBlockedRanges(baseDate = new Date()): CalendarBlockedRange[] {
+  const day = set(baseDate, {
+    seconds: 0,
+    milliseconds: 0,
+  })
+
+  return [
+    {
+      id: "lunch-block",
+      label: "Lunch",
+      start: set(day, { hours: 12, minutes: 0 }),
+      end: set(day, { hours: 13, minutes: 0 }),
+      color: "#ea580c",
+    },
+    {
+      id: "ops-freeze",
+      label: "Release freeze",
+      start: set(addDays(day, 1), { hours: 16, minutes: 0 }),
+      end: set(addDays(day, 1), { hours: 17, minutes: 0 }),
+      color: "#db2777",
+    },
+  ]
+}
 
 export function buildDemoResources(): CalendarResource[] {
   return [

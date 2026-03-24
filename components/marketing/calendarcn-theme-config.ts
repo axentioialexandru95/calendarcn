@@ -12,14 +12,16 @@ export const DEFAULT_CALENDARCN_THEME: CalendarCnThemeName = "theme-white"
 export const calendarCnThemes = [
   {
     name: "theme-white",
-    label: "White",
-    caption: "A bright product page with soft warm highlights and clean cards.",
+    label: "Light",
+    caption:
+      "A lighter product surface with crisp cards and clear scheduling density.",
     mode: "light",
   },
   {
     name: "theme-dark",
     label: "Dark",
-    caption: "A darker workspace treatment with stronger contrast for the live scheduler.",
+    caption:
+      "A darker workspace treatment tuned for denser schedules and longer planning sessions.",
     mode: "dark",
   },
 ] satisfies CalendarCnThemeDefinition[]

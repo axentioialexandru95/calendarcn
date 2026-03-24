@@ -15,36 +15,41 @@
     }
   ],
   "hero": {
-    "badge": "Shadcn-first calendar primitives",
-    "title": "A proper component landing page for the calendar, not a poster.",
-    "body": "CalendarCN packages a real scheduling surface for shadcn apps: reusable exports, typed state contracts, token-driven styling, and an interactive demo that shows the component working as shipped.",
-    "primaryCta": {
-      "label": "Explore live themes",
-      "href": "#themes"
-    },
-    "secondaryCta": {
-      "label": "Explore the primitives",
-      "href": "#components"
+    "badge": "Shadcn-native calendar primitives",
+    "title": "Scheduling primitives for shadcn apps that need real interaction.",
+    "body": "CalendarCN gives you a reusable scheduler with month, week, day, and agenda views, recurring events, resource lanes, drag-and-drop editing, resize handles, and typed callbacks you can wire into your own state and persistence.",
+    "snippet": {
+      "eyebrow": "Quick start",
+      "title": "Clone the starter and make it yours",
+      "copyLabel": "Copy commands",
+      "copiedLabel": "Copied",
+      "body": "CalendarCN ships as a starter today rather than a registry package. Pull the repo, install dependencies, and wire the exported calendar primitives into your own data, permissions, and persistence layer.",
+      "commands": [
+        "npx degit axentioialexandru95/calendarcn my-calendarcn-app",
+        "cd my-calendarcn-app",
+        "pnpm install",
+        "pnpm dev"
+      ]
     },
     "points": [
-      "Shadcn-ready surfaces that inherit your tokens",
       "Month, week, day, and agenda views on one event model",
-      "Drag, resize, resource planning, and keyboard support built in"
+      "Recurring events, resources, drag, resize, and selection built in",
+      "Token-driven styling that fits the rest of your shadcn app"
     ]
   },
   "snapshot": {
-    "eyebrow": "Library snapshot",
-    "title": "Built to sit inside your existing app shell.",
-    "body": "The calendar uses the same design tokens as the rest of the repo, so the landing page can focus on the exported component surface instead of inventing a separate brand world.",
+    "eyebrow": "What you get",
+    "title": "A scheduler that fits inside an existing product.",
+    "body": "Use the full CalendarRoot surface or compose the exported views yourself. The same event and resource contracts power both the demo and the library.",
     "viewCountLabel": "Views",
     "slotCountLabel": "Style slots",
     "metrics": [
       {
-        "label": "Event editing",
+        "label": "Event operations",
         "value": "Create / move / resize"
       },
       {
-        "label": "Resources",
+        "label": "Recurrence",
         "value": "Built in"
       }
     ],
@@ -59,98 +64,127 @@
     ]
   },
   "components": {
-    "eyebrow": "Core components",
-    "title": "The page now sells the component library directly.",
-    "body": "These are the pieces the repo actually exports. The landing page stays anchored in the real API instead of wrapping the calendar in unrelated presentation work.",
+    "eyebrow": "Exports",
+    "title": "Composable building blocks for shipping scheduling UI.",
+    "body": "CalendarCN is structured as a reusable library. Use the full scheduler shell or pull in the toolbar, individual views, types, and slots where they fit.",
     "items": [
       {
         "name": "CalendarRoot",
-        "title": "The full scheduler shell",
-        "body": "One entry point for date state, view switching, event operations, resources, and selection.",
-        "detail": "Use it when you want the complete scheduling experience without wiring each view by hand."
+        "title": "The orchestrator for the full schedule",
+        "body": "It coordinates visible range, recurrence expansion, selection, drag and resize interactions, and view rendering from one controlled API.",
+        "detail": "Use it when you want a complete scheduler surface without moving persistence or business rules into the component."
       },
       {
         "name": "CalendarToolbar",
-        "title": "Navigation without extra glue",
-        "body": "Previous, next, today, and view switching are already shaped for the calendar state model.",
-        "detail": "It stays easy to restyle because the controls follow the same token system as the rest of the project."
+        "title": "Navigation wired to calendar state",
+        "body": "Previous, next, today, and view switching already line up with the calendar API, so you are not rebuilding basic controls around every embed.",
+        "detail": "Keep the default toolbar or restyle it to match the surrounding app shell."
       },
       {
         "name": "Views",
         "title": "Month, week, day, and agenda",
-        "body": "The exported views share the same event contracts, so the surface changes without changing your data layer.",
-        "detail": "That keeps demos, embedded schedules, and focused planning views aligned."
+        "body": "Each view reads the same event and resource contracts, so you can change density and planning mode without changing your data layer.",
+        "detail": "That makes it practical to ship a broad planner, a focused day view, and an agenda feed from one model."
       },
       {
         "name": "Types + slots",
-        "title": "Library-friendly customization",
-        "body": "Typed events, resources, and slot-level class hooks make it practical to adapt the calendar to an existing app shell.",
-        "detail": "You can keep the behavior and re-skin the surface instead of forking the component."
+        "title": "Typed contracts and slot-level customization",
+        "body": "Events, resources, recurrences, and mutation payloads are typed, and the component exposes className slots for the key calendar surfaces.",
+        "detail": "You keep the interaction model, then adapt the styling and rendering to your own product."
       }
     ]
   },
   "capabilities": {
-    "eyebrow": "Capabilities",
-    "title": "The surface behaves like a real scheduler out of the box.",
-    "body": "The value here is not just rendering events. It is shipping a calendar that already supports the interactions people expect once the schedule starts changing.",
+    "eyebrow": "Core behavior",
+    "title": "Built for schedules that keep changing.",
+    "body": "A useful calendar has to do more than render boxes. CalendarCN ships the interactions and state contracts you need once users start moving work around.",
     "items": [
       {
         "icon": "calendar",
-        "title": "One model across every view",
-        "body": "Switch between planning and execution views without inventing separate state shapes for each surface."
+        "title": "One contract across every view",
+        "body": "Month, week, day, and agenda all consume the same event shape, so your scheduling data does not fork as the UI changes."
       },
       {
         "icon": "drag",
-        "title": "Direct manipulation",
-        "body": "Create on empty time, drag between slots, and resize from the edge where the schedule is already visible."
+        "title": "Create, move, and resize in place",
+        "body": "Drag across open time to create a block, move events between slots and days, and resize directly from the edge where the schedule is visible."
       },
       {
         "icon": "interaction",
-        "title": "Practical interaction defaults",
-        "body": "Selection, keyboard nudging, and focused editing are already part of the component instead of follow-up work."
+        "title": "Recurring events and resource-aware planning",
+        "body": "Events can repeat, resources can define parallel lanes, and the same occurrence model drives selection, editing, and follow-up actions."
       },
       {
         "icon": "theme",
-        "title": "Token-first styling",
-        "body": "The calendar sits on top of the same `background`, `card`, `border`, and `primary` tokens as the rest of a shadcn app."
+        "title": "Fits the token system you already use",
+        "body": "The calendar inherits the same shadcn color tokens and exposes className slots, so it can sit inside an existing app instead of forcing a separate visual system."
       }
     ]
   },
   "integration": {
-    "eyebrow": "Integration notes",
-    "title": "Fits the way a shadcn app is usually assembled.",
-    "body": "The calendar does not need a parallel styling system. It already matches the token and component conventions the starter is using, and the extension points are specific enough for real product work.",
-    "items": [
-      "Typed `CalendarEvent` and `CalendarResource` contracts.",
-      "Handlers for create, move, resize, navigation, and selection.",
-      "Resource-aware planning for teams, tracks, rooms, or calendars.",
-      "Slot-level `classNames` overrides for local theming."
+    "eyebrow": "Integration model",
+    "title": "Own the state. Let the calendar handle the surface.",
+    "body": "CalendarCN is designed as a controlled component. Your app keeps the source of truth for date, view, events, and persistence; the calendar turns that into visible occurrences and interaction callbacks.",
+    "codeTitle": "Controlled setup",
+    "codeLines": [
+      "import { CalendarRoot, type CalendarEvent } from \"@/components/calendar\"",
+      "",
+      "const [events, setEvents] = useState<CalendarEvent[]>(seed)",
+      "const [date, setDate] = useState(new Date())",
+      "const [view, setView] = useState(\"week\")",
+      "const blockedRanges = [{ id: \"lunch\", start, end }]",
+      "",
+      "<CalendarRoot",
+      "  availableViews={[\"week\", \"day\", \"agenda\"]}",
+      "  hiddenDays={[0, 6]}",
+      "  businessHours={[{ days: [1, 2, 3, 4, 5], start: \"09:00\", end: \"18:00\" }]}",
+      "  blockedRanges={blockedRanges}",
+      "  density=\"compact\"",
+      "  date={date}",
+      "  events={events}",
+      "  hourCycle={24}",
+      "  locale=\"en-GB\"",
+      "  scrollToTime=\"08:30\"",
+      "  view={view}",
+      "  onDateChange={setDate}",
+      "  onViewChange={setView}",
+      "/>"
+    ],
+    "flow": [
+      {
+        "title": "Keep date, view, and events in your app",
+        "body": "`useCalendarController` in the demo is only an example. In production, those values can live in React state, a server cache, or whatever store already owns scheduling logic."
+      },
+      {
+        "title": "CalendarRoot expands data into visible occurrences",
+        "body": "It computes the visible range, expands recurring events for that range, renders the active view, and coordinates drag overlays, selection, keyboard moves, and accessibility announcements."
+      },
+      {
+        "title": "Views stay interchangeable because the model stays stable",
+        "body": "Switching from a month grid to a time grid or agenda feed does not require a second contract. The same events and resources keep working across every exported view."
+      },
+      {
+        "title": "Mutations come back as typed operations",
+        "body": "Create, move, resize, duplicate, archive, and delete actions can flow back through handlers you control, so your app decides how changes are validated, persisted, and synchronized."
+      }
     ]
   },
   "demo": {
-    "eyebrow": "Themes",
-    "title": "One live calendar, two synced theme modes.",
-    "body": "Use the navbar toggle to switch between white and dark. The whole landing page and the scheduler surface stay in sync while the component behavior remains unchanged.",
+    "eyebrow": "Live demo",
+    "title": "Same calendar behavior, different theme treatment.",
+    "body": "Switch the site theme from the navbar and the calendar follows along. Layout, event behavior, and view logic stay the same while the tokens around them change.",
     "backToTop": {
       "label": "Back to top",
       "href": "#top"
     }
   },
   "footer": {
-    "eyebrow": "CalendarCN",
-    "title": "Cleaner landing page, same component underneath.",
-    "body": "The presentation layer now points back to the reusable calendar primitives and the live scheduler instead of competing with them.",
-    "externalCta": {
-      "href": "https://reactbits.dev/animations/gradual-blur",
-      "label": "See Gradual Blur on React Bits"
+    "body": "Calendar primitives for shadcn apps, with multiple views, recurring events, resource lanes, and typed scheduling interactions in one reusable surface.",
+    "credit": {
+      "label": "Made by Axentioi Alexandru",
+      "siteHref": "https://phantomtechind.com",
+      "siteLabel": "phantomtechind.com"
     },
-    "primaryCta": {
-      "label": "Review components",
-      "href": "#components"
-    },
-    "secondaryCta": {
-      "label": "Jump to themes",
-      "href": "#themes"
-    }
+    "title": "CalendarCN"
   }
 }
