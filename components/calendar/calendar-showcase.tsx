@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import {
-  ArrowsOutCardinal,
-  CalendarDots,
-  CursorClick,
-  Swatches,
+  ArrowsOutCardinalIcon,
+  CalendarDotsIcon,
+  CursorClickIcon,
+  SwatchesIcon,
 } from "@phosphor-icons/react"
 
 import { CalendarRoot } from "@/components/calendar"
@@ -13,7 +13,11 @@ import { Button } from "@/components/ui/button"
 import { useCalendarController } from "@/hooks/use-calendar-controller"
 import { buildDemoEvents, buildDemoResources } from "@/lib/calendar-demo-data"
 
-export function CalendarShowcase({ initialDateIso }: { initialDateIso: string }) {
+export function CalendarShowcase({
+  initialDateIso,
+}: {
+  initialDateIso: string
+}) {
   const [initialDate] = React.useState(() => new Date(initialDateIso))
   const resources = React.useState(() => buildDemoResources())[0]
   const controller = useCalendarController({
@@ -34,7 +38,7 @@ export function CalendarShowcase({ initialDateIso }: { initialDateIso: string })
         <aside className="flex flex-col justify-between rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-muted/25 p-5">
           <div className="space-y-8">
             <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
+              <p className="text-[11px] tracking-[0.32em] text-muted-foreground uppercase">
                 CalendarCN
               </p>
               <div className="space-y-2">
@@ -42,35 +46,35 @@ export function CalendarShowcase({ initialDateIso }: { initialDateIso: string })
                   Reusable calendar primitives for shadcn surfaces.
                 </h1>
                 <p className="max-w-xs text-sm leading-6 text-muted-foreground">
-                  Month, week, day, and agenda views share one event model, one drag
-                  engine, keyboard nudges, and slot-based class overrides.
+                  Month, week, day, and agenda views share one event model, one
+                  drag engine, keyboard nudges, and slot-based class overrides.
                 </p>
               </div>
             </div>
             <div className="space-y-5 text-sm">
               <FeatureRow
-                icon={CalendarDots}
+                icon={CalendarDotsIcon}
                 title="Library-first"
                 body="The page is a demo shell. The calendar itself lives in reusable exported components."
               />
               <FeatureRow
-                icon={ArrowsOutCardinal}
+                icon={ArrowsOutCardinalIcon}
                 title="DnD + resize"
                 body="Drag events across views, resize in time-grid mode, and create blocks by dragging on empty time slots."
               />
               <FeatureRow
-                icon={CursorClick}
+                icon={CursorClickIcon}
                 title="Accessible controls"
                 body="Focused events support arrow-key moves, Shift+Arrow to extend the end, and Alt+Arrow to adjust the start."
               />
               <FeatureRow
-                icon={Swatches}
+                icon={SwatchesIcon}
                 title="Theme slots"
                 body="Theming stays token-driven by default, with className slots for library consumers who need local overrides."
               />
             </div>
             <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+              <p className="text-[11px] tracking-[0.24em] text-muted-foreground uppercase">
                 Active calendars
               </p>
               <div className="space-y-2">
@@ -95,11 +99,7 @@ export function CalendarShowcase({ initialDateIso }: { initialDateIso: string })
             </div>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button
-              onClick={controller.goToToday}
-              size="sm"
-              variant="outline"
-            >
+            <Button onClick={controller.goToToday} size="sm" variant="outline">
               Jump to today
             </Button>
             <Button
