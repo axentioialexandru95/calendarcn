@@ -2,6 +2,10 @@
   "brand": "CalendarCN",
   "nav": [
     {
+      "label": "Docs",
+      "href": "/docs"
+    },
+    {
       "label": "Components",
       "href": "#components"
     },

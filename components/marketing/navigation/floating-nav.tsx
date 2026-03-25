@@ -21,7 +21,12 @@ type CalendarCnFloatingNavProps = {
 export function CalendarCnFloatingNav({ items }: CalendarCnFloatingNavProps) {
   const { setTheme, theme } = useTheme()
   const sectionIds = React.useMemo(
-    () => ["top", ...items.map((item) => item.href.replace(/^#/, ""))],
+    () => [
+      "top",
+      ...items
+        .filter((item) => item.href.startsWith("#"))
+        .map((item) => item.href.replace(/^#/, "")),
+    ],
     [items]
   )
   const [activeHref, setActiveHref] = React.useState("")
@@ -96,7 +101,8 @@ export function CalendarCnFloatingNav({ items }: CalendarCnFloatingNavProps) {
 
         <nav className="hidden items-center gap-1.5 md:flex">
           {items.map((item) => {
-            const isActive = activeHref === item.href
+            const isSectionLink = item.href.startsWith("#")
+            const isActive = isSectionLink && activeHref === item.href
 
             return (
               <a
