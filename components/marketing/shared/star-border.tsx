@@ -31,7 +31,7 @@ export function ReactBitsStarBorder({
     >
       <div
         aria-hidden="true"
-        className="rb-star-movement-bottom pointer-events-none absolute right-[-250%] bottom-[-14px] z-0 h-[48%] w-[300%] rounded-full opacity-70"
+        className="rb-star-movement-bottom pointer-events-none absolute right-[-250%] -bottom-3.5 z-0 h-[48%] w-[300%] rounded-full opacity-70"
         style={{
           background: `radial-gradient(circle, ${color}, transparent 12%)`,
           animationDuration: speed,
@@ -39,7 +39,7 @@ export function ReactBitsStarBorder({
       />
       <div
         aria-hidden="true"
-        className="rb-star-movement-top pointer-events-none absolute top-[-14px] left-[-250%] z-0 h-[48%] w-[300%] rounded-full opacity-70"
+        className="rb-star-movement-top pointer-events-none absolute -top-3.5 left-[-250%] z-0 h-[48%] w-[300%] rounded-full opacity-70"
         style={{
           background: `radial-gradient(circle, ${color}, transparent 12%)`,
           animationDuration: speed,

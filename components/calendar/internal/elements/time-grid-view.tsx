@@ -13,7 +13,7 @@ import type {
   CalendarDropTarget,
   CalendarEventRenderer,
   CalendarOccurrence,
-} from "../types"
+} from "../../types"
 import {
   formatHourLabel,
   formatMonthDayLabel,
@@ -30,16 +30,16 @@ import {
   isToday,
   parseTimeStringToMinuteOfDay,
   setMinuteOfDay,
-} from "../utils"
+} from "../../utils"
 import {
   CalendarEventCard,
   getResolvedAccentColor,
-} from "./calendar-event-card"
+} from "./event-card"
 import {
   type CalendarEventMenuPosition,
   type SharedViewProps,
   type TimeGridViewProps,
-} from "./shared"
+} from "../shared"
 
 export function CalendarWeekView(
   props: SharedViewProps & {
@@ -159,7 +159,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
 
   return (
     <div className="min-h-0 flex-1 overflow-auto" ref={scrollContainerRef}>
-      <div className="min-w-[56rem]">
+      <div className="min-w-4xl">
         <div
           className="grid border-b border-border/70"
           style={{
@@ -417,7 +417,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                         width: `calc(${100 / previewLayout.columns}% - 0px)`,
                       }}
                     >
-                      <div className="h-full rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/[0.08] shadow-sm dark:border-white/12 dark:bg-white/8" />
+                      <div className="h-full rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/8 shadow-sm dark:border-white/12 dark:bg-white/8" />
                     </div>
                   ) : null}
                   {showNowIndicator ? (
@@ -559,7 +559,7 @@ function TimeGridBackground({
       {businessHourSegments.map((segment) => (
         <div
           key={`business-${segment.startMinute}-${segment.endMinute}`}
-          className="absolute inset-x-0 border-y border-primary/10 bg-primary/[0.03]"
+          className="absolute inset-x-0 border-y border-primary/10 bg-primary/3"
           style={{
             height:
               ((segment.endMinute - segment.startMinute) / slotDuration) *
@@ -707,7 +707,7 @@ function AllDayDropZone({
           <div
             key={`preview-${occurrence.occurrenceId}`}
             className={cn(
-              "pointer-events-none rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/[0.08] shadow-sm dark:border-white/12 dark:bg-white/8",
+              "pointer-events-none rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/8 shadow-sm dark:border-white/12 dark:bg-white/8",
               density === "compact" ? "h-6" : "h-7"
             )}
           />

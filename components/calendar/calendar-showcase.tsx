@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react"
 
 import { CalendarRoot } from "@/components/calendar"
-import { CalendarCnLogo } from "@/components/marketing/calendarcn-logo"
+import { CalendarCnLogo } from "@/components/marketing/branding/logo"
 import { Button } from "@/components/ui/button"
 import { useCalendarController } from "@/hooks/use-calendar-controller"
 import { cn } from "@/lib/utils"

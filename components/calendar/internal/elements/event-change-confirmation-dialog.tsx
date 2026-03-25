@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import type {
   CalendarEventChangeConfirmation,
   CalendarEventChangeConfirmationContext,
-} from "../types"
+} from "../../types"
 
 type CalendarEventChangeConfirmationDialogProps = {
   config?: CalendarEventChangeConfirmation

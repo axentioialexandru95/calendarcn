@@ -1,4 +1,4 @@
-import { CalendarCnLogo } from "@/components/marketing/calendarcn-logo"
+import { CalendarCnLogo } from "@/components/marketing/branding/logo"
 
 type CalendarCnFooterSectionProps = {
   content: {

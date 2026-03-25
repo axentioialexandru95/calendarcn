@@ -1,4 +1,4 @@
-import { CalendarCnLanding } from "@/components/marketing/calendarcn-landing"
+import { CalendarCnLanding } from "@/components/marketing/landing"
 
 export const dynamic = "force-static"
 

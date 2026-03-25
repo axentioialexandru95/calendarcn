@@ -7,7 +7,7 @@ import {
   DEFAULT_CALENDARCN_THEME,
   calendarCnThemeNames,
   toggleCalendarCnTheme,
-} from "@/components/marketing/calendarcn-theme-config"
+} from "@/components/marketing/theme/config"
 
 function ThemeProvider({
   children,

@@ -11,7 +11,7 @@ import type {
   CalendarDropTarget,
   CalendarEventRenderer,
   CalendarOccurrence,
-} from "../types"
+} from "../../types"
 import {
   getAgendaDays,
   formatAgendaEyebrow,
@@ -19,15 +19,15 @@ import {
   getCalendarSlotClassName,
   getDayEvents,
   getEventMetaLabel,
-} from "../utils"
+} from "../../utils"
 import {
   CalendarEventCard,
   getResolvedAccentColor,
-} from "./calendar-event-card"
+} from "./event-card"
 import type {
   CalendarAgendaViewProps,
   CalendarEventMenuPosition,
-} from "./shared"
+} from "../shared"
 
 export function CalendarAgendaView(props: CalendarAgendaViewProps) {
   const days = getAgendaDays(props.range, props.hiddenDays)

@@ -13,8 +13,8 @@ import {
 
 import { cn } from "@/lib/utils"
 
-import type { CalendarOccurrence } from "../types"
-import { getEventMetaLabel, getOccurrenceAccentColor } from "../utils"
+import type { CalendarOccurrence } from "../../types"
+import { getEventMetaLabel, getOccurrenceAccentColor } from "../../utils"
 
 type CalendarEventContextMenuProps = {
   hourCycle?: 12 | 24

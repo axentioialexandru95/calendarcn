@@ -1,7 +1,7 @@
 import {
   CalendarCnSectionFrame,
   CalendarCnSectionHeading,
-} from "@/components/marketing/sections/calendarcn-section-primitives"
+} from "@/components/marketing/sections/primitives"
 
 type CalendarCnComponentsSectionProps = {
   content: {

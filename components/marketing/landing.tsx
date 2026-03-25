@@ -1,4 +1,4 @@
-import { CalendarCnFloatingNav } from "@/components/marketing/calendarcn-floating-nav"
+import { CalendarCnFloatingNav } from "@/components/marketing/navigation/floating-nav"
 import {
   CalendarCnCapabilitiesSection,
   CalendarCnComponentsSection,

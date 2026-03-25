@@ -1,4 +1,4 @@
-import { CalendarCnHeroSnippet } from "@/components/marketing/calendarcn-hero-snippet"
+import { CalendarCnHeroSnippet } from "@/components/marketing/hero/snippet"
 import DarkVeil from "@/components/dark-veil"
 
 type CalendarCnHeroSectionProps = {

@@ -22,9 +22,9 @@ import type {
   CalendarDragData,
   CalendarEventRenderer,
   CalendarOccurrence,
-} from "../types"
-import { getCalendarSlotClassName, getOccurrenceAccentColor } from "../utils"
-import type { CalendarEventMenuPosition, EventVariant } from "./shared"
+} from "../../types"
+import { getCalendarSlotClassName, getOccurrenceAccentColor } from "../../utils"
+import type { CalendarEventMenuPosition, EventVariant } from "../shared"
 
 type CalendarEventCardProps = {
   accentColor: string
@@ -33,7 +33,7 @@ type CalendarEventCardProps = {
   dragInstanceId: string
   event: CalendarOccurrence
   interactive: boolean
-  onEventKeyCommand: (
+  onEventKeyCommad: (
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
   ) => void

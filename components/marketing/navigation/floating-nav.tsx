@@ -4,11 +4,11 @@ import * as React from "react"
 import { MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { useTheme } from "next-themes"
 
-import { CalendarCnLogo } from "@/components/marketing/calendarcn-logo"
+import { CalendarCnLogo } from "@/components/marketing/branding/logo"
 import {
   DEFAULT_CALENDARCN_THEME,
   toggleCalendarCnTheme,
-} from "@/components/marketing/calendarcn-theme-config"
+} from "@/components/marketing/theme/config"
 import { cn } from "@/lib/utils"
 
 type CalendarCnFloatingNavProps = {

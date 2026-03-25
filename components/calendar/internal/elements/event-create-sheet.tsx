@@ -15,7 +15,7 @@ import type {
   CalendarCreateOperation,
   CalendarCreateSheetConfig,
   CalendarResource,
-} from "../types"
+} from "../../types"
 
 type CalendarEventCreateSheetProps = {
   config?: CalendarCreateSheetConfig

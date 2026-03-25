@@ -1,9 +1,9 @@
-import { CalendarCnBackToTopButton } from "@/components/marketing/calendarcn-back-to-top-button"
-import { CalendarCnThemeShowcase } from "@/components/marketing/calendarcn-theme-showcase"
+import { CalendarCnBackToTopButton } from "@/components/marketing/shared/back-to-top-button"
+import { CalendarCnThemeShowcase } from "@/components/marketing/theme/showcase"
 import {
   CalendarCnSectionFrame,
   CalendarCnSectionHeading,
-} from "@/components/marketing/sections/calendarcn-section-primitives"
+} from "@/components/marketing/sections/primitives"
 
 type CalendarCnThemesSectionProps = {
   content: {

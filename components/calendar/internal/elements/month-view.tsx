@@ -4,7 +4,7 @@ import { useDroppable } from "@dnd-kit/core"
 
 import { cn } from "@/lib/utils"
 
-import type { CalendarDropTarget } from "../types"
+import type { CalendarDropTarget } from "../../types"
 import {
   formatDayNumber,
   formatWeekday,
@@ -14,12 +14,12 @@ import {
   getMonthDays,
   isOutsideMonth,
   isToday,
-} from "../utils"
+} from "../../utils"
 import {
   CalendarEventCard,
   getResolvedAccentColor,
-} from "./calendar-event-card"
-import { maxMonthEvents, type SharedViewProps } from "./shared"
+} from "./event-card"
+import { maxMonthEvents, type SharedViewProps } from "../shared"
 
 export function CalendarMonthView(props: SharedViewProps) {
   const days = getMonthDays(

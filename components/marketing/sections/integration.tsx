@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import {
   CalendarCnSectionFrame,
   CalendarCnSectionHeading,
-} from "@/components/marketing/sections/calendarcn-section-primitives"
+} from "@/components/marketing/sections/primitives"
 
 type CalendarCnIntegrationSectionProps = {
   content: {

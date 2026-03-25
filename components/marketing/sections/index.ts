@@ -1,10 +1,10 @@
-export { CalendarCnCapabilitiesSection } from "./calendarcn-capabilities-section"
-export { CalendarCnComponentsSection } from "./calendarcn-components-section"
-export { CalendarCnFooterSection } from "./calendarcn-footer-section"
-export { CalendarCnHeroSection } from "./calendarcn-hero-section"
-export { CalendarCnIntegrationSection } from "./calendarcn-integration-section"
+export { CalendarCnCapabilitiesSection } from "./capabilities"
+export { CalendarCnComponentsSection } from "./components"
+export { CalendarCnFooterSection } from "./footer"
+export { CalendarCnHeroSection } from "./hero"
+export { CalendarCnIntegrationSection } from "./integration"
 export {
   CalendarCnSectionFrame,
   CalendarCnSectionHeading,
-} from "./calendarcn-section-primitives"
-export { CalendarCnThemesSection } from "./calendarcn-themes-section"
+} from "./primitives"
+export { CalendarCnThemesSection } from "./themes"

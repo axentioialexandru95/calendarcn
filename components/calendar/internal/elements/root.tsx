@@ -26,7 +26,7 @@ import type {
   CalendarMoveOperation,
   CalendarOccurrence,
   CalendarResizeOperation,
-} from "../types"
+} from "../../types"
 import {
   applyMoveOperation,
   applyResizeOperation,
@@ -45,12 +45,12 @@ import {
   resolveCalendarView,
   setMinuteOfDay,
   shiftDate,
-} from "../utils"
-import { CalendarAgendaView } from "./calendar-agenda-view"
-import { EventSurface, getResolvedAccentColor } from "./calendar-event-card"
-import { CalendarMonthView } from "./calendar-month-view"
-import { CalendarToolbar } from "./calendar-toolbar"
-import { CalendarDayView, CalendarWeekView } from "./calendar-time-grid-view"
+} from "../../utils"
+import { CalendarAgendaView } from "./agenda-view"
+import { EventSurface, getResolvedAccentColor } from "./event-card"
+import { CalendarMonthView } from "./month-view"
+import { CalendarToolbar } from "./toolbar"
+import { CalendarDayView, CalendarWeekView } from "./time-grid-view"
 import {
   compactSlotHeight,
   defaultMaxHour,
@@ -60,10 +60,10 @@ import {
   type CalendarEventMenuPosition,
   type CalendarRootProps,
   type SharedViewProps,
-} from "./shared"
-import { CalendarEventChangeConfirmationDialog } from "./calendar-event-change-confirmation-dialog"
-import { CalendarEventCreateSheet } from "./calendar-event-create-sheet"
-import { CalendarEventContextMenu } from "./calendar-event-context-menu"
+} from "../shared"
+import { CalendarEventChangeConfirmationDialog } from "./event-change-confirmation-dialog"
+import { CalendarEventCreateSheet } from "./event-create-sheet"
+import { CalendarEventContextMenu } from "./event-context-menu"
 
 export function CalendarRoot({
   agendaDays = 14,
@@ -128,9 +128,6 @@ export function CalendarRoot({
   const resolvedSlotHeight =
     customSlotHeight ??
     (density === "compact" ? compactSlotHeight : defaultSlotHeight)
-  const deferredEvents = React.useDeferredValue(events)
-  const displayEvents =
-    optimisticEvents === events ? deferredEvents : optimisticEvents
   const range = getVisibleRange(date, resolvedView, {
     agendaDays,
     hiddenDays: resolvedHiddenDays,
@@ -174,7 +171,7 @@ export function CalendarRoot({
     setIsHydrated(true)
   }, [])
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     setOptimisticEvents(events)
   }, [events])
 
@@ -272,7 +269,7 @@ export function CalendarRoot({
   ])
 
   const occurrences = React.useMemo(() => {
-    const nextOccurrences = expandOccurrences(displayEvents, range)
+    const nextOccurrences = expandOccurrences(optimisticEvents, range)
 
     if (!previewOccurrence || !activeResize) {
       return nextOccurrences
@@ -283,7 +280,7 @@ export function CalendarRoot({
         ? previewOccurrence
         : occurrence
     )
-  }, [activeResize, displayEvents, previewOccurrence, range])
+  }, [activeResize, optimisticEvents, previewOccurrence, range])
 
   function announce(message: string) {
     setLiveAnnouncement(message)
@@ -583,13 +580,14 @@ export function CalendarRoot({
         getTimeGridDropTargetFromPoint(event.clientX, event.clientY) ??
         activeResizeTargetRef.current ??
         lastResizeTargetRef.current
-      clearPointerResize()
 
       if (!target) {
+        clearPointerResize()
         return
       }
 
       commitPointerResize(resize, target)
+      clearPointerResize()
     }
 
     function handlePointerCancel(event: PointerEvent) {

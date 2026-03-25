@@ -1,13 +1,13 @@
 "use client"
 
-export { CalendarRoot } from "./internal/calendar-root"
-export { CalendarAgendaView } from "./internal/calendar-agenda-view"
-export { CalendarMonthView } from "./internal/calendar-month-view"
-export { CalendarToolbar } from "./internal/calendar-toolbar"
+export { CalendarRoot } from "./internal/elements/root"
+export { CalendarAgendaView } from "./internal/elements/agenda-view"
+export { CalendarMonthView } from "./internal/elements/month-view"
+export { CalendarToolbar } from "./internal/elements/toolbar"
 export {
   CalendarDayView,
   CalendarWeekView,
-} from "./internal/calendar-time-grid-view"
+} from "./internal/elements/time-grid-view"
 export type {
   CalendarBlockedRange,
   CalendarBusinessHoursWindow,

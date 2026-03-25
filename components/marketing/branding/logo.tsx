@@ -17,13 +17,13 @@ export function CalendarCnLogo({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span
         className={cn(
-          "relative inline-flex size-8 items-center justify-center rounded-xl border border-border/70 bg-gradient-to-b from-card to-background text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_28px_-18px_rgba(15,23,42,0.55)]",
+          "relative inline-flex size-8 items-center justify-center rounded-xl border border-border/70 bg-linear-to-b from-card to-background text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_28px_-18px_rgba(15,23,42,0.55)]",
           iconClassName
         )}
       >
         <svg
           aria-hidden
-          className="size-[18px]"
+          className="size-4.5"
           fill="none"
           viewBox="0 0 24 24"
         >

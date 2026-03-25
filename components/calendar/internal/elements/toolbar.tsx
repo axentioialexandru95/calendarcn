@@ -14,9 +14,9 @@ import {
 
 import { cn } from "@/lib/utils"
 
-import { type CalendarView } from "../types"
-import { getCalendarSlotClassName } from "../utils"
-import type { CalendarToolbarProps } from "./shared"
+import { type CalendarView } from "../../types"
+import { getCalendarSlotClassName } from "../../utils"
+import type { CalendarToolbarProps } from "../shared"
 
 const viewLabels: Record<CalendarView, string> = {
   month: "Month",
