@@ -7,7 +7,7 @@ import type {
   CalendarResource,
 } from "@/components/calendar/types"
 
-export const CALENDAR_DEMO_SEED_VERSION = "2026-03-24-config-surface-v1"
+export const CALENDAR_DEMO_SEED_VERSION = "2026-03-25-config-surface-v2"
 
 export function buildDemoBusinessHours(): CalendarBusinessHoursWindow[] {
   return [
@@ -117,8 +117,8 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "planning",
       title: "Planning review",
-      start: set(addDays(day, 1), { hours: 15, minutes: 0 }),
-      end: set(addDays(day, 1), { hours: 16, minutes: 30 }),
+      start: set(addDays(day, 1), { hours: 14, minutes: 0 }),
+      end: set(addDays(day, 1), { hours: 15, minutes: 30 }),
       color: "#ea580c",
       calendarId: "product",
       calendarLabel: "Product",

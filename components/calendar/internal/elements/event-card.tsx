@@ -7,32 +7,34 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react"
 
-import {
-  useDraggable,
-  type DraggableAttributes,
-  type DraggableSyntheticListeners,
-} from "@dnd-kit/core"
-import { CSS } from "@dnd-kit/utilities"
-
 import { cn } from "@/lib/utils"
 
 import type {
   CalendarClassNames,
   CalendarDensity,
-  CalendarDragData,
   CalendarEventRenderer,
   CalendarOccurrence,
 } from "../../types"
-import { getCalendarSlotClassName, getOccurrenceAccentColor } from "../../utils"
+import {
+  canMoveOccurrence,
+  canResizeOccurrence,
+  getCalendarSlotClassName,
+  getOccurrenceAccentColor,
+} from "../../utils"
 import type { CalendarEventMenuPosition, EventVariant } from "../shared"
 
 type CalendarEventCardProps = {
   accentColor: string
   classNames?: CalendarClassNames
   density?: CalendarDensity
-  dragInstanceId: string
+  dragging?: boolean
   event: CalendarOccurrence
   interactive: boolean
+  onDragPointerDown?: (
+    occurrence: CalendarOccurrence,
+    variant: EventVariant,
+    event: ReactPointerEvent<HTMLButtonElement>
+  ) => void
   onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
@@ -48,9 +50,11 @@ type CalendarEventCardProps = {
   ) => void
   onSelect: (occurrence: CalendarOccurrence) => void
   preview?: boolean
+  previewMetaLabel?: string
   renderEvent?: CalendarEventRenderer
   selected?: boolean
   showResizeHandles?: boolean
+  shouldSuppressClick?: (occurrenceId: string) => boolean
   timeLabel: string
   variant: EventVariant
 }
@@ -58,14 +62,16 @@ type CalendarEventCardProps = {
 type EventSurfaceProps = {
   accentColor: string
   ariaLabel?: string
-  attributes?: DraggableAttributes
   className?: string
   density?: CalendarDensity
+  dragging?: boolean
   event: CalendarOccurrence
-  isDragging?: boolean
-  listeners?: DraggableSyntheticListeners
-  nodeRef?: (element: HTMLButtonElement | null) => void
   overlay?: boolean
+  onDragPointerDown?: (
+    occurrence: CalendarOccurrence,
+    variant: EventVariant,
+    event: ReactPointerEvent<HTMLButtonElement>
+  ) => void
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void
   onResizeHandlePointerDown?: (
     occurrence: CalendarOccurrence,
@@ -78,10 +84,12 @@ type EventSurfaceProps = {
   ) => void
   onSelect?: () => void
   preview?: boolean
+  previewMetaLabel?: string
   renderEvent?: CalendarEventRenderer
   selected?: boolean
   showResizeHandles?: boolean
   style?: CSSProperties
+  shouldSuppressClick?: (occurrenceId: string) => boolean
   timeLabel: string
   variant: EventVariant
 }
@@ -90,58 +98,50 @@ export function CalendarEventCard({
   accentColor,
   classNames,
   density = "comfortable",
-  dragInstanceId,
+  dragging = false,
   event,
   interactive,
+  onDragPointerDown,
   onEventKeyCommand,
   onResizeHandlePointerDown,
   onOpenContextMenu,
   onSelect,
   preview = false,
+  previewMetaLabel,
   renderEvent,
   selected,
   showResizeHandles,
+  shouldSuppressClick,
   timeLabel,
   variant,
 }: CalendarEventCardProps) {
-  const disabled = event.readOnly
-  const dragEnabled = interactive && !disabled && !preview
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: `event:${dragInstanceId}`,
-      data: {
-        kind: "event",
-        occurrence: event,
-        variant,
-      } satisfies CalendarDragData,
-      disabled: !dragEnabled,
-    })
+  const dragEnabled = interactive && canMoveOccurrence(event) && !preview
 
   return (
-    <div
-      className={variant === "time-grid" ? "h-full" : undefined}
-      style={{
-        transform: CSS.Translate.toString(transform),
-      }}
-    >
+    <div className={variant === "time-grid" ? "h-full" : undefined}>
       <EventSurface
         accentColor={accentColor}
         ariaLabel={`${event.title}. ${timeLabel}.`}
-        attributes={dragEnabled ? attributes : undefined}
         className={getEventSlotClassName(classNames, variant)}
         density={density}
+        dragging={dragging}
         event={event}
-        isDragging={isDragging}
-        listeners={dragEnabled ? listeners : undefined}
-        nodeRef={dragEnabled ? setNodeRef : undefined}
+        onDragPointerDown={dragEnabled ? onDragPointerDown : undefined}
         onKeyDown={(keyEvent) => onEventKeyCommand(event, keyEvent)}
         onResizeHandlePointerDown={onResizeHandlePointerDown}
         onOpenContextMenu={onOpenContextMenu}
         onSelect={() => onSelect(event)}
         preview={preview}
+        previewMetaLabel={previewMetaLabel}
         renderEvent={renderEvent}
         selected={selected}
-        showResizeHandles={showResizeHandles && interactive && !preview}
+        showResizeHandles={
+          showResizeHandles &&
+          interactive &&
+          !preview &&
+          canResizeOccurrence(event)
+        }
+        shouldSuppressClick={shouldSuppressClick}
         timeLabel={timeLabel}
         variant={variant}
       />
@@ -152,27 +152,28 @@ export function CalendarEventCard({
 export function EventSurface({
   accentColor,
   ariaLabel,
-  attributes,
   className,
   density = "comfortable",
+  dragging = false,
   event,
-  isDragging = false,
-  listeners,
-  nodeRef,
   overlay = false,
+  onDragPointerDown,
   onKeyDown,
   onResizeHandlePointerDown,
   onOpenContextMenu,
   onSelect,
   preview = false,
+  previewMetaLabel,
   renderEvent,
   selected,
   showResizeHandles,
   style,
+  shouldSuppressClick,
   timeLabel,
   variant,
 }: EventSurfaceProps) {
   const isCompact = variant === "month" || variant === "all-day"
+
   function openContextMenu(position: CalendarEventMenuPosition) {
     if (!onOpenContextMenu || overlay) {
       return
@@ -180,6 +181,16 @@ export function EventSurface({
 
     onSelect?.()
     onOpenContextMenu(event, position)
+  }
+
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    if (shouldSuppressClick?.(event.currentTarget.dataset.calendarOccurrenceId ?? "")) {
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+
+    onSelect?.()
   }
 
   function handleContextMenu(event: MouseEvent<HTMLButtonElement>) {
@@ -218,7 +229,7 @@ export function EventSurface({
       accentColor,
       timeLabel,
       isCompact,
-      isDragging,
+      isDragging: dragging,
     })
   ) : (
     <div
@@ -265,25 +276,29 @@ export function EventSurface({
             density,
             variant,
             selected,
-            isDragging,
+            dragging,
             overlay,
             preview
           ),
           className
         )}
-        ref={nodeRef}
         data-calendar-event-id={event.sourceEventId}
         data-calendar-occurrence-id={event.occurrenceId}
         data-calendar-variant={variant}
         data-selected={selected ? "true" : undefined}
         data-testid={`calendar-event-${event.sourceEventId}-${variant}`}
-        onClick={onSelect}
+        onClick={handleClick}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
+        onPointerDown={(pointerEvent) => {
+          if (overlay || !onDragPointerDown || pointerEvent.button !== 0) {
+            return
+          }
+
+          onDragPointerDown(event, variant, pointerEvent)
+        }}
         style={getEventSurfaceStyle()}
         type="button"
-        {...attributes}
-        {...listeners}
       >
         {preview ? (
           <span
@@ -298,6 +313,11 @@ export function EventSurface({
           style={{ backgroundColor: accentColor }}
         />
         {content}
+        {(preview || overlay) && previewMetaLabel ? (
+          <span className="pointer-events-none absolute right-2 bottom-1.5 rounded-full bg-background/92 px-1.5 py-0.5 text-[10px] font-medium text-foreground shadow-xs">
+            {previewMetaLabel}
+          </span>
+        ) : null}
       </button>
       {showResizeHandles && !overlay ? (
         <>

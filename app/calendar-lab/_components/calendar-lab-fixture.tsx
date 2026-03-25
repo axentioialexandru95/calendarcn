@@ -17,7 +17,7 @@ import {
   buildDemoResources,
 } from "@/lib/calendar-demo-data"
 
-type CalendarLabScenario = "confirm" | "default" | "recurrence"
+type CalendarLabScenario = "confirm" | "default" | "details" | "recurrence"
 
 type CalendarLabFixtureProps = {
   initialDateIso: string
@@ -75,8 +75,10 @@ export function CalendarLabFixture({
           createEventSheet={createSheetConfig}
           date={controller.date}
           eventChangeConfirmation={eventChangeConfirmation}
+          eventDetails={scenario === "details" ? true : undefined}
           events={controller.events}
           hourCycle={24}
+          keyboardShortcuts={scenario === "details" ? true : undefined}
           locale="en-GB"
           onDateChange={controller.setDate}
           onEventArchive={controller.handleEventArchive}
@@ -85,11 +87,21 @@ export function CalendarLabFixture({
           onEventDuplicate={controller.handleEventDuplicate}
           onEventMove={controller.handleEventMove}
           onEventResize={controller.handleEventResize}
+          onEventUpdate={
+            scenario === "details" ? controller.handleEventUpdate : undefined
+          }
           onNavigate={controller.step}
           onSelectedEventChange={controller.setSelectedEventId}
           onToday={controller.goToToday}
           onViewChange={controller.setView}
+          secondaryTimeZone={
+            scenario === "details" ? "America/New_York" : undefined
+          }
           resources={resources}
+          showSecondaryTimeZone={scenario === "details"}
+          defaultResourceFilter={
+            scenario === "details" ? ["product", "operations"] : undefined
+          }
           scrollToTime="08:00"
           selectedEventId={controller.selectedEventId}
           timeZone="Europe/Bucharest"

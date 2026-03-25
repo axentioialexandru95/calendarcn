@@ -10,6 +10,7 @@ import type {
   CalendarEventChangeConfirmation,
   CalendarEventChangeConfirmationContext,
 } from "../../types"
+import { useModalFocus } from "./use-modal-focus"
 
 type CalendarEventChangeConfirmationDialogProps = {
   config?: CalendarEventChangeConfirmation
@@ -30,23 +31,17 @@ export function CalendarEventChangeConfirmationDialog({
   onConfirm,
   timeZone,
 }: CalendarEventChangeConfirmationDialogProps) {
-  React.useEffect(() => {
-    if (!context) {
-      return
-    }
+  const dialogRef = React.useRef<HTMLDivElement | null>(null)
+  const confirmButtonRef = React.useRef<HTMLButtonElement | null>(null)
+  const titleId = React.useId()
+  const descriptionId = React.useId()
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onCancel()
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [context, onCancel])
+  useModalFocus({
+    containerRef: dialogRef,
+    initialFocusRef: confirmButtonRef,
+    onClose: onCancel,
+    open: Boolean(context),
+  })
 
   if (!context) {
     return null
@@ -88,20 +83,27 @@ export function CalendarEventChangeConfirmationDialog({
         type="button"
       />
       <div
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
         aria-modal="true"
-        className="relative z-10 w-full max-w-md rounded-[calc(var(--radius)*1.2)] border border-border/80 bg-background p-5 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.65)]"
+        className="relative z-10 flex w-[min(100%-2rem,28rem)] flex-col rounded-[calc(var(--radius)*1.2)] border border-border/80 bg-background p-5 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.65)] outline-none"
         data-testid="calendar-event-change-confirmation-dialog"
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
         <div className="flex items-start gap-3">
           <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-[calc(var(--radius)*0.85)] bg-primary/10 text-primary">
             <Icon className="size-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold tracking-tight">
+            <h2 className="text-base font-semibold tracking-tight" id={titleId}>
               {resolvedTitle}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            <p
+              className="mt-1 text-sm leading-6 text-muted-foreground"
+              id={descriptionId}
+            >
               {resolvedDescription}
             </p>
           </div>
@@ -152,9 +154,9 @@ export function CalendarEventChangeConfirmationDialog({
             {resolvedCancelLabel}
           </Button>
           <Button
-            autoFocus
             data-testid="calendar-event-change-confirm"
             onClick={onConfirm}
+            ref={confirmButtonRef}
           >
             {resolvedConfirmLabel}
           </Button>

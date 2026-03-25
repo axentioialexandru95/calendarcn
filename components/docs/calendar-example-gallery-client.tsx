@@ -118,7 +118,7 @@ export function CalendarExampleGalleryClient({
 
       <div className="p-4 md:p-5">
         {activeTab === "preview" ? (
-          <div className="overflow-hidden rounded-[1.5rem] border border-border/70 bg-background/80 p-3 md:p-4">
+          <div className="min-w-0">
             <ActivePreview />
           </div>
         ) : (

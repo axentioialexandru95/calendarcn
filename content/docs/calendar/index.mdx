@@ -1,0 +1,65 @@
+---
+title: Overview
+description: Install CalendarCN, preview the main examples, and wire the calendar into controlled React state.
+---
+
+<Callout type="info">
+  CalendarCN installs source into your app. The docs below focus on wiring the
+  calendar into controlled React state so drag, resize, and creation behavior
+  stay explicit and easy to persist.
+</Callout>
+
+## Preview
+
+<CalendarExampleGallery
+  defaultId="basic"
+  ids={["basic", "workweek", "resources", "interactions"]}
+/>
+
+## Installation
+
+<InstallTabs />
+
+## Usage
+
+<CalendarUsageSnippet />
+
+## Examples
+
+The calendar surface should document more than a single happy path. These
+versions cover both implementation patterns and the individual views that most
+teams need to wire up.
+
+<CalendarExampleDirectory />
+
+## Accessibility
+
+- Week and day views expose a roving schedule grid. Tab enters the active day
+  once, arrow keys move the active slot, and `Enter` or `Space` starts the
+  create flow for that slot.
+- Event cards stay as buttons. Arrow keys move a selected event, `Shift + Arrow`
+  resizes the end, `Alt + Arrow` resizes the start, and `Shift + F10` opens the
+  event context menu.
+- Confirmation, create, details, and keyboard-shortcuts overlays all use modal
+  dialogs with focus trap, escape handling, overlay dismiss, and focus restore.
+- Month uses grid semantics and agenda uses list semantics so assistive
+  technology gets the same structural cues as the visual layout.
+- Press `?` anywhere outside inputs to open the shortcuts dialog when keyboard
+  shortcuts are enabled.
+
+## Notes
+
+- `CalendarRoot` is fully controlled. Keep `date`, `view`, and `events` in your
+  own state or wire them into your store.
+- The utility helpers in `@/components/calendar/utils` are the fastest path to
+  local optimistic handlers for move, resize, and create flows.
+- `resources`, `businessHours`, and `blockedRanges` are optional. The same core
+  interaction model works with or without them.
+- Use `eventDetails`, `keyboardShortcuts`, `resourceFilter`, and
+  `secondaryTimeZone` to productize the base surface without forking the core
+  views.
+- Use `eventChangeConfirmation` when your app needs to gate schedule changes
+  behind a dialog or persistence check.
+- `exportEventsToICS`, `parseICSText`, and `parseICSFile` live in
+  `@/components/calendar/utils` for import and export workflows outside the
+  rendered calendar.

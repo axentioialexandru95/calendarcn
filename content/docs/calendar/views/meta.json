@@ -1,0 +1,5 @@
+{
+  "title": "Views",
+  "defaultOpen": true,
+  "pages": ["month", "week", "day", "agenda"]
+}

@@ -3,18 +3,6 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
 
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  pointerWithin,
-  useSensor,
-  useSensors,
-  type ClientRect,
-  type CollisionDetection,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core"
 import { addDays, addMinutes, startOfDay } from "date-fns"
 
 import type {
@@ -28,11 +16,21 @@ import type {
   CalendarResizeOperation,
 } from "../../types"
 import {
+  applyEventUpdateOperation,
   applyMoveOperation,
   applyResizeOperation,
+  canArchiveOccurrence,
+  canDeleteOccurrence,
+  canDuplicateOccurrence,
+  canMoveOccurrence,
+  canOpenEventDetails,
+  canResizeOccurrence,
   clampResize,
   copyTimeParts,
   expandOccurrences,
+  formatEventTimeLabel,
+  filterOccurrencesByResource,
+  formatDurationLabel,
   getNextVisibleDay,
   getCalendarSlotClassName,
   getDaySpan,
@@ -64,6 +62,19 @@ import {
 import { CalendarEventChangeConfirmationDialog } from "./event-change-confirmation-dialog"
 import { CalendarEventCreateSheet } from "./event-create-sheet"
 import { CalendarEventContextMenu } from "./event-context-menu"
+import { CalendarEventDetailsSheet } from "./event-details-sheet"
+import { CalendarKeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog"
+
+const dragActivationDistance = 6
+
+type ActiveDragInteraction = {
+  currentClientX: number
+  currentClientY: number
+  initialClientX: number
+  initialClientY: number
+  isDragging: boolean
+  pointerId: number
+}
 
 export function CalendarRoot({
   agendaDays = 14,
@@ -75,10 +86,12 @@ export function CalendarRoot({
   date,
   density = "comfortable",
   eventChangeConfirmation,
+  eventDetails,
   events,
   getEventColor,
   hiddenDays,
   hourCycle,
+  keyboardShortcuts,
   locale,
   maxHour = defaultMaxHour,
   minHour = defaultMinHour,
@@ -90,29 +103,41 @@ export function CalendarRoot({
   onEventMove,
   onEventResize,
   onEventSelect,
+  onEventUpdate,
   onNavigate,
+  onResourceFilterChange,
   onSelectedEventChange,
   onToday,
   onViewChange,
+  renderEmptyState,
   renderEvent,
+  renderEventDetails,
+  renderToolbarExtras,
   resources,
+  resourceFilter,
   scrollToTime,
+  secondaryTimeZone,
   selectedEventId,
+  showCreatePreviewMeta = true,
+  showDragPreviewMeta = true,
+  showSecondaryTimeZone = false,
   slotDuration = defaultSlotDuration,
   slotHeight: customSlotHeight,
+  surfaceShadow = "none",
+  defaultResourceFilter,
   timeZone,
   view,
   weekStartsOn = 1,
 }: CalendarRootProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 6,
-      },
-    })
-  )
   const [optimisticEvents, setOptimisticEvents] =
     React.useState<CalendarEvent[]>(events)
+  const allResourceIds = React.useMemo(
+    () => resources?.map((resource) => resource.id) ?? [],
+    [resources]
+  )
+  const [internalResourceFilter, setInternalResourceFilter] = React.useState<
+    string[]
+  >(() => defaultResourceFilter ?? allResourceIds)
   const resolvedAvailableViews = React.useMemo(
     () => normalizeAvailableViews(availableViews),
     [availableViews]
@@ -142,9 +167,15 @@ export function CalendarRoot({
   )
   const [activeDropTarget, setActiveDropTarget] =
     React.useState<CalendarDropTarget | null>(null)
+  const activeDropTargetRef = React.useRef<CalendarDropTarget | null>(null)
   const lastDropTargetRef = React.useRef<CalendarDropTarget | null>(null)
   const [activeDragOffsetMinutes, setActiveDragOffsetMinutes] =
     React.useState(0)
+  const activeDragOffsetMinutesRef = React.useRef(0)
+  const [activeDragInteraction, setActiveDragInteraction] =
+    React.useState<ActiveDragInteraction | null>(null)
+  const activeDragRef = React.useRef<CalendarDragData | null>(null)
+  const activeDragInteractionRef = React.useRef<ActiveDragInteraction | null>(null)
   const [activeResize, setActiveResize] = React.useState<{
     edge: "start" | "end"
     occurrence: CalendarOccurrence
@@ -154,9 +185,8 @@ export function CalendarRoot({
     React.useState<CalendarDropTarget | null>(null)
   const activeResizeTargetRef = React.useRef<CalendarDropTarget | null>(null)
   const lastResizeTargetRef = React.useRef<CalendarDropTarget | null>(null)
-  const [activeDragRect, setActiveDragRect] = React.useState<ClientRect | null>(
-    null
-  )
+  const [activeDragRect, setActiveDragRect] = React.useState<DOMRect | null>(null)
+  const activeDragRectRef = React.useRef<DOMRect | null>(null)
   const [contextMenu, setContextMenu] = React.useState<{
     occurrence: CalendarOccurrence
     position: CalendarEventMenuPosition
@@ -165,7 +195,45 @@ export function CalendarRoot({
     React.useState<CalendarEventChangeConfirmationContext | null>(null)
   const [createSheetOperation, setCreateSheetOperation] =
     React.useState<CalendarCreateOperation | null>(null)
+  const [detailsOccurrence, setDetailsOccurrence] =
+    React.useState<CalendarOccurrence | null>(null)
+  const [isKeyboardShortcutsOpen, setIsKeyboardShortcutsOpen] =
+    React.useState(false)
   const [liveAnnouncement, setLiveAnnouncement] = React.useState("")
+  const suppressedPointerClickOccurrenceIdRef = React.useRef<string | null>(null)
+  const resolvedResourceFilter = React.useMemo(() => {
+    const nextFilter = resourceFilter ?? internalResourceFilter
+    const dedupedFilter = Array.from(new Set(nextFilter)).filter((id) =>
+      allResourceIds.includes(id)
+    )
+
+    if (allResourceIds.length === 0) {
+      return dedupedFilter
+    }
+
+    return dedupedFilter.length > 0 ? dedupedFilter : allResourceIds
+  }, [allResourceIds, internalResourceFilter, resourceFilter])
+  const eventDetailsEnabled = eventDetails !== undefined && eventDetails !== false
+  const openEventDetailsOnSelect =
+    typeof eventDetails === "object" ? eventDetails.openOnSelect ?? true : true
+  const keyboardShortcutsEnabled =
+    keyboardShortcuts !== undefined && keyboardShortcuts !== false
+
+  React.useEffect(() => {
+    activeDragRef.current = activeDrag
+  }, [activeDrag])
+
+  React.useEffect(() => {
+    activeDragInteractionRef.current = activeDragInteraction
+  }, [activeDragInteraction])
+
+  React.useEffect(() => {
+    activeDragOffsetMinutesRef.current = activeDragOffsetMinutes
+  }, [activeDragOffsetMinutes])
+
+  React.useEffect(() => {
+    activeDragRectRef.current = activeDragRect
+  }, [activeDragRect])
 
   React.useEffect(() => {
     setIsHydrated(true)
@@ -175,7 +243,108 @@ export function CalendarRoot({
     setOptimisticEvents(events)
   }, [events])
 
+  React.useEffect(() => {
+    setInternalResourceFilter((currentFilter) => {
+      if (resourceFilter) {
+        return currentFilter
+      }
+
+      const nextFilter =
+        currentFilter.length > 0
+          ? currentFilter.filter((id) => allResourceIds.includes(id))
+          : defaultResourceFilter ?? allResourceIds
+
+      return nextFilter.length > 0 || allResourceIds.length === 0
+        ? nextFilter
+        : allResourceIds
+    })
+  }, [allResourceIds, defaultResourceFilter, resourceFilter])
+
+  React.useEffect(() => {
+    if (!isHydrated || !keyboardShortcutsEnabled) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        event.defaultPrevented ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        !(
+          event.key === "?" ||
+          (event.key === "/" && event.shiftKey)
+        )
+      ) {
+        return
+      }
+
+      const target = event.target
+
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === "INPUT" ||
+          target.tagName === "SELECT" ||
+          target.tagName === "TEXTAREA")
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      setIsKeyboardShortcutsOpen(true)
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isHydrated, keyboardShortcutsEnabled])
+
+  function setActiveResourceIds(nextResourceIds: string[]) {
+    const dedupedResourceIds = Array.from(new Set(nextResourceIds)).filter((id) =>
+      allResourceIds.includes(id)
+    )
+
+    if (!resourceFilter) {
+      setInternalResourceFilter(dedupedResourceIds)
+    }
+
+    onResourceFilterChange?.(dedupedResourceIds)
+  }
+
+  function openEventDetails(occurrence: CalendarOccurrence) {
+    if (!eventDetailsEnabled || !canOpenEventDetails(occurrence)) {
+      return
+    }
+
+    closeContextMenu()
+    setDetailsOccurrence(occurrence)
+  }
+
+  function closeEventDetails() {
+    setDetailsOccurrence(null)
+  }
+
+  function updateActiveDropTarget(target: CalendarDropTarget | null) {
+    if (areDropTargetsEqual(activeDropTargetRef.current, target)) {
+      return
+    }
+
+    activeDropTargetRef.current = target
+    setActiveDropTarget(target)
+
+    if (target) {
+      lastDropTargetRef.current = target
+    }
+  }
+
   function updateActiveResizeTarget(target: CalendarDropTarget | null) {
+    if (areDropTargetsEqual(activeResizeTargetRef.current, target)) {
+      return
+    }
+
     activeResizeTargetRef.current = target
     setActiveResizeTarget(target)
 
@@ -184,11 +353,29 @@ export function CalendarRoot({
     }
   }
 
+  function clearActiveDragState() {
+    setActiveDrag(null)
+    setActiveDragInteraction(null)
+    updateActiveDropTarget(null)
+    setActiveDragOffsetMinutes(0)
+    setActiveDragRect(null)
+    lastDropTargetRef.current = null
+  }
+
   function clearActiveResize() {
     setActiveResize(null)
     updateActiveResizeTarget(null)
     lastResizeTargetRef.current = null
   }
+
+  const shouldSuppressEventClick = React.useCallback((occurrenceId: string) => {
+    if (suppressedPointerClickOccurrenceIdRef.current !== occurrenceId) {
+      return false
+    }
+
+    suppressedPointerClickOccurrenceIdRef.current = null
+    return true
+  }, [])
 
   const shouldBlockTimedRange = React.useCallback(
     (start: Date, end: Date, allDay: boolean | undefined) => {
@@ -268,28 +455,74 @@ export function CalendarRoot({
     slotDuration,
   ])
 
-  const occurrences = React.useMemo(() => {
-    const nextOccurrences = expandOccurrences(optimisticEvents, range)
+  const filteredOccurrences = React.useMemo(() => {
+    return filterOccurrencesByResource(
+      expandOccurrences(optimisticEvents, range),
+      resolvedResourceFilter
+    )
+  }, [optimisticEvents, range, resolvedResourceFilter])
 
+  const occurrences = React.useMemo(() => {
     if (!previewOccurrence || !activeResize) {
-      return nextOccurrences
+      return filteredOccurrences
     }
 
-    return nextOccurrences.map((occurrence) =>
+    return filteredOccurrences.map((occurrence) =>
       occurrence.occurrenceId === previewOccurrence.occurrenceId
         ? previewOccurrence
         : occurrence
     )
-  }, [activeResize, optimisticEvents, previewOccurrence, range])
+  }, [activeResize, filteredOccurrences, previewOccurrence])
+
+  React.useEffect(() => {
+    if (
+      selectedEventId &&
+      !occurrences.some((occurrence) => occurrence.occurrenceId === selectedEventId)
+    ) {
+      onSelectedEventChange?.(undefined)
+    }
+
+    if (
+      detailsOccurrence &&
+      !occurrences.some(
+        (occurrence) =>
+          occurrence.occurrenceId === detailsOccurrence.occurrenceId
+      )
+    ) {
+      setDetailsOccurrence(null)
+    }
+  }, [detailsOccurrence, occurrences, onSelectedEventChange, selectedEventId])
 
   function announce(message: string) {
     setLiveAnnouncement(message)
   }
 
-  function handleSelectEvent(occurrence: CalendarOccurrence) {
+  function formatAnnouncementRange(
+    start: Date,
+    end: Date,
+    allDay: boolean | undefined
+  ) {
+    return formatEventTimeLabel(start, end, {
+      allDay,
+      hourCycle,
+      locale,
+      timeZone,
+    })
+  }
+
+  function handleSelectEvent(
+    occurrence: CalendarOccurrence,
+    options: {
+      openDetails?: boolean
+    } = {}
+  ) {
     setContextMenu(null)
     onSelectedEventChange?.(occurrence.occurrenceId)
     onEventSelect?.(occurrence)
+
+    if (options.openDetails ?? openEventDetailsOnSelect) {
+      openEventDetails(occurrence)
+    }
   }
 
   function closeContextMenu() {
@@ -308,15 +541,20 @@ export function CalendarRoot({
     occurrence: CalendarOccurrence,
     position: CalendarEventMenuPosition
   ) {
-    const canMutate = !occurrence.readOnly
     const hasActions =
-      !!onEventDuplicate || (canMutate && (!!onEventArchive || !!onEventDelete))
+      (eventDetailsEnabled && canOpenEventDetails(occurrence)) ||
+      (canDuplicateOccurrence(occurrence) && !!onEventDuplicate) ||
+      (canArchiveOccurrence(occurrence) && !!onEventArchive) ||
+      (canDeleteOccurrence(occurrence) && !!onEventDelete)
 
     if (!hasActions) {
       return
     }
 
-    handleSelectEvent(occurrence)
+    handleSelectEvent(occurrence, {
+      openDetails: false,
+    })
+    closeEventDetails()
     setContextMenu({
       occurrence,
       position,
@@ -344,7 +582,9 @@ export function CalendarRoot({
   function getDefaultCreateOperation(
     operation: CalendarCreateOperation
   ): CalendarCreateOperation {
-    const defaultResource = resources?.[0]
+    const defaultResource =
+      resources?.find((resource) => resolvedResourceFilter.includes(resource.id)) ??
+      resources?.[0]
 
     return {
       calendarId: operation.calendarId ?? defaultResource?.id,
@@ -368,7 +608,13 @@ export function CalendarRoot({
 
     onEventCreate(operation)
     onSelectedEventChange?.(undefined)
-    announce(`Created ${operation.title ?? "a new appointment"}.`)
+    announce(
+      `Created ${operation.title ?? "a new appointment"} for ${formatAnnouncementRange(
+        operation.start,
+        operation.end,
+        operation.allDay
+      )}.`
+    )
   }
 
   function requestEventCreate(operation: CalendarCreateOperation) {
@@ -424,13 +670,22 @@ export function CalendarRoot({
         occurrence: context.occurrence,
         previousEnd: context.previousEnd,
         previousStart: context.previousStart,
+        scope:
+          context.scope ??
+          (context.occurrence.isRecurringInstance ? "series" : "occurrence"),
       }
 
       setOptimisticEvents((currentEvents) =>
         applyMoveOperation(currentEvents, operation)
       )
       onEventMove?.(operation)
-      announce(`Moved ${context.occurrence.title}.`)
+      announce(
+        `Moved ${context.occurrence.title} to ${formatAnnouncementRange(
+          context.nextStart,
+          context.nextEnd,
+          context.allDay ?? context.occurrence.allDay
+        )}.`
+      )
       return
     }
 
@@ -441,13 +696,63 @@ export function CalendarRoot({
       occurrence: context.occurrence,
       previousEnd: context.previousEnd,
       previousStart: context.previousStart,
+      scope:
+        context.scope ??
+        (context.occurrence.isRecurringInstance ? "series" : "occurrence"),
     }
 
     setOptimisticEvents((currentEvents) =>
       applyResizeOperation(currentEvents, operation)
     )
     onEventResize?.(operation)
-    announce(`Resized ${context.occurrence.title}.`)
+    announce(
+      `Resized ${context.occurrence.title} to ${formatAnnouncementRange(
+        context.nextStart,
+        context.nextEnd,
+        context.occurrence.allDay
+      )}.`
+    )
+  }
+
+  function commitEventUpdate(nextEvent: CalendarEvent) {
+    if (!detailsOccurrence || !onEventUpdate) {
+      return
+    }
+
+    const previousEvent =
+      optimisticEvents.find((event) => event.id === detailsOccurrence.sourceEventId) ??
+      {
+        ...detailsOccurrence,
+        id: detailsOccurrence.sourceEventId,
+      }
+    const operation = {
+      occurrence: detailsOccurrence,
+      nextEvent,
+      previousEvent,
+      scope: detailsOccurrence.isRecurringInstance ? "series" : "occurrence",
+    } as const
+
+    setOptimisticEvents((currentEvents) =>
+      applyEventUpdateOperation(currentEvents, operation)
+    )
+    setDetailsOccurrence((currentOccurrence) =>
+      currentOccurrence
+        ? {
+            ...currentOccurrence,
+            ...nextEvent,
+            occurrenceId: currentOccurrence.occurrenceId,
+            sourceEventId: currentOccurrence.sourceEventId,
+          }
+        : currentOccurrence
+    )
+    onEventUpdate(operation)
+    announce(
+      `Updated ${nextEvent.title} to ${formatAnnouncementRange(
+        nextEvent.start,
+        nextEvent.end,
+        nextEvent.allDay
+      )}.`
+    )
   }
 
   function requestEventChange(
@@ -495,7 +800,7 @@ export function CalendarRoot({
     target: CalendarDropTarget,
     dragOffsetMinutes = 0
   ) {
-    if (!onEventMove) {
+    if (!onEventMove || !canMoveOccurrence(occurrence)) {
       return
     }
 
@@ -511,7 +816,7 @@ export function CalendarRoot({
     edge: "start" | "end",
     target: CalendarDropTarget
   ) {
-    if (!onEventResize) {
+    if (!onEventResize || !canResizeOccurrence(occurrence)) {
       return
     }
 
@@ -527,11 +832,13 @@ export function CalendarRoot({
     edge: "start" | "end",
     event: React.PointerEvent<HTMLSpanElement>
   ) {
-    if (!onEventResize) {
+    if (!onEventResize || !canResizeOccurrence(occurrence)) {
+      announce("This event cannot be resized.")
       return
     }
 
     closeContextMenu()
+    closeEventDetails()
     setActiveResize({
       edge,
       occurrence,
@@ -540,6 +847,37 @@ export function CalendarRoot({
     updateActiveResizeTarget(
       getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
     )
+  }
+
+  function handleEventDragPointerDown(
+    occurrence: CalendarOccurrence,
+    variant: CalendarDragData["variant"],
+    event: React.PointerEvent<HTMLButtonElement>
+  ) {
+    if (!onEventMove || !canMoveOccurrence(occurrence)) {
+      return
+    }
+
+    closeContextMenu()
+    closeEventDetails()
+    suppressedPointerClickOccurrenceIdRef.current = null
+    setActiveDrag({
+      kind: "event",
+      occurrence,
+      variant,
+    })
+    setActiveDragInteraction({
+      currentClientX: event.clientX,
+      currentClientY: event.clientY,
+      initialClientX: event.clientX,
+      initialClientY: event.clientY,
+      isDragging: false,
+      pointerId: event.pointerId,
+    })
+    updateActiveDropTarget(null)
+    lastDropTargetRef.current = null
+    setActiveDragRect(getDragSurfaceRect(event.currentTarget))
+    setActiveDragOffsetMinutes(0)
   }
 
   const commitPointerResize = React.useEffectEvent(
@@ -552,6 +890,23 @@ export function CalendarRoot({
   )
   const clearPointerResize = React.useEffectEvent(() => {
     clearActiveResize()
+  })
+  const commitPointerDrag = React.useEffectEvent(
+    (
+      drag: Extract<CalendarDragData, { kind: "event" }>,
+      target: CalendarDropTarget,
+      dragOffsetMinutes: number
+    ) => {
+      moveOccurrenceWithTarget(drag.occurrence, target, dragOffsetMinutes)
+    }
+  )
+  const selectPointerDragOccurrence = React.useEffectEvent(
+    (drag: Extract<CalendarDragData, { kind: "event" }>) => {
+      handleSelectEvent(drag.occurrence)
+    }
+  )
+  const clearPointerDrag = React.useEffectEvent(() => {
+    clearActiveDragState()
   })
 
   React.useEffect(() => {
@@ -609,60 +964,135 @@ export function CalendarRoot({
     }
   }, [activeResize])
 
-  function handleDragStart(event: DragStartEvent) {
-    const dragData = isCalendarDragData(event.active.data.current)
-      ? event.active.data.current
-      : undefined
+  const activeDragPointerId = activeDragInteraction?.pointerId
 
-    if (!dragData) {
+  React.useEffect(() => {
+    if (activeDragPointerId == null) {
       return
     }
 
-    closeContextMenu()
-    setActiveDrag(dragData)
-    setActiveDropTarget(null)
-    lastDropTargetRef.current = null
-    const dragSurfaceRect = getDragSurfaceRect(event.activatorEvent.target)
-    const nextDragRect = dragSurfaceRect ?? event.active.rect.current.initial
+    const pointerId = activeDragPointerId
 
-    setActiveDragRect(nextDragRect)
-    setActiveDragOffsetMinutes(
-      getDragOffsetMinutes(dragData, nextDragRect, event.activatorEvent)
-    )
-  }
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerId !== pointerId) {
+        return
+      }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const dragData = isCalendarDragData(event.active.data.current)
-      ? event.active.data.current
-      : undefined
-    const target =
-      (isCalendarDropTarget(event.over?.data.current)
-        ? event.over?.data.current
-        : undefined) ??
-      activeDropTarget ??
-      lastDropTargetRef.current ??
-      undefined
-    const dragOffsetMinutes = activeDragOffsetMinutes
+      const drag = activeDragRef.current
+      const interaction = activeDragInteractionRef.current
 
-    setActiveDrag(null)
-    setActiveDropTarget(null)
-    setActiveDragOffsetMinutes(0)
-    setActiveDragRect(null)
-    lastDropTargetRef.current = null
+      if (!drag || !interaction || drag.kind !== "event") {
+        return
+      }
 
-    if (!dragData || !target) {
-      return
+      const nextTarget =
+        getCalendarDropTargetFromPoint(event.clientX, event.clientY) ??
+        lastDropTargetRef.current
+
+      if (!interaction.isDragging) {
+        if (
+          getPointerDistance(
+            interaction.initialClientX,
+            interaction.initialClientY,
+            event.clientX,
+            event.clientY
+          ) < dragActivationDistance
+        ) {
+          return
+        }
+
+        setActiveDragInteraction({
+          ...interaction,
+          currentClientX: event.clientX,
+          currentClientY: event.clientY,
+          isDragging: true,
+        })
+        setActiveDragOffsetMinutes(
+          getDragOffsetMinutes(drag, activeDragRectRef.current, event.clientY)
+        )
+        updateActiveDropTarget(nextTarget)
+        return
+      }
+
+      event.preventDefault()
+      setActiveDragInteraction((currentInteraction) => {
+        if (
+          !currentInteraction ||
+          currentInteraction.pointerId !== pointerId ||
+          (currentInteraction.currentClientX === event.clientX &&
+            currentInteraction.currentClientY === event.clientY)
+        ) {
+          return currentInteraction
+        }
+
+        return {
+          ...currentInteraction,
+          currentClientX: event.clientX,
+          currentClientY: event.clientY,
+        }
+      })
+      updateActiveDropTarget(nextTarget)
     }
 
-    if (dragData.kind === "event") {
-      moveOccurrenceWithTarget(dragData.occurrence, target, dragOffsetMinutes)
-      return
+    function handlePointerUp(event: PointerEvent) {
+      if (event.pointerId !== pointerId) {
+        return
+      }
+
+      const drag = activeDragRef.current
+      const interaction = activeDragInteractionRef.current
+
+      if (!drag || !interaction || drag.kind !== "event") {
+        clearPointerDrag()
+        return
+      }
+
+      const target =
+        getCalendarDropTargetFromPoint(event.clientX, event.clientY) ??
+        activeDropTargetRef.current ??
+        lastDropTargetRef.current
+      const dragOffsetMinutes = activeDragOffsetMinutesRef.current
+      const wasDragging = interaction.isDragging
+
+      suppressedPointerClickOccurrenceIdRef.current = drag.occurrence.occurrenceId
+      clearPointerDrag()
+
+      if (!wasDragging) {
+        selectPointerDragOccurrence(drag)
+        return
+      }
+
+      if (target) {
+        commitPointerDrag(drag, target, dragOffsetMinutes)
+      }
     }
 
-    resizeOccurrenceWithTarget(dragData.occurrence, dragData.edge, target)
-  }
+    function handlePointerCancel(event: PointerEvent) {
+      if (event.pointerId !== pointerId) {
+        return
+      }
 
-  function getDragSurfaceRect(target: EventTarget | null): ClientRect | null {
+      const drag = activeDragRef.current
+
+      if (drag?.kind === "event") {
+        suppressedPointerClickOccurrenceIdRef.current = drag.occurrence.occurrenceId
+      }
+
+      clearPointerDrag()
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerCancel)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerCancel)
+    }
+  }, [activeDragPointerId])
+
+  function getDragSurfaceRect(target: EventTarget | null): DOMRect | null {
     if (!(target instanceof Element)) {
       return null
     }
@@ -674,33 +1104,42 @@ export function CalendarRoot({
     )
   }
 
-  function handleDragCancel() {
-    setActiveDrag(null)
-    setActiveDropTarget(null)
-    setActiveDragOffsetMinutes(0)
-    setActiveDragRect(null)
-    lastDropTargetRef.current = null
-    closeContextMenu()
-  }
-
   function handleDuplicateEvent(occurrence: CalendarOccurrence) {
+    if (!canDuplicateOccurrence(occurrence)) {
+      announce("This event cannot be duplicated.")
+      return
+    }
+
     onEventDuplicate?.(occurrence)
     onSelectedEventChange?.(undefined)
     closeContextMenu()
+    closeEventDetails()
     announce(`Duplicated ${occurrence.title}.`)
   }
 
   function handleArchiveEvent(occurrence: CalendarOccurrence) {
+    if (!canArchiveOccurrence(occurrence)) {
+      announce("This event cannot be archived.")
+      return
+    }
+
     onEventArchive?.(occurrence)
     onSelectedEventChange?.(undefined)
     closeContextMenu()
+    closeEventDetails()
     announce(`Archived ${occurrence.title}.`)
   }
 
   function handleDeleteEvent(occurrence: CalendarOccurrence) {
+    if (!canDeleteOccurrence(occurrence)) {
+      announce("This event cannot be deleted.")
+      return
+    }
+
     onEventDelete?.(occurrence)
     onSelectedEventChange?.(undefined)
     closeContextMenu()
+    closeEventDetails()
     announce(`Deleted ${occurrence.title}.`)
   }
 
@@ -733,6 +1172,11 @@ export function CalendarRoot({
     event.preventDefault()
 
     if (event.shiftKey && onEventResize) {
+      if (!canResizeOccurrence(occurrence)) {
+        announce("This event cannot be resized.")
+        return
+      }
+
       const operation: CalendarResizeOperation = {
         occurrence,
         edge: "end",
@@ -745,6 +1189,7 @@ export function CalendarRoot({
         ),
         previousStart: occurrence.start,
         previousEnd: occurrence.end,
+        scope: occurrence.isRecurringInstance ? "series" : "occurrence",
       }
 
       requestEventChange({
@@ -755,6 +1200,11 @@ export function CalendarRoot({
     }
 
     if (event.altKey && onEventResize) {
+      if (!canResizeOccurrence(occurrence)) {
+        announce("This event cannot be resized.")
+        return
+      }
+
       const operation: CalendarResizeOperation = {
         occurrence,
         edge: "start",
@@ -767,6 +1217,7 @@ export function CalendarRoot({
         nextEnd: occurrence.end,
         previousStart: occurrence.start,
         previousEnd: occurrence.end,
+        scope: occurrence.isRecurringInstance ? "series" : "occurrence",
       }
 
       requestEventChange({
@@ -776,7 +1227,8 @@ export function CalendarRoot({
       return
     }
 
-    if (!onEventMove) {
+    if (!onEventMove || !canMoveOccurrence(occurrence)) {
+      announce("This event cannot be moved.")
       return
     }
 
@@ -787,6 +1239,7 @@ export function CalendarRoot({
       previousStart: occurrence.start,
       previousEnd: occurrence.end,
       allDay: occurrence.allDay,
+      scope: occurrence.isRecurringInstance ? "series" : "occurrence",
     }
 
     requestEventChange({
@@ -794,6 +1247,75 @@ export function CalendarRoot({
       ...operation,
     })
   }
+
+  const requestEventCreateRef = React.useRef(requestEventCreate)
+  const handleEventDragPointerDownRef = React.useRef(handleEventDragPointerDown)
+  const handleEventKeyCommandRef = React.useRef(handleEventKeyCommand)
+  const handleOpenContextMenuRef = React.useRef(handleOpenContextMenu)
+  const handleResizeHandlePointerDownRef = React.useRef(
+    handleResizeHandlePointerDown
+  )
+  const handleSelectEventRef = React.useRef(handleSelectEvent)
+
+  React.useLayoutEffect(() => {
+    requestEventCreateRef.current = requestEventCreate
+    handleEventDragPointerDownRef.current = handleEventDragPointerDown
+    handleEventKeyCommandRef.current = handleEventKeyCommand
+    handleOpenContextMenuRef.current = handleOpenContextMenu
+    handleResizeHandlePointerDownRef.current = handleResizeHandlePointerDown
+    handleSelectEventRef.current = handleSelectEvent
+  })
+
+  const handleEventCreateRequest = React.useCallback(
+    (operation: CalendarCreateOperation) => {
+      requestEventCreateRef.current(operation)
+    },
+    []
+  )
+  const handleEventDragPointerDownEvent = React.useCallback(
+    (
+      occurrence: CalendarOccurrence,
+      variant: CalendarDragData["variant"],
+      event: React.PointerEvent<HTMLButtonElement>
+    ) => {
+      handleEventDragPointerDownRef.current(occurrence, variant, event)
+    },
+    []
+  )
+  const handleEventKeyCommandEvent = React.useCallback(
+    (
+      occurrence: CalendarOccurrence,
+      event: React.KeyboardEvent<HTMLButtonElement>
+    ) => {
+      handleEventKeyCommandRef.current(occurrence, event)
+    },
+    []
+  )
+  const handleOpenContextMenuEvent = React.useCallback(
+    (
+      occurrence: CalendarOccurrence,
+      position: CalendarEventMenuPosition
+    ) => {
+      handleOpenContextMenuRef.current(occurrence, position)
+    },
+    []
+  )
+  const handleResizeHandlePointerDownEvent = React.useCallback(
+    (
+      occurrence: CalendarOccurrence,
+      edge: "start" | "end",
+      event: React.PointerEvent<HTMLSpanElement>
+    ) => {
+      handleResizeHandlePointerDownRef.current(occurrence, edge, event)
+    },
+    []
+  )
+  const handleSelectEventOnly = React.useCallback(
+    (occurrence: CalendarOccurrence) => {
+      handleSelectEventRef.current(occurrence)
+    },
+    []
+  )
 
   const currentLabel = getRangeLabel(date, resolvedView, {
     agendaDays,
@@ -803,41 +1325,95 @@ export function CalendarRoot({
     timeZone,
     weekStartsOn,
   })
-  const sharedViewProps: SharedViewProps = {
-    anchorDate: date,
+  const isPointerDragging =
+    activeDrag?.kind === "event" && !!activeDragInteraction?.isDragging
+  const sharedViewProps = React.useMemo<SharedViewProps>(() => {
+    return {
+      activeDropTarget: isPointerDragging ? activeDropTarget : null,
+      anchorDate: date,
+      blockedRanges,
+      businessHours,
+      classNames,
+      density,
+      dragPreviewOccurrence:
+        activeDrag?.kind === "event" ? previewOccurrence ?? undefined : undefined,
+      draggingOccurrenceId:
+        isPointerDragging && activeDrag?.kind === "event"
+          ? activeDrag.occurrence.occurrenceId
+          : undefined,
+      getEventColor,
+      hiddenDays: resolvedHiddenDays,
+      hourCycle,
+      interactive: isHydrated,
+      locale,
+      occurrences,
+      onEventCreate: onEventCreate ? handleEventCreateRequest : undefined,
+      onEventDragPointerDown: handleEventDragPointerDownEvent,
+      onEventKeyCommand: handleEventKeyCommandEvent,
+      onOpenContextMenu: handleOpenContextMenuEvent,
+      onResizeHandlePointerDown: handleResizeHandlePointerDownEvent,
+      onSelectEvent: handleSelectEventOnly,
+      previewOccurrenceId: activeResize ? previewOccurrence?.occurrenceId : undefined,
+      renderEvent,
+      scrollToTime,
+      secondaryTimeZone,
+      selectedEventId,
+      shouldSuppressEventClick: shouldSuppressEventClick,
+      showCreatePreviewMeta,
+      showDragPreviewMeta,
+      showSecondaryTimeZone,
+      slotDuration,
+      slotHeight: resolvedSlotHeight,
+      timeZone,
+      weekStartsOn,
+    }
+  }, [
+    activeDrag,
+    activeDropTarget,
+    activeResize,
     blockedRanges,
     businessHours,
     classNames,
+    date,
     density,
-    dragPreviewOccurrence:
-      activeDrag?.kind === "event" ? previewOccurrence ?? undefined : undefined,
     getEventColor,
-    hiddenDays: resolvedHiddenDays,
+    handleEventCreateRequest,
+    handleEventDragPointerDownEvent,
+    handleEventKeyCommandEvent,
+    handleOpenContextMenuEvent,
+    handleResizeHandlePointerDownEvent,
+    handleSelectEventOnly,
     hourCycle,
-    interactive: isHydrated,
+    isHydrated,
+    isPointerDragging,
     locale,
     occurrences,
-    previewOccurrenceId: activeResize ? previewOccurrence?.occurrenceId : undefined,
-    onEventCreate: onEventCreate ? requestEventCreate : undefined,
-    onEventKeyCommand: handleEventKeyCommand,
-    onResizeHandlePointerDown: handleResizeHandlePointerDown,
-    onOpenContextMenu: handleOpenContextMenu,
-    onSelectEvent: handleSelectEvent,
+    onEventCreate,
+    previewOccurrence,
     renderEvent,
+    resolvedHiddenDays,
+    resolvedSlotHeight,
     scrollToTime,
+    secondaryTimeZone,
     selectedEventId,
+    shouldSuppressEventClick,
+    showCreatePreviewMeta,
+    showDragPreviewMeta,
+    showSecondaryTimeZone,
     slotDuration,
-    slotHeight: resolvedSlotHeight,
     timeZone,
     weekStartsOn,
-  }
-  const collisionDetection = React.useCallback<CollisionDetection>((args) => {
-    return pointerWithin(args)
-  }, [])
+  ])
+  const emptyStateContent = renderEmptyState?.({
+    activeResourceIds: resolvedResourceFilter,
+    clearResourceFilter: () => setActiveResourceIds(allResourceIds),
+    resources: resources ?? [],
+    view: resolvedView,
+  })
   const portals = (
     <>
-      <DragOverlay>
-        {activeDrag?.kind === "event" ? (
+      {isPointerDragging && activeDrag?.kind === "event" && activeDragRect ? (
+        <div className="pointer-events-none fixed inset-0 z-50">
           <EventSurface
             accentColor={getResolvedAccentColor(
               activeDrag.occurrence,
@@ -849,15 +1425,19 @@ export function CalendarRoot({
               activeDragRect ? undefined : "w-64 max-w-[80vw]"
             )}
             density={density}
+            dragging
             event={activeDrag.occurrence}
             overlay
             renderEvent={renderEvent}
-            style={
-              activeDragRect
-                ? {
-                    width: activeDragRect.width,
-                    height: activeDragRect.height,
-                  }
+            shouldSuppressClick={shouldSuppressEventClick}
+            style={getDragOverlayStyle(activeDragRect, activeDragInteraction)}
+            previewMetaLabel={
+              showDragPreviewMeta
+                ? formatDurationLabel(
+                    activeDrag.occurrence.start,
+                    activeDrag.occurrence.end,
+                    activeDrag.occurrence.allDay
+                  )
                 : undefined
             }
             timeLabel={getEventMetaLabel(activeDrag.occurrence, {
@@ -867,27 +1447,32 @@ export function CalendarRoot({
             })}
             variant={activeDrag.variant}
           />
-        ) : null}
-      </DragOverlay>
+        </div>
+      ) : null}
       {contextMenu ? (
         <CalendarEventContextMenu
           hourCycle={hourCycle}
           locale={locale}
           occurrence={contextMenu.occurrence}
           onArchive={
-            !contextMenu.occurrence.readOnly && onEventArchive
+            canArchiveOccurrence(contextMenu.occurrence) && onEventArchive
               ? () => handleArchiveEvent(contextMenu.occurrence)
               : undefined
           }
           onClose={closeContextMenu}
           onDelete={
-            !contextMenu.occurrence.readOnly && onEventDelete
+            canDeleteOccurrence(contextMenu.occurrence) && onEventDelete
               ? () => handleDeleteEvent(contextMenu.occurrence)
               : undefined
           }
           onDuplicate={
-            onEventDuplicate
+            canDuplicateOccurrence(contextMenu.occurrence) && onEventDuplicate
               ? () => handleDuplicateEvent(contextMenu.occurrence)
+              : undefined
+          }
+          onOpenDetails={
+            eventDetailsEnabled && canOpenEventDetails(contextMenu.occurrence)
+              ? () => openEventDetails(contextMenu.occurrence)
               : undefined
           }
           timeZone={timeZone}
@@ -916,6 +1501,27 @@ export function CalendarRoot({
         resources={resources}
         timeZone={timeZone}
       />
+      <CalendarEventDetailsSheet
+        config={eventDetails}
+        hourCycle={hourCycle}
+        locale={locale}
+        occurrence={detailsOccurrence}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeEventDetails()
+          }
+        }}
+        onSubmit={onEventUpdate ? commitEventUpdate : undefined}
+        renderContent={renderEventDetails}
+        resources={resources}
+        secondaryTimeZone={showSecondaryTimeZone ? secondaryTimeZone : undefined}
+        timeZone={timeZone}
+      />
+      <CalendarKeyboardShortcutsDialog
+        config={keyboardShortcuts}
+        onOpenChange={setIsKeyboardShortcutsOpen}
+        open={isKeyboardShortcutsOpen}
+      />
     </>
   )
 
@@ -924,82 +1530,84 @@ export function CalendarRoot({
       className={getCalendarSlotClassName(
         classNames,
         "root",
-        "flex min-h-[42rem] flex-col overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-background shadow-[0_20px_80px_-48px_rgba(15,23,42,0.55)]"
+        "flex min-h-[42rem] flex-col overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-background",
+        getCalendarSurfaceShadowClassName(surfaceShadow)
       )}
       data-testid="calendar-root"
     >
       <CalendarToolbar
+        activeResourceIds={resolvedResourceFilter}
         availableViews={resolvedAvailableViews}
         classNames={classNames}
         currentLabel={currentLabel}
         density={density}
         onNavigate={handleNavigate}
         onQuickCreate={onEventCreate ? handleQuickCreate : undefined}
+        onResourceFilterChange={
+          resources?.length && resources.length > 1 ? setActiveResourceIds : undefined
+        }
         onToday={handleToday}
         onViewChange={onViewChange}
+        renderToolbarExtras={renderToolbarExtras}
         resources={resources}
+        secondaryTimeZone={secondaryTimeZone}
+        showSecondaryTimeZone={showSecondaryTimeZone}
         timeZone={timeZone}
         view={resolvedView}
       />
-      <DndContext
-        collisionDetection={collisionDetection}
-        onDragCancel={handleDragCancel}
-        onDragEnd={handleDragEnd}
-        onDragOver={(event) => {
-          const nextTarget = isCalendarDropTarget(event.over?.data.current)
-            ? event.over.data.current
-            : null
-
-          if (nextTarget) {
-            lastDropTargetRef.current = nextTarget
-            setActiveDropTarget(nextTarget)
-            return
-          }
-
-          setActiveDropTarget(lastDropTargetRef.current)
-        }}
-        onDragStart={handleDragStart}
-        sensors={sensors}
+      <div
+        className={getCalendarSlotClassName(
+          classNames,
+          "shell",
+          "relative flex min-h-0 flex-1 flex-col bg-background"
+        )}
       >
-        <div
-          className={getCalendarSlotClassName(
-            classNames,
-            "shell",
-            "flex min-h-0 flex-1 flex-col bg-background"
-          )}
-        >
-          {resolvedView === "month" ? (
-            <CalendarMonthView {...sharedViewProps} />
-          ) : null}
-          {resolvedView === "week" ? (
-            <CalendarWeekView
-              {...sharedViewProps}
-              maxHour={maxHour}
-              minHour={minHour}
-            />
-          ) : null}
-          {resolvedView === "day" ? (
-            <CalendarDayView
-              {...sharedViewProps}
-              maxHour={maxHour}
-              minHour={minHour}
-            />
-          ) : null}
-          {resolvedView === "agenda" ? (
-            <CalendarAgendaView
-              {...sharedViewProps}
-              range={getVisibleRange(date, "agenda", {
-                agendaDays,
-                hiddenDays: resolvedHiddenDays,
-                hourCycle,
-                locale,
-                timeZone,
-              })}
-            />
-          ) : null}
-        </div>
-        {isHydrated ? createPortal(portals, document.body) : null}
-      </DndContext>
+        {resolvedView === "month" ? (
+          <CalendarMonthView {...sharedViewProps} />
+        ) : null}
+        {resolvedView === "week" ? (
+          <CalendarWeekView
+            {...sharedViewProps}
+            maxHour={maxHour}
+            minHour={minHour}
+          />
+        ) : null}
+        {resolvedView === "day" ? (
+          <CalendarDayView
+            {...sharedViewProps}
+            maxHour={maxHour}
+            minHour={minHour}
+          />
+        ) : null}
+        {resolvedView === "agenda" ? (
+          <CalendarAgendaView
+            {...sharedViewProps}
+            range={getVisibleRange(date, "agenda", {
+              agendaDays,
+              hiddenDays: resolvedHiddenDays,
+              hourCycle,
+              locale,
+              timeZone,
+            })}
+          />
+        ) : null}
+        {occurrences.length === 0 ? (
+          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-20 flex justify-center">
+            <div className="pointer-events-auto max-w-md rounded-[calc(var(--radius)*1.1)] border border-border/70 bg-background/95 px-4 py-3 text-center shadow-lg backdrop-blur-sm">
+              {emptyStateContent ?? (
+                <>
+                  <p className="font-medium">No events match this view.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Adjust the resource filters or create a new event to start
+                    filling the schedule.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      {isHydrated ? createPortal(portals, document.body) : null}
       <p
         aria-live="polite"
         className="sr-only"
@@ -1009,6 +1617,18 @@ export function CalendarRoot({
       </p>
     </div>
   )
+}
+
+function getCalendarSurfaceShadowClassName(surfaceShadow: "none" | "sm" | "md") {
+  if (surfaceShadow === "sm") {
+    return "shadow-[0_12px_36px_-24px_rgba(15,23,42,0.28)]"
+  }
+
+  if (surfaceShadow === "md") {
+    return "shadow-[0_20px_80px_-48px_rgba(15,23,42,0.55)]"
+  }
+
+  return undefined
 }
 
 function getPreviewOccurrence(
@@ -1094,8 +1714,8 @@ function getMoveOperation(
 
 function getDragOffsetMinutes(
   dragData: CalendarDragData,
-  dragRect: ClientRect | null,
-  activatorEvent: Event | null
+  dragRect: DOMRect | null,
+  clientY: number
 ) {
   if (
     dragData.kind !== "event" ||
@@ -1104,12 +1724,6 @@ function getDragOffsetMinutes(
     !dragRect ||
     dragRect.height <= 0
   ) {
-    return 0
-  }
-
-  const clientY = getClientY(activatorEvent)
-
-  if (clientY === null) {
     return 0
   }
 
@@ -1129,43 +1743,6 @@ function getDragOffsetMinutes(
     Math.max(0, durationMinutes - 1),
     Math.round((pointerOffsetY / dragRect.height) * durationMinutes)
   )
-}
-
-function getClientY(event: Event | null) {
-  if (!event) {
-    return null
-  }
-
-  if (isPointerLikeEvent(event)) {
-    return event.clientY
-  }
-
-  if (isTouchEvent(event) && event.touches.length > 0) {
-    return event.touches[0]?.clientY ?? null
-  }
-
-  if (isTouchEvent(event) && event.changedTouches.length > 0) {
-    return event.changedTouches[0]?.clientY ?? null
-  }
-
-  return null
-}
-
-function isPointerLikeEvent(
-  event: Event
-): event is Event & {
-  clientY: number
-} {
-  return "clientY" in event && typeof event.clientY === "number"
-}
-
-function isTouchEvent(
-  event: Event
-): event is Event & {
-  changedTouches: TouchList
-  touches: TouchList
-} {
-  return "touches" in event && "changedTouches" in event
 }
 
 function getResizeOperation(
@@ -1203,54 +1780,56 @@ function getResizeOperation(
   }
 }
 
-function isCalendarDropTarget(value: unknown): value is CalendarDropTarget {
-  if (!value || typeof value !== "object") {
+function areDropTargetsEqual(
+  left: CalendarDropTarget | null,
+  right: CalendarDropTarget | null
+) {
+  if (left === right) {
+    return true
+  }
+
+  if (!left || !right || left.kind !== right.kind) {
     return false
   }
 
-  const candidate = value as Partial<CalendarDropTarget>
-
-  if (candidate.kind === "slot") {
-    return candidate.day instanceof Date && typeof candidate.minuteOfDay === "number"
-  }
-
-  if (candidate.kind === "day" || candidate.kind === "all-day") {
-    return candidate.day instanceof Date
-  }
-
-  return false
-}
-
-function isCalendarDragData(value: unknown): value is CalendarDragData {
-  if (!value || typeof value !== "object") {
+  if (left.day.getTime() !== right.day.getTime()) {
     return false
   }
 
-  const candidate = value as Partial<CalendarDragData>
-
-  if (candidate.kind !== "event" && candidate.kind !== "resize") {
-    return false
-  }
-
-  const occurrence = candidate.occurrence
-
-  if (
-    !occurrence ||
-    typeof occurrence !== "object" ||
-    !(occurrence.start instanceof Date) ||
-    !(occurrence.end instanceof Date)
-  ) {
-    return false
-  }
-
-  if (candidate.kind === "resize") {
-    return candidate.edge === "start" || candidate.edge === "end"
+  if (left.kind === "slot" && right.kind === "slot") {
+    return left.minuteOfDay === right.minuteOfDay
   }
 
   return true
 }
 
-function getTimeGridDropTargetFromPoint(
+function getPointerDistance(
+  startClientX: number,
+  startClientY: number,
+  currentClientX: number,
+  currentClientY: number
+) {
+  return Math.hypot(currentClientX - startClientX, currentClientY - startClientY)
+}
+
+function getDragOverlayStyle(
+  dragRect: DOMRect | null,
+  interaction: ActiveDragInteraction | null
+): React.CSSProperties | undefined {
+  if (!dragRect || !interaction) {
+    return undefined
+  }
+
+  return {
+    height: dragRect.height,
+    left: dragRect.left + interaction.currentClientX - interaction.initialClientX,
+    position: "fixed",
+    top: dragRect.top + interaction.currentClientY - interaction.initialClientY,
+    width: dragRect.width,
+  }
+}
+
+function getCalendarDropTargetFromPoint(
   clientX: number,
   clientY: number
 ): CalendarDropTarget | null {
@@ -1263,7 +1842,7 @@ function getTimeGridDropTargetFromPoint(
     .find((element): element is HTMLElement => {
       return (
         element instanceof HTMLElement &&
-        element.dataset.calendarDropTargetKind === "slot"
+        !!element.dataset.calendarDropTargetKind
       )
     })
 
@@ -1271,23 +1850,49 @@ function getTimeGridDropTargetFromPoint(
     return null
   }
 
+  const kind = match.dataset.calendarDropTargetKind
   const dayValue = match.dataset.calendarDropTargetDay
-  const minuteValue = match.dataset.calendarDropTargetMinute
 
-  if (!dayValue || minuteValue === undefined) {
+  if (!kind || !dayValue) {
     return null
   }
 
   const day = new Date(dayValue)
-  const minuteOfDay = Number(minuteValue)
 
-  if (Number.isNaN(day.getTime()) || !Number.isFinite(minuteOfDay)) {
+  if (Number.isNaN(day.getTime())) {
     return null
   }
 
-  return {
-    kind: "slot",
-    day,
-    minuteOfDay,
+  if (kind === "slot") {
+    const minuteValue = match.dataset.calendarDropTargetMinute
+    const minuteOfDay = Number(minuteValue)
+
+    if (minuteValue === undefined || !Number.isFinite(minuteOfDay)) {
+      return null
+    }
+
+    return {
+      kind,
+      day,
+      minuteOfDay,
+    }
   }
+
+  if (kind === "day" || kind === "all-day") {
+    return {
+      kind,
+      day,
+    }
+  }
+
+  return null
+}
+
+function getTimeGridDropTargetFromPoint(
+  clientX: number,
+  clientY: number
+): CalendarDropTarget | null {
+  const target = getCalendarDropTargetFromPoint(clientX, clientY)
+
+  return target?.kind === "slot" ? target : null
 }

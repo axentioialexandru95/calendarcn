@@ -165,6 +165,61 @@ test.describe("calendar interactions", () => {
     ).toHaveCount(1)
     await expect(targetedOccurrence).toHaveAttribute("data-selected", "true")
   })
+
+  test("hides the view switcher when only one view is available", async ({
+    page,
+  }) => {
+    await page.goto("/calendar-lab/recurrence")
+
+    await expect(page.getByTestId("calendar-view-week")).toHaveCount(0)
+    await expect(page.getByTestId("calendar-view-day")).toHaveCount(0)
+    await expect(page.getByTestId("calendar-view-month")).toHaveCount(0)
+    await expect(page.getByTestId("calendar-view-agenda")).toHaveCount(0)
+  })
+
+  test("filters resources and updates an event from the details sheet", async ({
+    page,
+  }) => {
+    await page.goto("/calendar-lab/details")
+
+    await expect(page.getByTestId("calendar-event-crit-time-grid")).toHaveCount(0)
+
+    await page.getByRole("button", { name: "Design" }).click()
+    await expect(page.getByTestId("calendar-event-crit-time-grid")).toBeVisible()
+
+    await page.getByTestId("calendar-event-crit-time-grid").click()
+
+    const detailsSheet = page.getByTestId("calendar-event-details-sheet")
+    await expect(detailsSheet).toBeVisible()
+    await detailsSheet
+      .getByTestId("calendar-event-details-edit")
+      .evaluate((element) => {
+        ;(element as HTMLButtonElement).click()
+      })
+    await detailsSheet.locator("#calendar-details-title").fill("Interface critique")
+    await detailsSheet.locator("#calendar-details-location").fill("Design lab")
+    await detailsSheet.getByTestId("calendar-event-details-submit").click()
+
+    await expect(page.getByTestId("calendar-event-crit-time-grid")).toContainText(
+      "Interface critique"
+    )
+  })
+
+  test("opens the keyboard shortcuts dialog from the toolbar", async ({
+    page,
+  }) => {
+    await page.goto("/calendar-lab/details")
+
+    await page
+      .getByTestId("calendar-toolbar-shortcuts")
+      .evaluate((element) => {
+        ;(element as HTMLButtonElement).click()
+      })
+
+    const dialog = page.getByTestId("calendar-keyboard-shortcuts-dialog")
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText("Shift + Arrow keys")
+  })
 })
 
 async function openContextMenu(locator: Locator) {

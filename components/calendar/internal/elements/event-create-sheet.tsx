@@ -16,6 +16,7 @@ import type {
   CalendarCreateSheetConfig,
   CalendarResource,
 } from "../../types"
+import { useModalFocus } from "./use-modal-focus"
 
 type CalendarEventCreateSheetProps = {
   config?: CalendarCreateSheetConfig
@@ -48,6 +49,9 @@ export function CalendarEventCreateSheet({
 }: CalendarEventCreateSheetProps) {
   const [formState, setFormState] = React.useState<CreateFormState | null>(null)
   const [error, setError] = React.useState<string>()
+  const sheetRef = React.useRef<HTMLDivElement | null>(null)
+  const titleId = React.useId()
+  const descriptionId = React.useId()
 
   React.useEffect(() => {
     if (!initialOperation) {
@@ -67,8 +71,7 @@ export function CalendarEventCreateSheet({
       endDate: format(effectiveEndDate, "yyyy-MM-dd"),
       endTime: format(initialOperation.end, "HH:mm"),
       location: initialOperation.location ?? "",
-      resourceId:
-        initialOperation.resourceId ?? resources?.[0]?.id ?? "",
+      resourceId: initialOperation.resourceId ?? resources?.[0]?.id ?? "",
       startDate: format(initialOperation.start, "yyyy-MM-dd"),
       startTime: format(initialOperation.start, "HH:mm"),
       title: initialOperation.title ?? "",
@@ -76,23 +79,11 @@ export function CalendarEventCreateSheet({
     setError(undefined)
   }, [initialOperation, resources])
 
-  React.useEffect(() => {
-    if (!initialOperation) {
-      return
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onOpenChange(false)
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [initialOperation, onOpenChange])
+  useModalFocus({
+    containerRef: sheetRef,
+    onClose: () => onOpenChange(false),
+    open: Boolean(initialOperation),
+  })
 
   if (!initialOperation || !formState) {
     return null
@@ -108,7 +99,9 @@ export function CalendarEventCreateSheet({
         "Add details before the appointment is inserted into the calendar."
       : "Add details before the appointment is inserted into the calendar."
   const resolvedSubmitLabel =
-    typeof config === "object" ? config.submitLabel ?? "Save appointment" : "Save appointment"
+    typeof config === "object"
+      ? config.submitLabel ?? "Save appointment"
+      : "Save appointment"
   const resolvedCancelLabel =
     typeof config === "object" ? config.cancelLabel ?? "Cancel" : "Cancel"
 
@@ -134,7 +127,6 @@ export function CalendarEventCreateSheet({
     }
 
     const baseOperation = initialOperation
-
     const trimmedTitle = formState.title.trim()
 
     if (!trimmedTitle) {
@@ -160,13 +152,10 @@ export function CalendarEventCreateSheet({
     const selectedResource = resources?.find(
       (resource) => resource.id === formState.resourceId
     )
-
     const submissionError = onSubmit({
       allDay: formState.allDay,
-      calendarId:
-        selectedResource?.id ?? baseOperation.calendarId,
-      calendarLabel:
-        selectedResource?.label ?? baseOperation.calendarLabel,
+      calendarId: selectedResource?.id ?? baseOperation.calendarId,
+      calendarLabel: selectedResource?.label ?? baseOperation.calendarLabel,
       color: selectedResource?.color ?? baseOperation.color,
       description: normalizeOptionalText(formState.description),
       end,
@@ -199,17 +188,28 @@ export function CalendarEventCreateSheet({
         onClick={() => onOpenChange(false)}
         type="button"
       />
-      <aside className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border/80 bg-background shadow-[-24px_0_80px_-40px_rgba(15,23,42,0.65)] animate-in slide-in-from-right">
+      <aside
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border/80 bg-background shadow-[-24px_0_80px_-40px_rgba(15,23,42,0.65)] outline-none animate-in slide-in-from-right"
+        ref={sheetRef}
+        role="dialog"
+        tabIndex={-1}
+      >
         <div className="border-b border-border/70 px-6 py-5">
           <div className="flex items-start gap-3">
             <div className="inline-flex size-10 shrink-0 items-center justify-center rounded-[calc(var(--radius)*0.9)] bg-primary/10 text-primary">
               <CalendarBlankIcon className="size-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold tracking-tight">
+              <h2 className="text-lg font-semibold tracking-tight" id={titleId}>
                 {resolvedTitle}
               </h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              <p
+                className="mt-1 text-sm leading-6 text-muted-foreground"
+                id={descriptionId}
+              >
                 {resolvedDescription}
               </p>
             </div>
@@ -294,9 +294,7 @@ export function CalendarEventCreateSheet({
                   </div>
                 ) : null}
                 <div className="space-y-2">
-                  <Label htmlFor="calendar-create-end-date">
-                    {formState.allDay ? "End date" : "End date"}
-                  </Label>
+                  <Label htmlFor="calendar-create-end-date">End date</Label>
                   <Input
                     id="calendar-create-end-date"
                     onChange={(event) =>
@@ -343,7 +341,7 @@ export function CalendarEventCreateSheet({
               <div className="space-y-2">
                 <Label htmlFor="calendar-create-description">Description</Label>
                 <div className="relative">
-                  <NotePencilIcon className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
+                  <NotePencilIcon className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
                   <Textarea
                     className="pl-9"
                     id="calendar-create-description"

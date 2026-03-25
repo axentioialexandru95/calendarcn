@@ -8,12 +8,20 @@ import type {
 import {
   applyMoveOperation,
   applyResizeOperation,
+  applyEventUpdateOperation,
+  canDeleteOccurrence,
+  canMoveOccurrence,
+  canOpenEventDetails,
+  canResizeOccurrence,
   createEventFromOperation,
   duplicateOccurrenceAsEvent,
   expandOccurrences,
+  exportEventsToICS,
+  filterOccurrencesByResource,
   getBlockedSegmentsForDay,
   getDayLayout,
   intervalOverlapsBlockedRanges,
+  parseICSText,
 } from "@/components/calendar/utils"
 
 describe("calendar utilities", () => {
@@ -217,6 +225,99 @@ describe("calendar utilities", () => {
     expect(duplicate.allDay).toBeUndefined()
     expect(duplicate.start).toEqual(at(0, 10, 0))
     expect(duplicate.end).toEqual(at(0, 10, 30))
+  })
+
+  it("applies details updates to the matching source event", () => {
+    const focusEvent: CalendarEvent = {
+      id: "focus",
+      title: "Focus block",
+      start: at(0, 13, 0),
+      end: at(0, 15, 0),
+      description: "Original",
+    }
+
+    const updatedEvents = applyEventUpdateOperation([focusEvent], {
+      occurrence: occurrenceFromEvent(focusEvent),
+      nextEvent: {
+        ...focusEvent,
+        description: "Updated",
+        title: "Updated focus block",
+      },
+      previousEvent: focusEvent,
+      scope: "occurrence",
+    })
+
+    expect(updatedEvents[0]).toMatchObject({
+      description: "Updated",
+      title: "Updated focus block",
+    })
+  })
+
+  it("filters occurrences by resource ids and enforces granular permissions", () => {
+    const movable = occurrenceFromEvent({
+      id: "movable",
+      title: "Movable",
+      start: at(0, 9, 0),
+      end: at(0, 10, 0),
+      resourceId: "product",
+    })
+    const locked = occurrenceFromEvent({
+      id: "locked",
+      title: "Locked",
+      start: at(0, 11, 0),
+      end: at(0, 12, 0),
+      canOpenDetails: false,
+      canResize: false,
+      readOnly: true,
+      resourceId: "design",
+    })
+
+    expect(filterOccurrencesByResource([movable, locked], ["product"])).toEqual([
+      movable,
+    ])
+    expect(canMoveOccurrence(movable)).toBe(true)
+    expect(canResizeOccurrence(locked)).toBe(false)
+    expect(canDeleteOccurrence(locked)).toBe(false)
+    expect(canOpenEventDetails(locked)).toBe(false)
+  })
+
+  it("exports and parses basic ICS events", () => {
+    const sourceEvents: CalendarEvent[] = [
+      {
+        id: "ics-sync",
+        title: "ICS sync",
+        start: at(0, 9, 0),
+        end: at(0, 10, 30),
+        calendarLabel: "Product",
+        description: "Imported by test",
+        location: "Remote",
+        recurrence: {
+          count: 3,
+          frequency: "weekly",
+          interval: 1,
+        },
+      },
+    ]
+
+    const ics = exportEventsToICS(sourceEvents, {
+      calendarName: "CalendarCN test",
+    })
+    const parsedEvents = parseICSText(ics, {
+      defaultCalendarLabel: "Fallback",
+    })
+
+    expect(ics).toContain("BEGIN:VCALENDAR")
+    expect(parsedEvents).toHaveLength(1)
+    expect(parsedEvents[0]).toMatchObject({
+      calendarLabel: "Product",
+      description: "Imported by test",
+      location: "Remote",
+      title: "ICS sync",
+    })
+    expect(parsedEvents[0].recurrence).toMatchObject({
+      count: 3,
+      frequency: "weekly",
+    })
   })
 })
 

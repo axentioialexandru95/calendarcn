@@ -18,12 +18,14 @@ import * as React from "react"
 import type {
   CalendarCreateOperation,
   CalendarEvent,
+  CalendarEventUpdateOperation,
   CalendarMoveOperation,
   CalendarResizeOperation,
   CalendarView,
 } from "@/components/calendar"
 import { CalendarRoot } from "@/components/calendar"
 import {
+  applyEventUpdateOperation,
   applyMoveOperation,
   applyResizeOperation,
   createEventFromOperation,
@@ -33,6 +35,7 @@ import {
 export function TeamSchedule() {
   const [date, setDate] = React.useState(new Date())
   const [events, setEvents] = React.useState<CalendarEvent[]>([])
+  const [resourceFilter, setResourceFilter] = React.useState(["product"])
   const [view, setView] = React.useState<CalendarView>("week")
 
   function handleNavigate(direction: -1 | 1) {
@@ -56,17 +59,30 @@ export function TeamSchedule() {
     setEvents((currentEvents) => applyResizeOperation(currentEvents, operation))
   }
 
+  function handleUpdate(operation: CalendarEventUpdateOperation) {
+    setEvents((currentEvents) =>
+      applyEventUpdateOperation(currentEvents, operation)
+    )
+  }
+
   return (
     <CalendarRoot
       date={date}
+      eventDetails
       events={events}
+      keyboardShortcuts
       onDateChange={setDate}
       onEventCreate={handleCreate}
       onEventMove={handleMove}
       onEventResize={handleResize}
+      onEventUpdate={handleUpdate}
       onNavigate={handleNavigate}
+      onResourceFilterChange={setResourceFilter}
       onToday={() => setDate(new Date())}
       onViewChange={setView}
+      resourceFilter={resourceFilter}
+      secondaryTimeZone="America/New_York"
+      showSecondaryTimeZone
       view={view}
     />
   )
@@ -76,7 +92,7 @@ export const calendarExamples = {
   basic: {
     group: "pattern",
     highlights: ["Controlled state", "All core views", "Create, move, resize"],
-    href: "/docs/components/calendar/starter",
+    href: "/docs/calendar/patterns/starter",
     tabLabel: "Starter",
     title: "Starter surface",
     description:
@@ -87,7 +103,7 @@ export const calendarExamples = {
   workweek: {
     group: "pattern",
     highlights: ["Compact density", "Weekday-only", "Business hour constraints"],
-    href: "/docs/components/calendar/workweek",
+    href: "/docs/calendar/patterns/workweek",
     tabLabel: "Workweek",
     title: "Workweek constraints",
     description:
@@ -98,7 +114,7 @@ export const calendarExamples = {
   resources: {
     group: "pattern",
     highlights: ["Resource lanes", "Shared interaction model", "Day + agenda views"],
-    href: "/docs/components/calendar/resources",
+    href: "/docs/calendar/patterns/resources",
     tabLabel: "Resources",
     title: "Resource lanes",
     description:
@@ -109,7 +125,7 @@ export const calendarExamples = {
   interactions: {
     group: "pattern",
     highlights: ["Optimistic updates", "Move confirmation", "Built-in create sheet"],
-    href: "/docs/components/calendar/interactions",
+    href: "/docs/calendar/patterns/interactions",
     tabLabel: "Interactions",
     title: "Direct editing flow",
     description:
@@ -120,7 +136,7 @@ export const calendarExamples = {
   month: {
     group: "view",
     highlights: ["Long-range planning", "All-day spans", "Milestones and campaigns"],
-    href: "/docs/components/calendar/month",
+    href: "/docs/calendar/views/month",
     tabLabel: "Month",
     title: "Month view",
     description:
@@ -131,7 +147,7 @@ export const calendarExamples = {
   week: {
     group: "view",
     highlights: ["Time grid planning", "Drag and resize", "Seven-day coordination"],
-    href: "/docs/components/calendar/week",
+    href: "/docs/calendar/views/week",
     tabLabel: "Week",
     title: "Week view",
     description:
@@ -142,7 +158,7 @@ export const calendarExamples = {
   day: {
     group: "view",
     highlights: ["Single-day focus", "High detail", "Tighter daily coordination"],
-    href: "/docs/components/calendar/day",
+    href: "/docs/calendar/views/day",
     tabLabel: "Day",
     title: "Day view",
     description:
@@ -153,7 +169,7 @@ export const calendarExamples = {
   agenda: {
     group: "view",
     highlights: ["List layout", "Upcoming schedule", "Great for mobile and read-only views"],
-    href: "/docs/components/calendar/agenda",
+    href: "/docs/calendar/views/agenda",
     tabLabel: "Agenda",
     title: "Agenda view",
     description:
@@ -298,6 +314,19 @@ export const calendarApiSections = {
       returns: "`void`",
       type: "`(occurrence) => void`",
     },
+    onEventUpdate: {
+      description:
+        "Persist edits from the built-in details sheet or your own custom details renderer.",
+      parameters: [
+        {
+          description:
+            "The previous event, next event, occurrence metadata, and recurrence scope for the update.",
+          name: "operation",
+        },
+      ],
+      returns: "`void`",
+      type: "`(operation) => void`",
+    },
     onNavigate: {
       description:
         "Override previous and next navigation. If omitted, CalendarCN shifts the controlled `date` for you.",
@@ -353,6 +382,26 @@ export const calendarApiSections = {
         "Optional lane definitions for team, room, or calendar-based scheduling.",
       type: "`CalendarResource[]`",
     },
+    resourceFilter: {
+      description:
+        "Control the active resource filter from outside the toolbar. When omitted, the toolbar manages it internally.",
+      type: "`string[]`",
+    },
+    defaultResourceFilter: {
+      description:
+        "Uncontrolled initial resource selection for the built-in toolbar filter chips.",
+      type: "`string[]`",
+    },
+    onResourceFilterChange: {
+      description:
+        "Called when the built-in resource filter chips change the visible calendar/resource selection.",
+      type: "`(resourceIds) => void`",
+    },
+    secondaryTimeZone: {
+      description:
+        "Optional secondary time zone rendered in the week/day time axis and details surfaces.",
+      type: "`string`",
+    },
     timeZone: {
       description:
         "Time zone used for labels and date formatting when your schedule is not local to the viewer.",
@@ -375,6 +424,12 @@ export const calendarApiSections = {
       description: "Toggle between the default surface density and a compact planner layout.",
       type: "`\"comfortable\" | \"compact\"`",
     },
+    surfaceShadow: {
+      default: "`\"none\"`",
+      description:
+        "Optional elevation for the calendar root surface. Keep it flat by default, or opt into a preset drop shadow.",
+      type: "`\"none\" | \"sm\" | \"md\"`",
+    },
     getEventColor: {
       description:
         "Resolve the accent color for each occurrence without mutating the underlying event records.",
@@ -384,6 +439,16 @@ export const calendarApiSections = {
     hourCycle: {
       description: "Render time labels in 12-hour or 24-hour format.",
       type: "`12 | 24`",
+    },
+    eventDetails: {
+      description:
+        "Enable the built-in event details sheet and optionally customize its labels or open-on-select behavior.",
+      type: "`boolean | CalendarEventDetailsConfig`",
+    },
+    keyboardShortcuts: {
+      description:
+        "Enable the built-in keyboard shortcuts dialog and optional `?` key trigger.",
+      type: "`boolean | CalendarKeyboardShortcutsConfig`",
     },
     maxHour: {
       default: "23",
@@ -401,10 +466,43 @@ export const calendarApiSections = {
       returns: "`ReactNode`",
       type: "`CalendarEventRenderer`",
     },
+    renderEventDetails: {
+      description:
+        "Replace the built-in details sheet body while keeping the sheet lifecycle and open state in CalendarCN.",
+      returns: "`ReactNode`",
+      type: "`(props) => ReactNode`",
+    },
+    renderEmptyState: {
+      description:
+        "Inject custom content for the empty schedule overlay when no visible events match the current view and filters.",
+      returns: "`ReactNode`",
+      type: "`(props) => ReactNode`",
+    },
+    renderToolbarExtras: {
+      description:
+        "Render custom controls into the toolbar beside the built-in resource filter and view controls.",
+      returns: "`ReactNode`",
+      type: "`(props) => ReactNode`",
+    },
     scrollToTime: {
       description:
         "Initial scroll position for day and week views. Use `\"now\"` or a `HH:mm` string.",
       type: "`\"now\" | string`",
+    },
+    showCreatePreviewMeta: {
+      description:
+        "Show the live draft time range and duration while dragging out a new event on empty time slots.",
+      type: "`boolean`",
+    },
+    showDragPreviewMeta: {
+      description:
+        "Show duration metadata on drag and resize previews in the time grid and overlay.",
+      type: "`boolean`",
+    },
+    showSecondaryTimeZone: {
+      description:
+        "Render secondary time-zone labels alongside the primary schedule time labels when `secondaryTimeZone` is set.",
+      type: "`boolean`",
     },
     slotDuration: {
       default: "30",

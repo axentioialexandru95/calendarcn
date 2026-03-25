@@ -52,7 +52,7 @@ export function PreviewCodeTabs({
       </div>
 
       {activeTab === "preview" ? (
-        <div className="overflow-hidden rounded-[1.75rem] border border-border/70 bg-card/70 p-3 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.45)]">
+        <div className="min-w-0">
           {preview}
         </div>
       ) : (

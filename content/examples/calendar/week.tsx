@@ -16,6 +16,7 @@ import {
   createEventFromOperation,
   shiftDate,
 } from "@/components/calendar/utils"
+import { docsCalendarExampleClassNames } from "@/content/examples/calendar/shared"
 
 const seedDate = new Date("2026-03-24T09:00:00.000Z")
 
@@ -77,21 +78,20 @@ export function WeekCalendarExample() {
   }
 
   return (
-    <div className="h-[640px] overflow-hidden rounded-[2rem] border border-border/70 bg-background shadow-[0_24px_80px_-48px_rgba(15,23,42,0.55)]">
-      <CalendarRoot
-        availableViews={["week"]}
-        date={date}
-        events={events}
-        onDateChange={setDate}
-        onEventCreate={handleCreate}
-        onEventMove={handleMove}
-        onEventResize={handleResize}
-        onNavigate={handleNavigate}
-        onToday={() => setDate(seedDate)}
-        onViewChange={() => {}}
-        scrollToTime="08:30"
-        view="week"
-      />
-    </div>
+    <CalendarRoot
+      availableViews={["week"]}
+      classNames={docsCalendarExampleClassNames}
+      date={date}
+      events={events}
+      onDateChange={setDate}
+      onEventCreate={handleCreate}
+      onEventMove={handleMove}
+      onEventResize={handleResize}
+      onNavigate={handleNavigate}
+      onToday={() => setDate(seedDate)}
+      onViewChange={() => {}}
+      scrollToTime="08:30"
+      view="week"
+    />
   )
 }

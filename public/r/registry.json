@@ -9,8 +9,6 @@
       "title": "CalendarCN",
       "description": "A shadcn-compatible scheduling surface with month, week, day, and agenda views, drag and drop, resizing, and typed event contracts.",
       "dependencies": [
-        "@dnd-kit/core@^6.3.1",
-        "@dnd-kit/utilities@^3.2.2",
         "@phosphor-icons/react@^2.1.10",
         "date-fns@^4.1.0"
       ],
@@ -61,6 +59,14 @@
         },
         {
           "path": "components/calendar/internal/elements/event-create-sheet.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-details-sheet.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/keyboard-shortcuts-dialog.tsx",
           "type": "registry:component"
         },
         {

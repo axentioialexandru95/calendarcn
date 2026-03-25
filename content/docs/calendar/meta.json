@@ -1,0 +1,5 @@
+{
+  "title": "Calendar",
+  "defaultOpen": true,
+  "pages": ["index", "api", "patterns", "views"]
+}

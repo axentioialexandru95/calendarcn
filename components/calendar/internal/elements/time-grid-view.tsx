@@ -2,7 +2,6 @@
 
 import * as React from "react"
 
-import { useDroppable } from "@dnd-kit/core"
 import { isSameDay, startOfDay } from "date-fns"
 
 import { cn } from "@/lib/utils"
@@ -10,12 +9,13 @@ import { cn } from "@/lib/utils"
 import type {
   CalendarClassNames,
   CalendarCreateDraft,
-  CalendarDropTarget,
   CalendarEventRenderer,
   CalendarOccurrence,
 } from "../../types"
 import {
   formatHourLabel,
+  formatDurationLabel,
+  formatEventTimeLabel,
   formatMonthDayLabel,
   formatWeekday,
   getBlockedSegmentsForDay,
@@ -41,7 +41,12 @@ import {
   type TimeGridViewProps,
 } from "../shared"
 
-export function CalendarWeekView(
+type FocusedTimeSlot = {
+  dayIndex: number
+  minuteOfDay: number
+}
+
+export const CalendarWeekView = React.memo(function CalendarWeekView(
   props: SharedViewProps & {
     minHour: number
     maxHour: number
@@ -53,9 +58,9 @@ export function CalendarWeekView(
       days={getWeekDays(props.anchorDate, props.weekStartsOn, props.hiddenDays)}
     />
   )
-}
+})
 
-export function CalendarDayView(
+export const CalendarDayView = React.memo(function CalendarDayView(
   props: SharedViewProps & {
     minHour: number
     maxHour: number
@@ -67,17 +72,25 @@ export function CalendarDayView(
       days={[startOfDay(getNextVisibleDay(props.anchorDate, props.hiddenDays))]}
     />
   )
-}
+})
 
 function CalendarTimeGridView(props: TimeGridViewProps) {
   const [draft, setDraft] = React.useState<CalendarCreateDraft | null>(null)
   const [now, setNow] = React.useState(() => new Date())
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const dayGridRefs = React.useRef<Array<HTMLDivElement | null>>([])
   const minMinute = props.minHour * 60
   const maxMinute = props.maxHour * 60
   const totalMinutes = maxMinute - minMinute
   const slotCount = Math.max(1, totalMinutes / props.slotDuration)
   const gridHeight = slotCount * props.slotHeight
+  const [focusedSlot, setFocusedSlot] = React.useState<FocusedTimeSlot>(() =>
+    getDefaultFocusedTimeSlot(props.days, minMinute, maxMinute, props.slotDuration)
+  )
+  const [focusedGridDayIndex, setFocusedGridDayIndex] = React.useState<
+    number | null
+  >(null)
+  const gridInstructionsId = React.useId()
   const commitDraft = React.useEffectEvent(() => {
     if (!draft || !props.onEventCreate) {
       return
@@ -157,6 +170,132 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
     props.slotHeight,
   ])
 
+  React.useEffect(() => {
+    setFocusedSlot((currentSlot) =>
+      normalizeFocusedTimeSlot(
+        currentSlot,
+        props.days.length,
+        minMinute,
+        maxMinute,
+        props.slotDuration
+      )
+    )
+  }, [maxMinute, minMinute, props.days.length, props.slotDuration])
+
+  const allDayEventsByDay = React.useMemo(() => {
+    return new Map(
+      props.days.map((day) => [day.getTime(), getAllDayEvents(props.occurrences, day)])
+    )
+  }, [props.days, props.occurrences])
+
+  const timedLayoutsByDay = React.useMemo(() => {
+    return new Map(
+      props.days.map((day) => [
+        day.getTime(),
+        getDayLayout(props.occurrences, day, minMinute, maxMinute),
+      ])
+    )
+  }, [maxMinute, minMinute, props.days, props.occurrences])
+
+  function focusDayGrid(dayIndex: number) {
+    requestAnimationFrame(() => {
+      dayGridRefs.current[dayIndex]?.focus()
+    })
+  }
+
+  function handleGridKeyDown(
+    dayIndex: number,
+    day: Date,
+    event: React.KeyboardEvent<HTMLDivElement>
+  ) {
+    if (event.altKey || event.ctrlKey || event.metaKey) {
+      return
+    }
+
+    const currentMinuteOfDay = clampGridMinute(
+      focusedSlot.minuteOfDay,
+      minMinute,
+      maxMinute,
+      props.slotDuration
+    )
+    const maxDayIndex = Math.max(0, props.days.length - 1)
+    let nextDayIndex = dayIndex
+    let nextMinuteOfDay = currentMinuteOfDay
+    let handled = true
+
+    switch (event.key) {
+      case "ArrowUp":
+        nextMinuteOfDay = clampGridMinute(
+          currentMinuteOfDay - props.slotDuration,
+          minMinute,
+          maxMinute,
+          props.slotDuration
+        )
+        break
+      case "ArrowDown":
+        nextMinuteOfDay = clampGridMinute(
+          currentMinuteOfDay + props.slotDuration,
+          minMinute,
+          maxMinute,
+          props.slotDuration
+        )
+        break
+      case "ArrowLeft":
+        nextDayIndex = Math.max(0, dayIndex - 1)
+        break
+      case "ArrowRight":
+        nextDayIndex = Math.min(maxDayIndex, dayIndex + 1)
+        break
+      case "Home":
+        nextMinuteOfDay = minMinute
+        break
+      case "End":
+        nextMinuteOfDay = clampGridMinute(
+          maxMinute - props.slotDuration,
+          minMinute,
+          maxMinute,
+          props.slotDuration
+        )
+        break
+      case "Enter":
+      case " ": {
+        if (!props.onEventCreate) {
+          return
+        }
+
+        event.preventDefault()
+        const start = setMinuteOfDay(startOfDay(day), currentMinuteOfDay)
+        const end = setMinuteOfDay(
+          startOfDay(day),
+          Math.min(currentMinuteOfDay + props.slotDuration, 1_440)
+        )
+
+        props.onEventCreate({
+          end,
+          start,
+        })
+        return
+      }
+      default:
+        handled = false
+        break
+    }
+
+    if (!handled) {
+      return
+    }
+
+    event.preventDefault()
+    setFocusedSlot({
+      dayIndex: nextDayIndex,
+      minuteOfDay: nextMinuteOfDay,
+    })
+
+    if (nextDayIndex !== dayIndex) {
+      focusDayGrid(nextDayIndex)
+    }
+  }
+
   return (
     <div className="min-h-0 flex-1 overflow-auto" ref={scrollContainerRef}>
       <div className="min-w-4xl">
@@ -185,6 +324,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                   props.density === "compact" ? "px-3 py-2.5" : "px-3 py-3"
                 )
               )}
+              id={getTimeGridHeaderId(day)}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -227,25 +367,36 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
           {props.days.map((day) => (
             <AllDayDropZone
               key={`all-day-${day.toISOString()}`}
+              activeDropTarget={props.activeDropTarget}
               classNames={props.classNames}
               day={day}
               density={props.density}
               dragPreviewOccurrence={props.dragPreviewOccurrence}
-              events={getAllDayEvents(props.occurrences, day)}
+              draggingOccurrenceId={props.draggingOccurrenceId}
+              events={allDayEventsByDay.get(day.getTime()) ?? []}
               getEventColor={props.getEventColor}
               hourCycle={props.hourCycle}
               interactive={props.interactive}
               locale={props.locale}
+              onEventDragPointerDown={props.onEventDragPointerDown}
               onEventKeyCommand={props.onEventKeyCommand}
               onOpenContextMenu={props.onOpenContextMenu}
               onSelect={props.onSelectEvent}
               previewOccurrenceId={props.previewOccurrenceId}
               renderEvent={props.renderEvent}
               selectedEventId={props.selectedEventId}
+              shouldSuppressEventClick={props.shouldSuppressEventClick}
               timeZone={props.timeZone}
             />
           ))}
         </div>
+        <p className="sr-only" id={gridInstructionsId}>
+          Use arrow keys to move the active time slot. Use left and right arrows
+          to change days.
+          {props.onEventCreate
+            ? " Press Enter or Space to create an event at the active slot."
+            : ""}
+        </p>
         <div
           className={getCalendarSlotClassName(
             props.classNames,
@@ -273,25 +424,36 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                   }}
                 >
                   {minute % 60 === 0
-                    ? formatHourLabel(labelDate, {
-                        hourCycle: props.hourCycle,
-                        locale: props.locale,
-                        timeZone: props.timeZone,
-                      })
+                    ? (
+                        <div className="space-y-0.5 pt-0.5">
+                          <p>
+                            {formatHourLabel(labelDate, {
+                              hourCycle: props.hourCycle,
+                              locale: props.locale,
+                              timeZone: props.timeZone,
+                            })}
+                          </p>
+                          {props.showSecondaryTimeZone &&
+                          props.secondaryTimeZone ? (
+                            <p className="text-[10px] text-muted-foreground/80">
+                              {formatHourLabel(labelDate, {
+                                hourCycle: props.hourCycle,
+                                locale: props.locale,
+                                timeZone: props.secondaryTimeZone,
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                      )
                     : null}
                 </div>
               )
             })}
           </div>
-          {props.days.map((day) => {
-            const layout = getDayLayout(
-              props.occurrences,
-              day,
-              minMinute,
-              maxMinute
-            )
+          {props.days.map((day, dayIndex) => {
+            const layout = timedLayoutsByDay.get(day.getTime()) ?? []
             const previewLayout = getTimeGridPreviewLayout(
-              props.occurrences,
+              layout,
               props.dragPreviewOccurrence,
               day,
               minMinute,
@@ -304,6 +466,11 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
               currentMinuteOfDay <= maxMinute
             const nowIndicatorTop =
               ((currentMinuteOfDay - minMinute) / totalMinutes) * gridHeight
+            const headerId = getTimeGridHeaderId(day)
+            const activeSlotId =
+              focusedSlot.dayIndex === dayIndex
+                ? getTimeGridSlotId(day, focusedSlot.minuteOfDay)
+                : undefined
 
             return (
               <div
@@ -315,10 +482,45 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                 )}
               >
                 <div
-                  className="relative"
+                  aria-activedescendant={activeSlotId}
+                  aria-colcount={1}
+                  aria-describedby={gridInstructionsId}
+                  aria-labelledby={headerId}
+                  aria-rowcount={slotCount}
+                  className="relative h-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35"
+                  onBlur={(event) => {
+                    if (
+                      event.relatedTarget instanceof Node &&
+                      event.currentTarget.contains(event.relatedTarget)
+                    ) {
+                      return
+                    }
+
+                    setFocusedGridDayIndex((currentIndex) =>
+                      currentIndex === dayIndex ? null : currentIndex
+                    )
+                  }}
+                  onFocus={() => {
+                    setFocusedGridDayIndex(dayIndex)
+                    setFocusedSlot((currentSlot) => ({
+                      dayIndex,
+                      minuteOfDay: clampGridMinute(
+                        currentSlot.minuteOfDay,
+                        minMinute,
+                        maxMinute,
+                        props.slotDuration
+                      ),
+                    }))
+                  }}
+                  onKeyDown={(event) => handleGridKeyDown(dayIndex, day, event)}
+                  ref={(element) => {
+                    dayGridRefs.current[dayIndex] = element
+                  }}
+                  role="grid"
                   style={{
                     height: gridHeight,
                   }}
+                  tabIndex={focusedSlot.dayIndex === dayIndex ? 0 : -1}
                 >
                   <TimeGridBackground
                     blockedRanges={props.blockedRanges}
@@ -345,42 +547,66 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                       )
 
                       return (
-                        <TimeSlotDropZone
+                        <div
                           key={`${day.toISOString()}-${minuteOfDay}`}
-                          classNames={props.classNames}
-                          day={day}
-                          draft={draft}
-                          blocked={
-                            props.blockedRanges?.some((range) =>
-                              slotStart.getTime() < range.end.getTime() &&
-                              slotEnd.getTime() > range.start.getTime()
-                            ) ?? false
-                          }
-                          hourCycle={props.hourCycle}
-                          locale={props.locale}
-                          minuteOfDay={minuteOfDay}
-                          onBeginCreate={() => {
-                            if (!props.onEventCreate) {
-                              return
+                          role="row"
+                        >
+                          <TimeSlotDropZone
+                            active={
+                              focusedSlot.dayIndex === dayIndex &&
+                              focusedSlot.minuteOfDay === minuteOfDay
                             }
-
-                            setDraft({
-                              day,
-                              startMinute: minuteOfDay,
-                              endMinute: minuteOfDay,
-                            })
-                          }}
-                          onExtendCreate={() => {
-                            if (!draft || !isSameDay(draft.day, day)) {
-                              return
+                            blocked={
+                              props.blockedRanges?.some((range) =>
+                                slotStart.getTime() < range.end.getTime() &&
+                                slotEnd.getTime() > range.start.getTime()
+                              ) ?? false
                             }
+                            classNames={props.classNames}
+                            day={day}
+                            draft={draft}
+                            focusVisible={focusedGridDayIndex === dayIndex}
+                            hourCycle={props.hourCycle}
+                            isDragTarget={
+                              props.activeDropTarget?.kind === "slot" &&
+                              props.activeDropTarget.day.getTime() === day.getTime() &&
+                              props.activeDropTarget.minuteOfDay === minuteOfDay
+                            }
+                            locale={props.locale}
+                            minuteOfDay={minuteOfDay}
+                            onBeginCreate={() => {
+                              if (!props.onEventCreate) {
+                                return
+                              }
 
-                            setDraft({
-                              ...draft,
-                              endMinute: minuteOfDay,
-                            })
-                          }}
-                        />
+                              setDraft({
+                                day,
+                                startMinute: minuteOfDay,
+                                endMinute: minuteOfDay,
+                              })
+                            }}
+                            onExtendCreate={() => {
+                              if (!draft || !isSameDay(draft.day, day)) {
+                                return
+                              }
+
+                              setDraft({
+                                ...draft,
+                                endMinute: minuteOfDay,
+                              })
+                            }}
+                            onFocusCell={() => {
+                              setFocusedGridDayIndex(dayIndex)
+                              setFocusedSlot({
+                                dayIndex,
+                                minuteOfDay,
+                              })
+                              focusDayGrid(dayIndex)
+                            }}
+                            slotId={getTimeGridSlotId(day, minuteOfDay)}
+                            timeZone={props.timeZone}
+                          />
+                        </div>
                       )
                     })}
                   </div>
@@ -399,7 +625,19 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                             props.slotDuration) *
                           props.slotHeight,
                       }}
-                    />
+                    >
+                      {props.showCreatePreviewMeta ? (
+                        <span className="absolute left-2 top-2 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-xs">
+                          {formatDraftRangeLabel(draft, {
+                            day,
+                            hourCycle: props.hourCycle,
+                            locale: props.locale,
+                            slotDuration: props.slotDuration,
+                            timeZone: props.timeZone,
+                          })}
+                        </span>
+                      ) : null}
+                    </div>
                   ) : null}
                   {previewLayout ? (
                     <div
@@ -461,9 +699,12 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           )}
                           classNames={props.classNames}
                           density={props.density}
-                          dragInstanceId={`time-grid:${day.toISOString()}:${item.occurrence.occurrenceId}`}
+                          dragging={
+                            props.draggingOccurrenceId === item.occurrence.occurrenceId
+                          }
                           event={item.occurrence}
                           interactive={props.interactive}
+                          onDragPointerDown={props.onEventDragPointerDown}
                           onEventKeyCommand={props.onEventKeyCommand}
                           onResizeHandlePointerDown={
                             props.onResizeHandlePointerDown
@@ -480,6 +721,17 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                             item.occurrence.occurrenceId
                           }
                           showResizeHandles
+                          shouldSuppressClick={props.shouldSuppressEventClick}
+                          previewMetaLabel={
+                            props.showDragPreviewMeta &&
+                            props.previewOccurrenceId === item.occurrence.occurrenceId
+                              ? formatDurationLabel(
+                                  item.occurrence.start,
+                                  item.occurrence.end,
+                                  item.occurrence.allDay
+                                )
+                              : undefined
+                          }
                           timeLabel={getEventMetaLabel(
                             item.occurrence,
                             {
@@ -606,15 +858,18 @@ function TimeGridBackground({
 }
 
 type AllDayDropZoneProps = {
+  activeDropTarget?: TimeGridViewProps["activeDropTarget"]
   classNames?: CalendarClassNames
   day: Date
   density: "comfortable" | "compact"
   dragPreviewOccurrence?: CalendarOccurrence
+  draggingOccurrenceId?: string
   events: CalendarOccurrence[]
   getEventColor?: (occurrence: CalendarOccurrence) => string
   hourCycle?: 12 | 24
   interactive: boolean
   locale?: string
+  onEventDragPointerDown?: TimeGridViewProps["onEventDragPointerDown"]
   onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: React.KeyboardEvent<HTMLButtonElement>
@@ -627,41 +882,41 @@ type AllDayDropZoneProps = {
   previewOccurrenceId?: string
   renderEvent?: CalendarEventRenderer
   selectedEventId?: string
+  shouldSuppressEventClick?: (occurrenceId: string) => boolean
   timeZone?: string
 }
 
 function AllDayDropZone({
+  activeDropTarget,
   classNames,
   day,
   density,
   dragPreviewOccurrence,
+  draggingOccurrenceId,
   events,
   getEventColor,
   hourCycle,
   interactive,
   locale,
+  onEventDragPointerDown,
   onEventKeyCommand,
   onOpenContextMenu,
   onSelect,
   previewOccurrenceId,
   renderEvent,
   selectedEventId,
+  shouldSuppressEventClick,
   timeZone,
 }: AllDayDropZoneProps) {
   const previewEvents = dragPreviewOccurrence
     ? getAllDayEvents([dragPreviewOccurrence], day)
     : []
-  const { setNodeRef, isOver } = useDroppable({
-    id: `all-day:${day.toISOString()}`,
-    data: {
-      kind: "all-day",
-      day,
-    } satisfies CalendarDropTarget,
-  })
+  const isDragTarget =
+    activeDropTarget?.kind === "all-day" &&
+    activeDropTarget.day.getTime() === day.getTime()
 
   return (
     <div
-      ref={setNodeRef}
       data-calendar-drop-target-day={day.toISOString()}
       data-calendar-drop-target-kind="all-day"
       className={getCalendarSlotClassName(
@@ -671,7 +926,7 @@ function AllDayDropZone({
           density === "compact"
             ? "min-h-16 border-r border-border/70 px-2 py-1.5 last:border-r-0"
             : "min-h-18 border-r border-border/70 px-2 py-2 last:border-r-0",
-          isOver ? "bg-muted/50" : ""
+          isDragTarget ? "bg-muted/50" : ""
         )
       )}
     >
@@ -686,15 +941,27 @@ function AllDayDropZone({
             )}
             classNames={classNames}
             density={density}
-            dragInstanceId={`all-day:${day.toISOString()}:${occurrence.occurrenceId}`}
+            dragging={draggingOccurrenceId === occurrence.occurrenceId}
             event={occurrence}
             interactive={interactive}
+            onDragPointerDown={onEventDragPointerDown}
             onEventKeyCommand={onEventKeyCommand}
             onOpenContextMenu={onOpenContextMenu}
             onSelect={onSelect}
             preview={previewOccurrenceId === occurrence.occurrenceId}
+            previewMetaLabel={
+              density === "compact" &&
+              previewOccurrenceId === occurrence.occurrenceId
+                ? formatDurationLabel(
+                    occurrence.start,
+                    occurrence.end,
+                    occurrence.allDay
+                  )
+                : undefined
+            }
             renderEvent={renderEvent}
             selected={selectedEventId === occurrence.occurrenceId}
+            shouldSuppressClick={shouldSuppressEventClick}
             timeLabel={getEventMetaLabel(occurrence, {
               hourCycle,
               locale,
@@ -717,8 +984,33 @@ function AllDayDropZone({
   )
 }
 
+function formatDraftRangeLabel(
+  draft: CalendarCreateDraft,
+  options: {
+    day: Date
+    hourCycle?: 12 | 24
+    locale?: string
+    slotDuration: number
+    timeZone?: string
+  }
+) {
+  const startMinute = Math.min(draft.startMinute, draft.endMinute)
+  const endMinute = Math.max(draft.startMinute, draft.endMinute)
+  const start = setMinuteOfDay(startOfDay(options.day), startMinute)
+  const end = setMinuteOfDay(
+    startOfDay(options.day),
+    Math.min(endMinute + options.slotDuration, 1_440)
+  )
+
+  return `${formatEventTimeLabel(start, end, {
+    hourCycle: options.hourCycle,
+    locale: options.locale,
+    timeZone: options.timeZone,
+  })} · ${formatDurationLabel(start, end)}`
+}
+
 function getTimeGridPreviewLayout(
-  occurrences: CalendarOccurrence[],
+  layout: ReturnType<typeof getDayLayout>,
   previewOccurrence: CalendarOccurrence | undefined,
   day: Date,
   minMinute: number,
@@ -730,9 +1022,12 @@ function getTimeGridPreviewLayout(
 
   const previewLayout = getDayLayout(
     [
-      ...occurrences.filter(
-        (occurrence) => occurrence.occurrenceId !== previewOccurrence.occurrenceId
-      ),
+      ...layout
+        .map((item) => item.occurrence)
+        .filter(
+          (occurrence) =>
+            occurrence.occurrenceId !== previewOccurrence.occurrenceId
+        ),
       previewOccurrence,
     ],
     day,
@@ -748,59 +1043,66 @@ function getTimeGridPreviewLayout(
 }
 
 type TimeSlotDropZoneProps = {
+  active: boolean
   blocked: boolean
   classNames?: CalendarClassNames
   day: Date
   draft: CalendarCreateDraft | null
+  focusVisible: boolean
   hourCycle?: 12 | 24
+  isDragTarget: boolean
   locale?: string
   minuteOfDay: number
   onBeginCreate: () => void
   onExtendCreate: () => void
+  onFocusCell: () => void
+  slotId: string
+  timeZone?: string
 }
 
 function TimeSlotDropZone({
+  active,
   blocked,
   classNames,
   day,
   draft,
+  focusVisible,
   hourCycle,
+  isDragTarget,
   locale,
   minuteOfDay,
   onBeginCreate,
   onExtendCreate,
+  onFocusCell,
+  slotId,
+  timeZone,
 }: TimeSlotDropZoneProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `slot:${day.toISOString()}:${minuteOfDay}`,
-    data: {
-      kind: "slot",
-      day,
-      minuteOfDay,
-    } satisfies CalendarDropTarget,
-  })
-
   return (
-    <button
-      ref={setNodeRef}
-      aria-label={`Create event at ${formatHourLabel(setMinuteOfDay(day, minuteOfDay), {
+    <div
+      aria-disabled={blocked || undefined}
+      aria-label={formatTimeGridSlotLabel(day, minuteOfDay, {
+        blocked,
         hourCycle,
         locale,
-      })} on ${formatWeekday(day, {
-        locale,
-      })}`}
+        timeZone,
+      })}
+      aria-selected={active}
       data-calendar-drop-target-day={day.toISOString()}
       data-calendar-drop-target-kind="slot"
       data-calendar-drop-target-minute={minuteOfDay}
+      id={slotId}
       className={getCalendarSlotClassName(
         classNames,
         "timeGridSlot",
         cn(
-          "border-b border-border/50 text-left transition-colors",
-          isOver ? "bg-muted/70" : "",
+          "h-full border-b border-border/50 text-left transition-colors",
+          isDragTarget ? "bg-muted/70" : "",
+          active && focusVisible ? "bg-primary/8 ring-2 ring-inset ring-primary/35" : "",
           blocked ? "cursor-not-allowed" : "",
           draft && isSameDay(draft.day, day) ? "cursor-crosshair" : ""
         )
       )}
+      onPointerDownCapture={onFocusCell}
       onPointerDown={(event) => {
         if (event.button !== 0 || blocked) {
           return
@@ -809,7 +1111,90 @@ function TimeSlotDropZone({
         onBeginCreate()
       }}
       onPointerEnter={onExtendCreate}
-      type="button"
+      role="gridcell"
     />
   )
+}
+
+function getDefaultFocusedTimeSlot(
+  days: Date[],
+  minMinute: number,
+  maxMinute: number,
+  slotDuration: number
+): FocusedTimeSlot {
+  const today = new Date()
+  const todayIndex = days.findIndex((day) => isSameDay(day, today))
+  const currentMinuteOfDay = today.getHours() * 60 + today.getMinutes()
+
+  return {
+    dayIndex: todayIndex >= 0 ? todayIndex : 0,
+    minuteOfDay: clampGridMinute(
+      currentMinuteOfDay,
+      minMinute,
+      maxMinute,
+      slotDuration
+    ),
+  }
+}
+
+function normalizeFocusedTimeSlot(
+  focusedSlot: FocusedTimeSlot,
+  dayCount: number,
+  minMinute: number,
+  maxMinute: number,
+  slotDuration: number
+): FocusedTimeSlot {
+  return {
+    dayIndex: Math.min(Math.max(focusedSlot.dayIndex, 0), Math.max(dayCount - 1, 0)),
+    minuteOfDay: clampGridMinute(
+      focusedSlot.minuteOfDay,
+      minMinute,
+      maxMinute,
+      slotDuration
+    ),
+  }
+}
+
+function clampGridMinute(
+  minuteOfDay: number,
+  minMinute: number,
+  maxMinute: number,
+  slotDuration: number
+) {
+  const maxSlotMinute = Math.max(minMinute, maxMinute - slotDuration)
+  const normalizedMinute = Math.max(minMinute, Math.min(maxSlotMinute, minuteOfDay))
+  const roundedOffset = Math.round((normalizedMinute - minMinute) / slotDuration)
+
+  return minMinute + roundedOffset * slotDuration
+}
+
+function getTimeGridHeaderId(day: Date) {
+  return `calendar-time-grid-heading-${day.getTime()}`
+}
+
+function getTimeGridSlotId(day: Date, minuteOfDay: number) {
+  return `calendar-time-grid-slot-${day.getTime()}-${minuteOfDay}`
+}
+
+function formatTimeGridSlotLabel(
+  day: Date,
+  minuteOfDay: number,
+  options: {
+    blocked: boolean
+    hourCycle?: 12 | 24
+    locale?: string
+    timeZone?: string
+  }
+) {
+  return `${formatWeekday(day, {
+    locale: options.locale,
+    timeZone: options.timeZone,
+  })} ${formatMonthDayLabel(day, {
+    locale: options.locale,
+    timeZone: options.timeZone,
+  })} at ${formatHourLabel(setMinuteOfDay(day, minuteOfDay), {
+    hourCycle: options.hourCycle,
+    locale: options.locale,
+    timeZone: options.timeZone,
+  })}${options.blocked ? ", unavailable" : ""}`
 }

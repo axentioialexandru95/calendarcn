@@ -1,4 +1,8 @@
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react"
+import type {
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react"
 
 import type {
   CalendarBlockedRange,
@@ -7,14 +11,22 @@ import type {
   CalendarCreateOperation,
   CalendarCreateSheetConfig,
   CalendarDensity,
+  CalendarDropTarget,
   CalendarEvent,
   CalendarEventChangeConfirmation,
+  CalendarEventDetailsConfig,
+  CalendarEventDetailsRenderProps,
   CalendarEventVariant,
   CalendarEventRenderer,
+  CalendarEventUpdateOperation,
+  CalendarEmptyStateRenderProps,
+  CalendarKeyboardShortcutsConfig,
   CalendarMoveOperation,
   CalendarOccurrence,
   CalendarResizeOperation,
   CalendarResource,
+  CalendarToolbarExtrasRenderProps,
+  CalendarSurfaceShadow,
   CalendarView,
   CalendarWeekday,
 } from "../types"
@@ -44,19 +56,27 @@ export type CalendarRootProps = {
   onEventCreate?: (operation: CalendarCreateOperation) => void
   createEventSheet?: CalendarCreateSheetConfig
   eventChangeConfirmation?: CalendarEventChangeConfirmation
+  eventDetails?: CalendarEventDetailsConfig
   onEventArchive?: (occurrence: CalendarOccurrence) => void
   onEventDelete?: (occurrence: CalendarOccurrence) => void
   onEventDuplicate?: (occurrence: CalendarOccurrence) => void
   onEventSelect?: (occurrence: CalendarOccurrence) => void
+  onEventUpdate?: (operation: CalendarEventUpdateOperation) => void
   onSelectedEventChange?: (id?: string) => void
   selectedEventId?: string
   timeZone?: string
+  secondaryTimeZone?: string
+  showSecondaryTimeZone?: boolean
   resources?: CalendarResource[]
+  resourceFilter?: string[]
+  defaultResourceFilter?: string[]
+  onResourceFilterChange?: (resourceIds: string[]) => void
   classNames?: CalendarClassNames
   availableViews?: CalendarView[]
   blockedRanges?: CalendarBlockedRange[]
   businessHours?: CalendarBusinessHoursWindow[]
   density?: CalendarDensity
+  surfaceShadow?: CalendarSurfaceShadow
   hiddenDays?: CalendarWeekday[]
   weekStartsOn?: CalendarWeekday
   agendaDays?: number
@@ -68,19 +88,38 @@ export type CalendarRootProps = {
   hourCycle?: 12 | 24
   scrollToTime?: "now" | string
   renderEvent?: CalendarEventRenderer
+  renderEventDetails?: (
+    props: CalendarEventDetailsRenderProps
+  ) => ReactNode
+  renderToolbarExtras?: (
+    props: CalendarToolbarExtrasRenderProps
+  ) => ReactNode
+  renderEmptyState?: (
+    props: CalendarEmptyStateRenderProps
+  ) => ReactNode
   getEventColor?: (occurrence: CalendarOccurrence) => string
+  showCreatePreviewMeta?: boolean
+  showDragPreviewMeta?: boolean
+  keyboardShortcuts?: CalendarKeyboardShortcutsConfig
 }
 
 export type CalendarToolbarProps = {
+  activeResourceIds: string[]
   availableViews: CalendarView[]
   classNames?: CalendarClassNames
   currentLabel: string
   density?: CalendarDensity
   onNavigate: (direction: -1 | 1) => void
   onQuickCreate?: () => void
+  onResourceFilterChange?: (resourceIds: string[]) => void
   onToday: () => void
   onViewChange: (view: CalendarView) => void
+  renderToolbarExtras?: (
+    props: CalendarToolbarExtrasRenderProps
+  ) => ReactNode
   resources?: CalendarResource[]
+  secondaryTimeZone?: string
+  showSecondaryTimeZone?: boolean
   timeZone?: string
   view: CalendarView
 }
@@ -88,10 +127,12 @@ export type CalendarToolbarProps = {
 export type SharedViewProps = {
   anchorDate: Date
   blockedRanges?: CalendarBlockedRange[]
+  activeDropTarget?: CalendarDropTarget | null
   businessHours?: CalendarBusinessHoursWindow[]
   classNames?: CalendarClassNames
   density: CalendarDensity
   dragPreviewOccurrence?: CalendarOccurrence
+  draggingOccurrenceId?: string
   getEventColor?: (occurrence: CalendarOccurrence) => string
   hiddenDays: CalendarWeekday[]
   hourCycle?: 12 | 24
@@ -99,7 +140,16 @@ export type SharedViewProps = {
   locale?: string
   occurrences: CalendarOccurrence[]
   previewOccurrenceId?: string
+  secondaryTimeZone?: string
+  showCreatePreviewMeta?: boolean
+  showDragPreviewMeta?: boolean
+  showSecondaryTimeZone?: boolean
   onEventCreate?: (operation: CalendarCreateOperation) => void
+  onEventDragPointerDown?: (
+    occurrence: CalendarOccurrence,
+    variant: CalendarEventVariant,
+    event: ReactPointerEvent<HTMLButtonElement>
+  ) => void
   onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
@@ -114,6 +164,7 @@ export type SharedViewProps = {
     position: CalendarEventMenuPosition
   ) => void
   onSelectEvent: (occurrence: CalendarOccurrence) => void
+  shouldSuppressEventClick?: (occurrenceId: string) => boolean
   renderEvent?: CalendarEventRenderer
   scrollToTime?: "now" | string
   selectedEventId?: string

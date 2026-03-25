@@ -6,6 +6,8 @@ export type CalendarView = (typeof calendarViews)[number]
 
 export type CalendarDensity = "comfortable" | "compact"
 
+export type CalendarSurfaceShadow = "none" | "sm" | "md"
+
 export const calendarEventVariants = [
   "month",
   "all-day",
@@ -50,6 +52,11 @@ export type CalendarBusinessHoursWindow = {
   start: string
   end: string
 }
+
+export type CalendarRecurrenceEditScope =
+  | "occurrence"
+  | "following"
+  | "series"
 
 export type CalendarBlockedRange = {
   id: string
@@ -99,6 +106,13 @@ export type CalendarEvent = {
   description?: string
   location?: string
   readOnly?: boolean
+  canArchive?: boolean
+  canDelete?: boolean
+  canDuplicate?: boolean
+  canMove?: boolean
+  canOpenDetails?: boolean
+  canResize?: boolean
+  canUpdate?: boolean
   data?: Record<string, unknown>
 }
 
@@ -116,6 +130,7 @@ export type CalendarMoveOperation = {
   previousStart: Date
   previousEnd: Date
   allDay?: boolean
+  scope?: CalendarRecurrenceEditScope
 }
 
 export type CalendarResizeOperation = {
@@ -125,6 +140,14 @@ export type CalendarResizeOperation = {
   previousStart: Date
   previousEnd: Date
   edge: "start" | "end"
+  scope?: CalendarRecurrenceEditScope
+}
+
+export type CalendarEventUpdateOperation = {
+  occurrence: CalendarOccurrence
+  nextEvent: CalendarEvent
+  previousEvent: CalendarEvent
+  scope?: CalendarRecurrenceEditScope
 }
 
 export type CalendarCreateOperation = {
@@ -155,6 +178,31 @@ export type CalendarEventRenderer = (
   props: CalendarEventRenderProps
 ) => ReactNode
 
+export type CalendarToolbarExtrasRenderProps = {
+  activeResourceIds: string[]
+  availableViews: CalendarView[]
+  resources: CalendarResource[]
+  view: CalendarView
+}
+
+export type CalendarEmptyStateRenderProps = {
+  activeResourceIds: string[]
+  clearResourceFilter: () => void
+  resources: CalendarResource[]
+  view: CalendarView
+}
+
+export type CalendarEventDetailsRenderProps = {
+  canEdit: boolean
+  close: () => void
+  isEditing: boolean
+  occurrence: CalendarOccurrence
+  resource?: CalendarResource
+  resources: CalendarResource[]
+  startEditing: () => void
+  submitUpdate: (nextEvent: CalendarEvent) => string | void
+}
+
 export type CalendarEventContextAction = "archive" | "delete" | "duplicate"
 
 export type CalendarEventChangeAction = "move" | "resize"
@@ -184,6 +232,38 @@ export type CalendarEventChangeConfirmation =
         context: CalendarEventChangeConfirmationContext
       ) => boolean
     }
+
+export type CalendarEventDetailsConfig =
+  | boolean
+  | {
+      title?: string
+      description?: string
+      editLabel?: string
+      submitLabel?: string
+      cancelLabel?: string
+      closeLabel?: string
+      openOnSelect?: boolean
+    }
+
+export type CalendarKeyboardShortcutsConfig =
+  | boolean
+  | {
+      title?: string
+      description?: string
+      buttonLabel?: string
+      trigger?: "?" | "button" | "both"
+    }
+
+export type CalendarICSExportOptions = {
+  calendarName?: string
+  productId?: string
+  timeZone?: string
+}
+
+export type CalendarICSParseOptions = {
+  defaultCalendarLabel?: string
+  defaultTimeZone?: string
+}
 
 export type CalendarCreateSheetConfig =
   | boolean

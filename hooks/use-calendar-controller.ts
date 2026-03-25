@@ -5,11 +5,13 @@ import * as React from "react"
 import type {
   CalendarCreateOperation,
   CalendarEvent,
+  CalendarEventUpdateOperation,
   CalendarMoveOperation,
   CalendarResizeOperation,
   CalendarView,
 } from "@/components/calendar/types"
 import {
+  applyEventUpdateOperation,
   applyMoveOperation,
   applyResizeOperation,
   createEventFromOperation,
@@ -137,6 +139,10 @@ export function useCalendarController(
     setSelectedEventId(undefined)
   }
 
+  function handleEventUpdate(operation: CalendarEventUpdateOperation) {
+    setEvents((currentEvents) => applyEventUpdateOperation(currentEvents, operation))
+  }
+
   return {
     date,
     events,
@@ -155,5 +161,6 @@ export function useCalendarController(
     handleEventDuplicate,
     handleEventMove,
     handleEventResize,
+    handleEventUpdate,
   }
 }

@@ -19,6 +19,7 @@ import {
   createEventFromOperation,
   shiftDate,
 } from "@/components/calendar/utils"
+import { docsCalendarExampleClassNames } from "@/content/examples/calendar/shared"
 
 const seedDate = new Date("2026-03-24T09:00:00.000Z")
 
@@ -65,8 +66,8 @@ const constrainedEvents: CalendarEvent[] = [
   {
     id: "planning",
     title: "Planning review",
-    start: set(seedDate, { date: 25, hours: 15, minutes: 0 }),
-    end: set(seedDate, { date: 25, hours: 16, minutes: 30 }),
+    start: set(seedDate, { date: 25, hours: 14, minutes: 0 }),
+    end: set(seedDate, { date: 25, hours: 15, minutes: 30 }),
     color: "#ea580c",
   },
 ]
@@ -99,27 +100,26 @@ export function WorkweekCalendarExample() {
   }
 
   return (
-    <div className="h-[640px] overflow-hidden rounded-[2rem] border border-border/70 bg-background shadow-[0_24px_80px_-48px_rgba(15,23,42,0.55)]">
-      <CalendarRoot
-        availableViews={["week", "day", "agenda"]}
-        blockedRanges={blockedRanges}
-        businessHours={businessHours}
-        date={date}
-        density="compact"
-        events={events}
-        hiddenDays={[0, 6] as const}
-        hourCycle={24}
-        locale="en-GB"
-        onDateChange={setDate}
-        onEventCreate={handleCreate}
-        onEventMove={handleMove}
-        onEventResize={handleResize}
-        onNavigate={handleNavigate}
-        onToday={() => setDate(seedDate)}
-        onViewChange={setView}
-        scrollToTime="08:00"
-        view={view}
-      />
-    </div>
+    <CalendarRoot
+      availableViews={["week", "day", "agenda"]}
+      blockedRanges={blockedRanges}
+      businessHours={businessHours}
+      classNames={docsCalendarExampleClassNames}
+      date={date}
+      density="compact"
+      events={events}
+      hiddenDays={[0, 6] as const}
+      hourCycle={24}
+      locale="en-GB"
+      onDateChange={setDate}
+      onEventCreate={handleCreate}
+      onEventMove={handleMove}
+      onEventResize={handleResize}
+      onNavigate={handleNavigate}
+      onToday={() => setDate(seedDate)}
+      onViewChange={setView}
+      scrollToTime="08:00"
+      view={view}
+    />
   )
 }

@@ -242,6 +242,7 @@ function CalendarShowcaseSurface({
       }}
       date={controller.date}
       eventChangeConfirmation={eventChangeConfirmation}
+      eventDetails
       events={controller.events}
       onDateChange={controller.setDate}
       onEventArchive={controller.handleEventArchive}
@@ -250,6 +251,7 @@ function CalendarShowcaseSurface({
       onEventDuplicate={controller.handleEventDuplicate}
       onEventMove={controller.handleEventMove}
       onEventResize={controller.handleEventResize}
+      onEventUpdate={controller.handleEventUpdate}
       onNavigate={controller.step}
       onSelectedEventChange={controller.setSelectedEventId}
       onToday={controller.goToToday}
@@ -260,10 +262,21 @@ function CalendarShowcaseSurface({
       density={calendarConfig.density}
       hiddenDays={calendarConfig.hiddenDays}
       hourCycle={calendarConfig.hourCycle}
+      keyboardShortcuts
       locale={calendarConfig.locale}
+      renderToolbarExtras={({ activeResourceIds, resources }) => (
+        <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
+          {activeResourceIds.length === resources.length
+            ? "All calendars active"
+            : `${activeResourceIds.length} calendars active`}
+        </span>
+      )}
       resources={resources}
       scrollToTime={calendarConfig.scrollToTime}
+      secondaryTimeZone="America/New_York"
       selectedEventId={controller.selectedEventId}
+      showSecondaryTimeZone
+      surfaceShadow="md"
       timeZone="Europe/Bucharest"
       view={controller.view}
     />

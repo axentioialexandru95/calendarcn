@@ -8,6 +8,7 @@ import {
   ClockIcon,
   CopySimpleIcon,
   MapPinIcon,
+  NotePencilIcon,
   TrashIcon,
 } from "@phosphor-icons/react"
 
@@ -24,6 +25,7 @@ type CalendarEventContextMenuProps = {
   onClose: () => void
   onDelete?: () => void
   onDuplicate?: () => void
+  onOpenDetails?: () => void
   timeZone?: string
   x: number
   y: number
@@ -40,6 +42,7 @@ export function CalendarEventContextMenu({
   onClose,
   onDelete,
   onDuplicate,
+  onOpenDetails,
   timeZone,
   x,
   y,
@@ -51,6 +54,14 @@ export function CalendarEventContextMenu({
   const actions = React.useMemo(
     () =>
       [
+        onOpenDetails
+          ? {
+              icon: NotePencilIcon,
+              key: "details",
+              label: "Open details",
+              onSelect: onOpenDetails,
+            }
+          : null,
         onDuplicate
           ? {
               icon: CopySimpleIcon,
@@ -77,7 +88,7 @@ export function CalendarEventContextMenu({
             }
           : null,
       ].filter((action) => action !== null),
-    [onArchive, onDelete, onDuplicate]
+    [onArchive, onDelete, onDuplicate, onOpenDetails]
   )
 
   React.useLayoutEffect(() => {
