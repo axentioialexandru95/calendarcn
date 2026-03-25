@@ -224,20 +224,6 @@ function CalendarShowcaseSurface({
         title: "New appointment",
       }}
       date={controller.date}
-      eventChangeConfirmation={{
-        cancelLabel: "Keep original time",
-        confirmLabel: (context) =>
-          context.action === "move" ? "Confirm move" : "Confirm resize",
-        description: (context) =>
-          context.action === "move"
-            ? `Apply the new schedule for ${context.occurrence.title}?`
-            : `Apply the new duration for ${context.occurrence.title}?`,
-        shouldConfirm: () => true,
-        title: (context) =>
-          context.action === "move"
-            ? "Confirm appointment move"
-            : "Confirm appointment resize",
-      }}
       events={controller.events}
       onDateChange={controller.setDate}
       onEventArchive={controller.handleEventArchive}
