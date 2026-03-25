@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react"
+import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react"
 
 import type {
   CalendarBlockedRange,
@@ -91,6 +91,7 @@ export type SharedViewProps = {
   businessHours?: CalendarBusinessHoursWindow[]
   classNames?: CalendarClassNames
   density: CalendarDensity
+  dragPreviewOccurrence?: CalendarOccurrence
   getEventColor?: (occurrence: CalendarOccurrence) => string
   hiddenDays: CalendarWeekday[]
   hourCycle?: 12 | 24
@@ -102,6 +103,11 @@ export type SharedViewProps = {
   onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
+  ) => void
+  onResizeHandlePointerDown?: (
+    occurrence: CalendarOccurrence,
+    edge: "start" | "end",
+    event: ReactPointerEvent<HTMLSpanElement>
   ) => void
   onOpenContextMenu?: (
     occurrence: CalendarOccurrence,

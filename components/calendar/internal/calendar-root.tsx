@@ -7,7 +7,6 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCorners,
   pointerWithin,
   useSensor,
   useSensors,
@@ -147,6 +146,17 @@ export function CalendarRoot({
   const [activeDropTarget, setActiveDropTarget] =
     React.useState<CalendarDropTarget | null>(null)
   const lastDropTargetRef = React.useRef<CalendarDropTarget | null>(null)
+  const [activeDragOffsetMinutes, setActiveDragOffsetMinutes] =
+    React.useState(0)
+  const [activeResize, setActiveResize] = React.useState<{
+    edge: "start" | "end"
+    occurrence: CalendarOccurrence
+    pointerId: number
+  } | null>(null)
+  const [activeResizeTarget, setActiveResizeTarget] =
+    React.useState<CalendarDropTarget | null>(null)
+  const activeResizeTargetRef = React.useRef<CalendarDropTarget | null>(null)
+  const lastResizeTargetRef = React.useRef<CalendarDropTarget | null>(null)
   const [activeDragRect, setActiveDragRect] = React.useState<ClientRect | null>(
     null
   )
@@ -168,6 +178,21 @@ export function CalendarRoot({
     setOptimisticEvents(events)
   }, [events])
 
+  function updateActiveResizeTarget(target: CalendarDropTarget | null) {
+    activeResizeTargetRef.current = target
+    setActiveResizeTarget(target)
+
+    if (target) {
+      lastResizeTargetRef.current = target
+    }
+  }
+
+  function clearActiveResize() {
+    setActiveResize(null)
+    updateActiveResizeTarget(null)
+    lastResizeTargetRef.current = null
+  }
+
   const shouldBlockTimedRange = React.useCallback(
     (start: Date, end: Date, allDay: boolean | undefined) => {
       if (
@@ -185,6 +210,31 @@ export function CalendarRoot({
   )
 
   const previewOccurrence = React.useMemo(() => {
+    if (activeResize && activeResizeTarget) {
+      const operation = getResizeOperation(
+        activeResize.occurrence,
+        activeResize.edge,
+        activeResizeTarget,
+        slotDuration
+      )
+
+      if (
+        shouldBlockTimedRange(
+          operation.nextStart,
+          operation.nextEnd,
+          activeResize.occurrence.allDay
+        )
+      ) {
+        return null
+      }
+
+      return {
+        ...activeResize.occurrence,
+        start: operation.nextStart,
+        end: operation.nextEnd,
+      }
+    }
+
     if (!activeDrag || !activeDropTarget) {
       return null
     }
@@ -192,7 +242,8 @@ export function CalendarRoot({
     const nextPreviewOccurrence = getPreviewOccurrence(
       activeDrag,
       activeDropTarget,
-      slotDuration
+      slotDuration,
+      activeDragOffsetMinutes
     )
     const previewAllDay =
       activeDrag.kind === "event"
@@ -210,12 +261,20 @@ export function CalendarRoot({
     }
 
     return nextPreviewOccurrence
-  }, [activeDrag, activeDropTarget, shouldBlockTimedRange, slotDuration])
+  }, [
+    activeDrag,
+    activeDragOffsetMinutes,
+    activeDropTarget,
+    activeResize,
+    activeResizeTarget,
+    shouldBlockTimedRange,
+    slotDuration,
+  ])
 
   const occurrences = React.useMemo(() => {
     const nextOccurrences = expandOccurrences(displayEvents, range)
 
-    if (!previewOccurrence) {
+    if (!previewOccurrence || !activeResize) {
       return nextOccurrences
     }
 
@@ -224,7 +283,7 @@ export function CalendarRoot({
         ? previewOccurrence
         : occurrence
     )
-  }, [displayEvents, previewOccurrence, range])
+  }, [activeResize, displayEvents, previewOccurrence, range])
 
   function announce(message: string) {
     setLiveAnnouncement(message)
@@ -436,13 +495,14 @@ export function CalendarRoot({
 
   function moveOccurrenceWithTarget(
     occurrence: CalendarOccurrence,
-    target: CalendarDropTarget
+    target: CalendarDropTarget,
+    dragOffsetMinutes = 0
   ) {
     if (!onEventMove) {
       return
     }
 
-    const operation = getMoveOperation(occurrence, target)
+    const operation = getMoveOperation(occurrence, target, dragOffsetMinutes)
     requestEventChange({
       action: "move",
       ...operation,
@@ -465,6 +525,92 @@ export function CalendarRoot({
     })
   }
 
+  function handleResizeHandlePointerDown(
+    occurrence: CalendarOccurrence,
+    edge: "start" | "end",
+    event: React.PointerEvent<HTMLSpanElement>
+  ) {
+    if (!onEventResize) {
+      return
+    }
+
+    closeContextMenu()
+    setActiveResize({
+      edge,
+      occurrence,
+      pointerId: event.pointerId,
+    })
+    updateActiveResizeTarget(
+      getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
+    )
+  }
+
+  const commitPointerResize = React.useEffectEvent(
+    (
+      resize: NonNullable<typeof activeResize>,
+      target: CalendarDropTarget
+    ) => {
+      resizeOccurrenceWithTarget(resize.occurrence, resize.edge, target)
+    }
+  )
+  const clearPointerResize = React.useEffectEvent(() => {
+    clearActiveResize()
+  })
+
+  React.useEffect(() => {
+    if (!activeResize) {
+      return
+    }
+
+    const resize = activeResize
+
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerId !== resize.pointerId) {
+        return
+      }
+
+      updateActiveResizeTarget(
+        getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
+      )
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      if (event.pointerId !== resize.pointerId) {
+        return
+      }
+
+      const target =
+        getTimeGridDropTargetFromPoint(event.clientX, event.clientY) ??
+        activeResizeTargetRef.current ??
+        lastResizeTargetRef.current
+      clearPointerResize()
+
+      if (!target) {
+        return
+      }
+
+      commitPointerResize(resize, target)
+    }
+
+    function handlePointerCancel(event: PointerEvent) {
+      if (event.pointerId !== resize.pointerId) {
+        return
+      }
+
+      clearPointerResize()
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerCancel)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerCancel)
+    }
+  }, [activeResize])
+
   function handleDragStart(event: DragStartEvent) {
     const dragData = isCalendarDragData(event.active.data.current)
       ? event.active.data.current
@@ -479,8 +625,12 @@ export function CalendarRoot({
     setActiveDropTarget(null)
     lastDropTargetRef.current = null
     const dragSurfaceRect = getDragSurfaceRect(event.activatorEvent.target)
+    const nextDragRect = dragSurfaceRect ?? event.active.rect.current.initial
 
-    setActiveDragRect(dragSurfaceRect ?? event.active.rect.current.initial)
+    setActiveDragRect(nextDragRect)
+    setActiveDragOffsetMinutes(
+      getDragOffsetMinutes(dragData, nextDragRect, event.activatorEvent)
+    )
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -494,9 +644,11 @@ export function CalendarRoot({
       activeDropTarget ??
       lastDropTargetRef.current ??
       undefined
+    const dragOffsetMinutes = activeDragOffsetMinutes
 
     setActiveDrag(null)
     setActiveDropTarget(null)
+    setActiveDragOffsetMinutes(0)
     setActiveDragRect(null)
     lastDropTargetRef.current = null
 
@@ -505,7 +657,7 @@ export function CalendarRoot({
     }
 
     if (dragData.kind === "event") {
-      moveOccurrenceWithTarget(dragData.occurrence, target)
+      moveOccurrenceWithTarget(dragData.occurrence, target, dragOffsetMinutes)
       return
     }
 
@@ -527,6 +679,7 @@ export function CalendarRoot({
   function handleDragCancel() {
     setActiveDrag(null)
     setActiveDropTarget(null)
+    setActiveDragOffsetMinutes(0)
     setActiveDragRect(null)
     lastDropTargetRef.current = null
     closeContextMenu()
@@ -658,15 +811,18 @@ export function CalendarRoot({
     businessHours,
     classNames,
     density,
+    dragPreviewOccurrence:
+      activeDrag?.kind === "event" ? previewOccurrence ?? undefined : undefined,
     getEventColor,
     hiddenDays: resolvedHiddenDays,
     hourCycle,
     interactive: isHydrated,
     locale,
     occurrences,
-    previewOccurrenceId: previewOccurrence?.occurrenceId,
+    previewOccurrenceId: activeResize ? previewOccurrence?.occurrenceId : undefined,
     onEventCreate: onEventCreate ? requestEventCreate : undefined,
     onEventKeyCommand: handleEventKeyCommand,
+    onResizeHandlePointerDown: handleResizeHandlePointerDown,
     onOpenContextMenu: handleOpenContextMenu,
     onSelectEvent: handleSelectEvent,
     renderEvent,
@@ -678,18 +834,12 @@ export function CalendarRoot({
     weekStartsOn,
   }
   const collisionDetection = React.useCallback<CollisionDetection>((args) => {
-    const pointerCollisions = pointerWithin(args)
-
-    if (pointerCollisions.length > 0) {
-      return pointerCollisions
-    }
-
-    return closestCorners(args)
+    return pointerWithin(args)
   }, [])
   const portals = (
     <>
       <DragOverlay>
-        {activeDrag?.kind === "event" && !previewOccurrence ? (
+        {activeDrag?.kind === "event" ? (
           <EventSurface
             accentColor={getResolvedAccentColor(
               activeDrag.occurrence,
@@ -803,9 +953,11 @@ export function CalendarRoot({
 
           if (nextTarget) {
             lastDropTargetRef.current = nextTarget
+            setActiveDropTarget(nextTarget)
+            return
           }
 
-          setActiveDropTarget(nextTarget)
+          setActiveDropTarget(lastDropTargetRef.current)
         }}
         onDragStart={handleDragStart}
         sensors={sensors}
@@ -859,10 +1011,15 @@ export function CalendarRoot({
 function getPreviewOccurrence(
   activeDrag: CalendarDragData,
   target: CalendarDropTarget,
-  slotDuration: number
+  slotDuration: number,
+  dragOffsetMinutes = 0
 ) {
   if (activeDrag.kind === "event") {
-    const operation = getMoveOperation(activeDrag.occurrence, target)
+    const operation = getMoveOperation(
+      activeDrag.occurrence,
+      target,
+      activeDrag.variant === "time-grid" ? dragOffsetMinutes : 0
+    )
 
     return {
       ...activeDrag.occurrence,
@@ -888,7 +1045,8 @@ function getPreviewOccurrence(
 
 function getMoveOperation(
   occurrence: CalendarOccurrence,
-  target: CalendarDropTarget
+  target: CalendarDropTarget,
+  dragOffsetMinutes = 0
 ): CalendarMoveOperation {
   const durationMs = occurrence.end.getTime() - occurrence.start.getTime()
   let nextStart: Date
@@ -896,7 +1054,17 @@ function getMoveOperation(
   let allDay = occurrence.allDay
 
   if (target.kind === "slot") {
-    nextStart = setMinuteOfDay(startOfDay(target.day), target.minuteOfDay)
+    const durationMinutes = Math.max(1, Math.round(durationMs / 60_000))
+    const latestStartMinute = Math.max(
+      0,
+      1_440 - Math.min(durationMinutes, 1_440)
+    )
+    const nextStartMinute = Math.min(
+      latestStartMinute,
+      Math.max(0, target.minuteOfDay - dragOffsetMinutes)
+    )
+
+    nextStart = setMinuteOfDay(startOfDay(target.day), nextStartMinute)
     nextEnd = new Date(nextStart.getTime() + durationMs)
     allDay = false
   } else {
@@ -919,6 +1087,82 @@ function getMoveOperation(
     previousEnd: occurrence.end,
     allDay,
   }
+}
+
+function getDragOffsetMinutes(
+  dragData: CalendarDragData,
+  dragRect: ClientRect | null,
+  activatorEvent: Event | null
+) {
+  if (
+    dragData.kind !== "event" ||
+    dragData.variant !== "time-grid" ||
+    dragData.occurrence.allDay ||
+    !dragRect ||
+    dragRect.height <= 0
+  ) {
+    return 0
+  }
+
+  const clientY = getClientY(activatorEvent)
+
+  if (clientY === null) {
+    return 0
+  }
+
+  const durationMinutes = Math.max(
+    1,
+    Math.round(
+      (dragData.occurrence.end.getTime() - dragData.occurrence.start.getTime()) /
+        60_000
+    )
+  )
+  const pointerOffsetY = Math.min(
+    dragRect.height,
+    Math.max(0, clientY - dragRect.top)
+  )
+
+  return Math.min(
+    Math.max(0, durationMinutes - 1),
+    Math.round((pointerOffsetY / dragRect.height) * durationMinutes)
+  )
+}
+
+function getClientY(event: Event | null) {
+  if (!event) {
+    return null
+  }
+
+  if (isPointerLikeEvent(event)) {
+    return event.clientY
+  }
+
+  if (isTouchEvent(event) && event.touches.length > 0) {
+    return event.touches[0]?.clientY ?? null
+  }
+
+  if (isTouchEvent(event) && event.changedTouches.length > 0) {
+    return event.changedTouches[0]?.clientY ?? null
+  }
+
+  return null
+}
+
+function isPointerLikeEvent(
+  event: Event
+): event is Event & {
+  clientY: number
+} {
+  return "clientY" in event && typeof event.clientY === "number"
+}
+
+function isTouchEvent(
+  event: Event
+): event is Event & {
+  changedTouches: TouchList
+  touches: TouchList
+} {
+  return "touches" in event && "changedTouches" in event
 }
 
 function getResizeOperation(
@@ -1001,4 +1245,46 @@ function isCalendarDragData(value: unknown): value is CalendarDragData {
   }
 
   return true
+}
+
+function getTimeGridDropTargetFromPoint(
+  clientX: number,
+  clientY: number
+): CalendarDropTarget | null {
+  if (typeof document === "undefined") {
+    return null
+  }
+
+  const match = document
+    .elementsFromPoint(clientX, clientY)
+    .find((element): element is HTMLElement => {
+      return (
+        element instanceof HTMLElement &&
+        element.dataset.calendarDropTargetKind === "slot"
+      )
+    })
+
+  if (!match) {
+    return null
+  }
+
+  const dayValue = match.dataset.calendarDropTargetDay
+  const minuteValue = match.dataset.calendarDropTargetMinute
+
+  if (!dayValue || minuteValue === undefined) {
+    return null
+  }
+
+  const day = new Date(dayValue)
+  const minuteOfDay = Number(minuteValue)
+
+  if (Number.isNaN(day.getTime()) || !Number.isFinite(minuteOfDay)) {
+    return null
+  }
+
+  return {
+    kind: "slot",
+    day,
+    minuteOfDay,
+  }
 }

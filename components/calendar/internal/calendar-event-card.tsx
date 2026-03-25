@@ -1,6 +1,11 @@
 "use client"
 
-import type { CSSProperties, KeyboardEvent, MouseEvent } from "react"
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react"
 
 import {
   useDraggable,
@@ -32,6 +37,11 @@ type CalendarEventCardProps = {
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
   ) => void
+  onResizeHandlePointerDown?: (
+    occurrence: CalendarOccurrence,
+    edge: "start" | "end",
+    event: ReactPointerEvent<HTMLSpanElement>
+  ) => void
   onOpenContextMenu?: (
     occurrence: CalendarOccurrence,
     position: CalendarEventMenuPosition
@@ -51,13 +61,17 @@ type EventSurfaceProps = {
   attributes?: DraggableAttributes
   className?: string
   density?: CalendarDensity
-  dragInstanceId?: string
   event: CalendarOccurrence
   isDragging?: boolean
   listeners?: DraggableSyntheticListeners
   nodeRef?: (element: HTMLButtonElement | null) => void
   overlay?: boolean
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void
+  onResizeHandlePointerDown?: (
+    occurrence: CalendarOccurrence,
+    edge: "start" | "end",
+    event: ReactPointerEvent<HTMLSpanElement>
+  ) => void
   onOpenContextMenu?: (
     occurrence: CalendarOccurrence,
     position: CalendarEventMenuPosition
@@ -80,6 +94,7 @@ export function CalendarEventCard({
   event,
   interactive,
   onEventKeyCommand,
+  onResizeHandlePointerDown,
   onOpenContextMenu,
   onSelect,
   preview = false,
@@ -115,12 +130,12 @@ export function CalendarEventCard({
         attributes={dragEnabled ? attributes : undefined}
         className={getEventSlotClassName(classNames, variant)}
         density={density}
-        dragInstanceId={dragInstanceId}
         event={event}
         isDragging={isDragging}
         listeners={dragEnabled ? listeners : undefined}
         nodeRef={dragEnabled ? setNodeRef : undefined}
         onKeyDown={(keyEvent) => onEventKeyCommand(event, keyEvent)}
+        onResizeHandlePointerDown={onResizeHandlePointerDown}
         onOpenContextMenu={onOpenContextMenu}
         onSelect={() => onSelect(event)}
         preview={preview}
@@ -140,13 +155,13 @@ export function EventSurface({
   attributes,
   className,
   density = "comfortable",
-  dragInstanceId,
   event,
   isDragging = false,
   listeners,
   nodeRef,
   overlay = false,
   onKeyDown,
+  onResizeHandlePointerDown,
   onOpenContextMenu,
   onSelect,
   preview = false,
@@ -283,19 +298,17 @@ export function EventSurface({
         <>
           <ResizeHandle
             accentColor={accentColor}
-            dragInstanceId={dragInstanceId}
             edge="start"
             event={event}
             interactive
-            variant={variant}
+            onPointerDown={onResizeHandlePointerDown}
           />
           <ResizeHandle
             accentColor={accentColor}
-            dragInstanceId={dragInstanceId}
             edge="end"
             event={event}
             interactive
-            variant={variant}
+            onPointerDown={onResizeHandlePointerDown}
           />
         </>
       ) : null}
@@ -315,71 +328,61 @@ export function getResolvedAccentColor(
 
 function ResizeHandle({
   accentColor,
-  dragInstanceId,
   edge,
   event,
   interactive,
-  variant,
+  onPointerDown,
 }: {
   accentColor: string
-  dragInstanceId?: string
   edge: "start" | "end"
   event: CalendarOccurrence
   interactive: boolean
-  variant: EventVariant
+  onPointerDown?: (
+    occurrence: CalendarOccurrence,
+    edge: "start" | "end",
+    event: ReactPointerEvent<HTMLSpanElement>
+  ) => void
 }) {
-  const { attributes, listeners, setNodeRef, isDragging, transform } =
-    useDraggable({
-    id: `resize:${edge}:${dragInstanceId ?? event.occurrenceId}`,
-    data: {
-      kind: "resize",
-      occurrence: event,
-      edge,
-      variant,
-    } satisfies CalendarDragData,
-    disabled: !interactive,
-  })
-  const dragTransform = CSS.Translate.toString(transform)
-
   return (
     <span
-      ref={setNodeRef}
       className={cn(
         "absolute inset-x-0 z-20 h-6 touch-none select-none",
         edge === "start"
           ? "top-0 cursor-ns-resize"
           : "bottom-0 cursor-ns-resize"
       )}
-      style={{
-        transform: [
-          edge === "start" ? "translateY(-50%)" : "translateY(50%)",
-          dragTransform,
-        ]
-          .filter(Boolean)
-          .join(" "),
+      onPointerDown={(pointerEvent) => {
+        if (!interactive || pointerEvent.button !== 0) {
+          return
+        }
+
+        pointerEvent.preventDefault()
+        pointerEvent.stopPropagation()
+        onPointerDown?.(event, edge, pointerEvent)
       }}
-      {...(interactive ? attributes : undefined)}
-      {...(interactive ? listeners : undefined)}
+      style={{
+        transform: edge === "start" ? "translateY(-50%)" : "translateY(50%)",
+      }}
     >
       <span
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
-          selectedHandleVisibilityClass(isDragging)
+          selectedHandleVisibilityClass(false)
         )}
         style={{
-          backgroundColor: isDragging ? accentColor : `${accentColor}55`,
+          backgroundColor: `${accentColor}55`,
         }}
       />
       <span
         aria-hidden
         className={cn(
           "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
-          selectedHandleVisibilityClass(isDragging),
-          isDragging ? "scale-100" : "scale-95"
+          selectedHandleVisibilityClass(false),
+          "scale-95"
         )}
         style={{
-          backgroundColor: isDragging ? accentColor : `${accentColor}88`,
+          backgroundColor: `${accentColor}88`,
         }}
       />
     </span>

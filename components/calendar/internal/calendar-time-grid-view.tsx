@@ -230,6 +230,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
               classNames={props.classNames}
               day={day}
               density={props.density}
+              dragPreviewOccurrence={props.dragPreviewOccurrence}
               events={getAllDayEvents(props.occurrences, day)}
               getEventColor={props.getEventColor}
               hourCycle={props.hourCycle}
@@ -285,6 +286,13 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
           {props.days.map((day) => {
             const layout = getDayLayout(
               props.occurrences,
+              day,
+              minMinute,
+              maxMinute
+            )
+            const previewLayout = getTimeGridPreviewLayout(
+              props.occurrences,
+              props.dragPreviewOccurrence,
               day,
               minMinute,
               maxMinute
@@ -393,6 +401,25 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                       }}
                     />
                   ) : null}
+                  {previewLayout ? (
+                    <div
+                      className="pointer-events-none absolute z-10 px-1"
+                      style={{
+                        top:
+                          ((previewLayout.top - minMinute) / props.slotDuration) *
+                          props.slotHeight,
+                        height: Math.max(
+                          props.slotHeight - 4,
+                          (previewLayout.height / props.slotDuration) *
+                            props.slotHeight
+                        ),
+                        left: `calc(${(previewLayout.column * 100) / previewLayout.columns}% + 0px)`,
+                        width: `calc(${100 / previewLayout.columns}% - 0px)`,
+                      }}
+                    >
+                      <div className="h-full rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/[0.08] shadow-sm dark:border-white/12 dark:bg-white/8" />
+                    </div>
+                  ) : null}
                   {showNowIndicator ? (
                     <div
                       className="pointer-events-none absolute inset-x-0 z-20"
@@ -438,6 +465,9 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           event={item.occurrence}
                           interactive={props.interactive}
                           onEventKeyCommand={props.onEventKeyCommand}
+                          onResizeHandlePointerDown={
+                            props.onResizeHandlePointerDown
+                          }
                           onOpenContextMenu={props.onOpenContextMenu}
                           onSelect={props.onSelectEvent}
                           preview={
@@ -579,6 +609,7 @@ type AllDayDropZoneProps = {
   classNames?: CalendarClassNames
   day: Date
   density: "comfortable" | "compact"
+  dragPreviewOccurrence?: CalendarOccurrence
   events: CalendarOccurrence[]
   getEventColor?: (occurrence: CalendarOccurrence) => string
   hourCycle?: 12 | 24
@@ -603,6 +634,7 @@ function AllDayDropZone({
   classNames,
   day,
   density,
+  dragPreviewOccurrence,
   events,
   getEventColor,
   hourCycle,
@@ -616,6 +648,9 @@ function AllDayDropZone({
   selectedEventId,
   timeZone,
 }: AllDayDropZoneProps) {
+  const previewEvents = dragPreviewOccurrence
+    ? getAllDayEvents([dragPreviewOccurrence], day)
+    : []
   const { setNodeRef, isOver } = useDroppable({
     id: `all-day:${day.toISOString()}`,
     data: {
@@ -627,6 +662,8 @@ function AllDayDropZone({
   return (
     <div
       ref={setNodeRef}
+      data-calendar-drop-target-day={day.toISOString()}
+      data-calendar-drop-target-kind="all-day"
       className={getCalendarSlotClassName(
         classNames,
         "allDayLane",
@@ -666,8 +703,47 @@ function AllDayDropZone({
             variant="all-day"
           />
         ))}
+        {previewEvents.map((occurrence) => (
+          <div
+            key={`preview-${occurrence.occurrenceId}`}
+            className={cn(
+              "pointer-events-none rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/[0.08] shadow-sm dark:border-white/12 dark:bg-white/8",
+              density === "compact" ? "h-6" : "h-7"
+            )}
+          />
+        ))}
       </div>
     </div>
+  )
+}
+
+function getTimeGridPreviewLayout(
+  occurrences: CalendarOccurrence[],
+  previewOccurrence: CalendarOccurrence | undefined,
+  day: Date,
+  minMinute: number,
+  maxMinute: number
+) {
+  if (!previewOccurrence || previewOccurrence.allDay) {
+    return null
+  }
+
+  const previewLayout = getDayLayout(
+    [
+      ...occurrences.filter(
+        (occurrence) => occurrence.occurrenceId !== previewOccurrence.occurrenceId
+      ),
+      previewOccurrence,
+    ],
+    day,
+    minMinute,
+    maxMinute
+  )
+
+  return (
+    previewLayout.find(
+      (item) => item.occurrence.occurrenceId === previewOccurrence.occurrenceId
+    ) ?? null
   )
 }
 
@@ -712,6 +788,9 @@ function TimeSlotDropZone({
       })} on ${formatWeekday(day, {
         locale,
       })}`}
+      data-calendar-drop-target-day={day.toISOString()}
+      data-calendar-drop-target-kind="slot"
+      data-calendar-drop-target-minute={minuteOfDay}
       className={getCalendarSlotClassName(
         classNames,
         "timeGridSlot",
