@@ -926,6 +926,7 @@ export function CalendarRoot({
         "root",
         "flex min-h-[42rem] flex-col overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-background shadow-[0_20px_80px_-48px_rgba(15,23,42,0.55)]"
       )}
+      data-testid="calendar-root"
     >
       <CalendarToolbar
         availableViews={resolvedAvailableViews}

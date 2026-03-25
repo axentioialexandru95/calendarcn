@@ -5,11 +5,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:test": "next dev --webpack --port 3000",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
     "registry:build": "shadcn build registry.json -o public/r"
   },
   "dependencies": {
@@ -32,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",

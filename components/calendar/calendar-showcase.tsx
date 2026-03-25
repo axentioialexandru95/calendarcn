@@ -21,7 +21,11 @@ import {
   buildDemoResources,
   CALENDAR_DEMO_SEED_VERSION,
 } from "@/lib/calendar-demo-data"
-import type { CalendarDensity, CalendarView } from "@/components/calendar"
+import type {
+  CalendarDensity,
+  CalendarEventChangeConfirmation,
+  CalendarView,
+} from "@/components/calendar"
 
 type CalendarShowcaseVariant = "embed" | "standalone"
 
@@ -120,14 +124,17 @@ const demoToggleDefinitions: Array<{
 ]
 
 export function CalendarShowcase({
+  eventChangeConfirmation,
   initialDateIso,
   variant = "standalone",
 }: {
+  eventChangeConfirmation?: CalendarEventChangeConfirmation
   initialDateIso: string
   variant?: CalendarShowcaseVariant
 }) {
   return (
     <CalendarShowcaseSurface
+      eventChangeConfirmation={eventChangeConfirmation}
       key={`${initialDateIso}:${CALENDAR_DEMO_SEED_VERSION}`}
       initialDateIso={initialDateIso}
       variant={variant}
@@ -136,9 +143,11 @@ export function CalendarShowcase({
 }
 
 function CalendarShowcaseSurface({
+  eventChangeConfirmation,
   initialDateIso,
   variant = "standalone",
 }: {
+  eventChangeConfirmation?: CalendarEventChangeConfirmation
   initialDateIso: string
   variant?: CalendarShowcaseVariant
 }) {
@@ -232,6 +241,7 @@ function CalendarShowcaseSurface({
         title: "New appointment",
       }}
       date={controller.date}
+      eventChangeConfirmation={eventChangeConfirmation}
       events={controller.events}
       onDateChange={controller.setDate}
       onEventArchive={controller.handleEventArchive}

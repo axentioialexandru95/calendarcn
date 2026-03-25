@@ -189,7 +189,10 @@ export function CalendarEventCreateSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/35 backdrop-blur-[2px]">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/35 backdrop-blur-[2px]"
+      data-testid="calendar-create-sheet"
+    >
       <button
         aria-label="Close create appointment sheet"
         className="absolute inset-0"

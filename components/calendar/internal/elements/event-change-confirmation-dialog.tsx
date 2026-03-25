@@ -90,6 +90,7 @@ export function CalendarEventChangeConfirmationDialog({
       <div
         aria-modal="true"
         className="relative z-10 w-full max-w-md rounded-[calc(var(--radius)*1.2)] border border-border/80 bg-background p-5 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.65)]"
+        data-testid="calendar-event-change-confirmation-dialog"
         role="dialog"
       >
         <div className="flex items-start gap-3">

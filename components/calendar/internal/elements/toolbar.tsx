@@ -165,7 +165,12 @@ export function CalendarToolbar({
             })}
           </div>
           {onQuickCreate ? (
-            <ToolbarButton onClick={onQuickCreate} size="sm" tone="default">
+            <ToolbarButton
+              data-testid="calendar-toolbar-create"
+              onClick={onQuickCreate}
+              size="sm"
+              tone="default"
+            >
               <PlusIcon className="size-4" />
               New event
             </ToolbarButton>

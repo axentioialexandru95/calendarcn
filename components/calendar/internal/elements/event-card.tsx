@@ -33,7 +33,7 @@ type CalendarEventCardProps = {
   dragInstanceId: string
   event: CalendarOccurrence
   interactive: boolean
-  onEventKeyCommad: (
+  onEventKeyCommand: (
     occurrence: CalendarOccurrence,
     event: KeyboardEvent<HTMLButtonElement>
   ) => void
@@ -272,6 +272,10 @@ export function EventSurface({
           className
         )}
         ref={nodeRef}
+        data-calendar-event-id={event.sourceEventId}
+        data-calendar-occurrence-id={event.occurrenceId}
+        data-calendar-variant={variant}
+        data-testid={`calendar-event-${event.sourceEventId}-${variant}`}
         onClick={onSelect}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
@@ -345,6 +349,10 @@ function ResizeHandle({
 }) {
   return (
     <span
+      data-calendar-event-id={event.sourceEventId}
+      data-calendar-occurrence-id={event.occurrenceId}
+      data-calendar-resize-handle={edge}
+      data-testid={`calendar-resize-handle-${event.sourceEventId}-${edge}`}
       className={cn(
         "absolute inset-x-0 z-20 h-6 touch-none select-none",
         edge === "start"
