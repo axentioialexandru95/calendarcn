@@ -144,10 +144,18 @@ export function CalendarEventChangeConfirmationDialog({
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <Button onClick={onCancel} variant="outline">
+          <Button
+            data-testid="calendar-event-change-cancel"
+            onClick={onCancel}
+            variant="outline"
+          >
             {resolvedCancelLabel}
           </Button>
-          <Button autoFocus onClick={onConfirm}>
+          <Button
+            autoFocus
+            data-testid="calendar-event-change-confirm"
+            onClick={onConfirm}
+          >
             {resolvedConfirmLabel}
           </Button>
         </div>

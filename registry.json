@@ -28,31 +28,39 @@
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-root.tsx",
+          "path": "components/calendar/internal/elements/root.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-toolbar.tsx",
+          "path": "components/calendar/internal/elements/toolbar.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-time-grid-view.tsx",
+          "path": "components/calendar/internal/elements/time-grid-view.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-month-view.tsx",
+          "path": "components/calendar/internal/elements/month-view.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-agenda-view.tsx",
+          "path": "components/calendar/internal/elements/agenda-view.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-event-card.tsx",
+          "path": "components/calendar/internal/elements/event-card.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/calendar-event-context-menu.tsx",
+          "path": "components/calendar/internal/elements/event-context-menu.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-change-confirmation-dialog.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-create-sheet.tsx",
           "type": "registry:component"
         },
         {

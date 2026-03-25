@@ -95,6 +95,7 @@ export function CalendarToolbar({
           <div className="flex shrink-0 items-center gap-2">
             <ToolbarButton
               aria-label="Previous range"
+              data-testid="calendar-nav-previous"
               onClick={() => onNavigate(-1)}
               size="icon-sm"
               tone="ghost"
@@ -103,13 +104,19 @@ export function CalendarToolbar({
             </ToolbarButton>
             <ToolbarButton
               aria-label="Next range"
+              data-testid="calendar-nav-next"
               onClick={() => onNavigate(1)}
               size="icon-sm"
               tone="ghost"
             >
               <CaretRightIcon className="size-4" />
             </ToolbarButton>
-            <ToolbarButton onClick={onToday} size="sm" tone="outline">
+            <ToolbarButton
+              data-testid="calendar-nav-today"
+              onClick={onToday}
+              size="sm"
+              tone="outline"
+            >
               Today
             </ToolbarButton>
           </div>
@@ -120,6 +127,7 @@ export function CalendarToolbar({
                 "toolbarTitle",
                 "truncate text-base font-medium tracking-tight md:text-lg"
               )}
+              data-testid="calendar-current-label"
             >
               {currentLabel}
             </p>
@@ -154,6 +162,7 @@ export function CalendarToolbar({
                     "viewButton",
                     "w-full justify-center rounded-xl sm:w-auto sm:rounded-full"
                   )}
+                  data-testid={`calendar-view-${item}`}
                   onClick={() => onViewChange(item)}
                   size="sm"
                   tone={view === item ? "secondary" : "ghost"}

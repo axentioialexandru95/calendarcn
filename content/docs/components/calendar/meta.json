@@ -1,0 +1,15 @@
+{
+  "title": "Calendar",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "starter",
+    "workweek",
+    "resources",
+    "interactions",
+    "month",
+    "week",
+    "day",
+    "agenda"
+  ]
+}

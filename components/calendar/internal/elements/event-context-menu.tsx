@@ -233,6 +233,7 @@ export function CalendarEventContextMenu({
             icon={action.icon}
             label={action.label}
             onClick={action.onSelect}
+            testId={`calendar-event-action-${action.key}`}
           />
         ))}
       </div>
@@ -246,12 +247,14 @@ function ContextActionButton({
   icon: Icon,
   label,
   onClick,
+  testId,
 }: {
   buttonRef?: (element: HTMLButtonElement | null) => void
   destructive?: boolean
   icon: ElementType<{ className?: string }>
   label: string
   onClick: () => void
+  testId: string
 }) {
   return (
     <button
@@ -261,6 +264,7 @@ function ContextActionButton({
           ? "text-destructive hover:bg-destructive/10"
           : "text-popover-foreground hover:bg-accent/70 hover:text-accent-foreground"
       )}
+      data-testid={testId}
       onClick={onClick}
       ref={buttonRef}
       role="menuitem"

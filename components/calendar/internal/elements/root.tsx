@@ -1000,7 +1000,11 @@ export function CalendarRoot({
         </div>
         {isHydrated ? createPortal(portals, document.body) : null}
       </DndContext>
-      <p aria-live="polite" className="sr-only">
+      <p
+        aria-live="polite"
+        className="sr-only"
+        data-testid="calendar-live-announcement"
+      >
         {liveAnnouncement}
       </p>
     </div>

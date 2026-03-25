@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 import Script from "next/script"
+import { RootProvider } from "fumadocs-ui/provider/next"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {
-  title: "CalendarCN | Calendar Components for shadcn/ui",
+  title: "CalendarCN | Open-Source Calendar Components for shadcn/ui",
   description:
-    "CalendarCN is a reusable calendar component set for shadcn/ui apps with month, week, day, and agenda views plus direct event editing.",
+    "CalendarCN is an open-source calendar component set for shadcn/ui apps with month, week, day, and agenda views plus direct event editing.",
 }
 
 export default function RootLayout({
@@ -24,7 +25,20 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-svh bg-background text-foreground">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <RootProvider
+            search={{
+              options: {
+                api: "/api/search",
+              },
+            }}
+            theme={{
+              enabled: false,
+            }}
+          >
+            {children}
+          </RootProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

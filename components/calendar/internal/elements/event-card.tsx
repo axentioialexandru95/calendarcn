@@ -275,6 +275,7 @@ export function EventSurface({
         data-calendar-event-id={event.sourceEventId}
         data-calendar-occurrence-id={event.occurrenceId}
         data-calendar-variant={variant}
+        data-selected={selected ? "true" : undefined}
         data-testid={`calendar-event-${event.sourceEventId}-${variant}`}
         onClick={onSelect}
         onContextMenu={handleContextMenu}

@@ -364,13 +364,16 @@ export function CalendarEventCreateSheet({
             ) : null}
             <div className="flex justify-end gap-2">
               <Button
+                data-testid="calendar-create-sheet-cancel"
                 onClick={() => onOpenChange(false)}
                 type="button"
                 variant="outline"
               >
                 {resolvedCancelLabel}
               </Button>
-              <Button type="submit">{resolvedSubmitLabel}</Button>
+              <Button data-testid="calendar-create-sheet-submit" type="submit">
+                {resolvedSubmitLabel}
+              </Button>
             </div>
           </div>
         </form>

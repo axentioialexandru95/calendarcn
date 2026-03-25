@@ -8,6 +8,11 @@ type CalendarCnFooterSectionProps = {
       siteHref: string
       siteLabel: string
     }
+    support?: {
+      helper?: string
+      href: string
+      label: string
+    }
     title: string
   }
 }
@@ -28,6 +33,25 @@ export function CalendarCnFooterSection({
           <p className="mx-auto max-w-2xl text-sm leading-6 text-muted-foreground">
             {content.body}
           </p>
+          {content.support ? (
+            <div className="space-y-2 pt-2">
+              <div className="flex justify-center">
+                <a
+                  className="inline-flex h-8 items-center justify-center gap-1 rounded-[min(var(--radius-md),10px)] border border-transparent bg-primary px-2.5 text-sm font-medium whitespace-nowrap text-primary-foreground transition-colors hover:bg-primary/80"
+                  href={content.support.href}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {content.support.label}
+                </a>
+              </div>
+              {content.support.helper ? (
+                <p className="text-xs text-muted-foreground">
+                  {content.support.helper}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <p className="text-sm text-muted-foreground">
             {content.credit.label}
             {" · "}

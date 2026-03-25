@@ -13,6 +13,7 @@
 /playwright-report
 /test-results
 /blob-report
+/.source
 
 # next.js
 /.next/

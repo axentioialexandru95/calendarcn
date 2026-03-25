@@ -1,6 +1,16 @@
 # CalendarCN
 
-CalendarCN is a shadcn-compatible calendar registry item with month, week, day, and agenda views, drag and drop, resizing, and typed event contracts.
+CalendarCN is an open-source, shadcn-compatible calendar registry item with month, week, day, and agenda views, drag and drop, resizing, recurring events, and typed event contracts.
+
+## License
+
+CalendarCN is released under the [MIT License](./LICENSE).
+
+## Support the project
+
+If CalendarCN helped you, you can support it here:
+
+- [Buy me a coffee](https://buymeacoffee.com/phantomtechind)
 
 ## Build the registry
 

@@ -183,11 +183,16 @@
     }
   },
   "footer": {
-    "body": "Calendar primitives for shadcn apps, with multiple views, recurring events, resource lanes, and typed scheduling interactions in one reusable surface.",
+    "body": "An open-source calendar for shadcn apps, with multiple views, recurring events, resource lanes, and typed scheduling interactions in one reusable surface.",
     "credit": {
       "label": "Made by Axentioi Alexandru",
       "siteHref": "https://phantomtechind.com",
       "siteLabel": "phantomtechind.com"
+    },
+    "support": {
+      "label": "Buy me a coffee",
+      "href": "https://buymeacoffee.com/axentioialexandru",
+      "helper": "If CalendarCN saved you time, you can help support the project here."
     },
     "title": "CalendarCN"
   }
