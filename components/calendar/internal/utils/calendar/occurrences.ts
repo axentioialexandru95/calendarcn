@@ -17,13 +17,13 @@ import type {
   CalendarEvent,
   CalendarOccurrence,
   CalendarWeekday,
-} from "../../types"
+} from "../../../types"
 import {
   copyTimeParts,
   getMinuteOfDay,
   parseTimeStringToMinuteOfDay,
   type CalendarVisibleRange,
-} from "./calendar-date-range"
+} from "./date-range"
 
 type RecurrenceCursorContext = {
   rangeStart: Date
@@ -262,7 +262,10 @@ export function intervalOverlapsBlockedRanges(
 }
 
 export function getEventResourceId(
-  event: Pick<CalendarEvent, "calendarId" | "resourceId">
+  event: {
+    calendarId?: string
+    resourceId?: string
+  }
 ) {
   return event.resourceId ?? event.calendarId ?? null
 }

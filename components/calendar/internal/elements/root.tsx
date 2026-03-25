@@ -20,7 +20,7 @@ import {
   slotHeight as defaultSlotHeight,
   type CalendarRootProps,
 } from "../shared"
-import { CalendarRootPortals } from "./root/calendar-root-portals"
+import { CalendarRootPortals } from "./root/calendar/portals"
 import { getCalendarSurfaceShadowClassName } from "./root/root-utils"
 import { useCalendarDerivedState } from "./root/use-calendar-derived-state"
 import { useCalendarEventActions } from "./root/use-calendar-event-actions"

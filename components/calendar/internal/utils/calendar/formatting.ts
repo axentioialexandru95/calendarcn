@@ -3,14 +3,14 @@ import { isSameDay, isSameMonth, isSameYear } from "date-fns"
 import type {
   CalendarOccurrence,
   CalendarWeekday,
-} from "../../types"
+} from "../../../types"
 import {
   getDaySpan,
   getNextVisibleDay,
   getVisibleRange,
   isHiddenDay,
   type VisibleRangeOptions,
-} from "./calendar-date-range"
+} from "./date-range"
 
 type CalendarDateTimeFormatOptions = {
   hourCycle?: 12 | 24

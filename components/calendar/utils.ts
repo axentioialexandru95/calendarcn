@@ -10,9 +10,9 @@ export function getCalendarSlotClassName(
   return cn(values, classNames?.[slot])
 }
 
-export * from "./internal/utils/calendar-date-range"
-export * from "./internal/utils/calendar-formatting"
-export * from "./internal/utils/calendar-occurrences"
-export * from "./internal/utils/calendar-operations"
-export * from "./internal/utils/calendar-permissions"
-export * from "./internal/utils/calendar-ics"
+export * from "./internal/utils/calendar/date-range"
+export * from "./internal/utils/calendar/formatting"
+export * from "./internal/utils/calendar/occurrences"
+export * from "./internal/utils/calendar/operations"
+export * from "./internal/utils/calendar/permissions"
+export * from "./internal/utils/calendar/ics"

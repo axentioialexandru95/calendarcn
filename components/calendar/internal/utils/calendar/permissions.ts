@@ -1,4 +1,4 @@
-import type { CalendarOccurrence } from "../../types"
+import type { CalendarOccurrence } from "../../../types"
 
 export function canMoveOccurrence(occurrence: CalendarOccurrence) {
   return !occurrence.readOnly && occurrence.canMove !== false

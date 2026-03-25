@@ -7,7 +7,7 @@ import type {
   CalendarEventChangeConfirmationContext,
   CalendarOccurrence,
   CalendarResource,
-} from "../../../types"
+} from "../../../../types"
 import {
   canArchiveOccurrence,
   canDeleteOccurrence,
@@ -16,22 +16,22 @@ import {
   formatDurationLabel,
   getCalendarSlotClassName,
   getEventMetaLabel,
-} from "../../../utils"
+} from "../../../../utils"
 import type {
   CalendarEventMenuPosition,
   CalendarRootProps,
-} from "../../shared"
-import { EventSurface, getResolvedAccentColor } from "../event-card"
-import { CalendarEventChangeConfirmationDialog } from "../event-change-confirmation-dialog"
-import { CalendarEventContextMenu } from "../event-context-menu"
-import { CalendarEventCreateSheet } from "../event-create-sheet"
-import { CalendarEventDetailsSheet } from "../event-details-sheet"
-import { CalendarKeyboardShortcutsDialog } from "../keyboard-shortcuts-dialog"
+} from "../../../shared"
+import { EventSurface, getResolvedAccentColor } from "../../event-card"
+import { CalendarEventChangeConfirmationDialog } from "../../event-change-confirmation-dialog"
+import { CalendarEventContextMenu } from "../../event-context-menu"
+import { CalendarEventCreateSheet } from "../../event-create-sheet"
+import { CalendarEventDetailsSheet } from "../../event-details-sheet"
+import { CalendarKeyboardShortcutsDialog } from "../../keyboard-shortcuts-dialog"
 
 import {
   getDragOverlayStyle,
   type ActiveDragInteraction,
-} from "./root-utils"
+} from "../root-utils"
 
 type CalendarRootPortalsProps = {
   activeDrag: CalendarDragData | null

@@ -13,8 +13,12 @@ import {
   startOfWeek,
 } from "date-fns"
 
-import type { CalendarEvent, CalendarView, CalendarWeekday } from "../../types"
-import { calendarViews } from "../../types"
+import type {
+  CalendarEvent,
+  CalendarView,
+  CalendarWeekday,
+} from "../../../types"
+import { calendarViews } from "../../../types"
 
 const allWeekdays: CalendarWeekday[] = [0, 1, 2, 3, 4, 5, 6]
 const MILLISECONDS_IN_DAY = 86_400_000

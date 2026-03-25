@@ -7,8 +7,8 @@ import type {
   CalendarMoveOperation,
   CalendarOccurrence,
   CalendarResizeOperation,
-} from "../../types"
-import { getDaySpan } from "./calendar-date-range"
+} from "../../../types"
+import { getDaySpan } from "./date-range"
 
 export function applyMoveOperation(
   events: CalendarEvent[],

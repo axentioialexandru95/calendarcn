@@ -5,7 +5,7 @@ import type {
   CalendarICSExportOptions,
   CalendarICSParseOptions,
   CalendarWeekday,
-} from "../../types"
+} from "../../../types"
 
 const ICS_LINE_BREAK = "\r\n"
 const weekdayToICS: Record<CalendarWeekday, string> = {
