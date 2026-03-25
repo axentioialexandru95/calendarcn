@@ -59,6 +59,47 @@ test.describe("calendar interactions", () => {
     ).toHaveCount(2)
   })
 
+  test("shows only the event-shaped timed drop preview while dragging", async ({
+    page,
+  }) => {
+    await page.goto("/calendar-lab")
+
+    const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
+    const box = await focusEvent.boundingBox()
+
+    if (!box) {
+      throw new Error("Unable to determine drag preview coordinates.")
+    }
+
+    const startX = box.x + box.width / 2
+    const startY = box.y + 20
+
+    await page.mouse.move(startX, startY)
+    await page.mouse.down()
+    await page.mouse.move(startX + 120, startY + 120, { steps: 12 })
+
+    const previewState = await page.evaluate(() => {
+      const timedPreviewCount = document.querySelectorAll(
+        '[data-calendar-drop-preview="time-grid"]'
+      ).length
+      const highlightedTimedSlots = Array.from(
+        document.querySelectorAll('[data-calendar-drop-target-kind="slot"]')
+      ).filter((element) =>
+        element.className.includes("bg-muted/70")
+      ).length
+
+      return {
+        highlightedTimedSlots,
+        timedPreviewCount,
+      }
+    })
+
+    await page.mouse.up()
+
+    expect(previewState.timedPreviewCount).toBe(1)
+    expect(previewState.highlightedTimedSlots).toBe(0)
+  })
+
   test("archives an event from the context menu", async ({ page }) => {
     await page.goto("/calendar-lab")
 
