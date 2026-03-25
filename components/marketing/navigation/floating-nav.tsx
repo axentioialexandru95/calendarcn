@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { MoonIcon, SunIcon } from "@phosphor-icons/react"
+import Link from "next/link"
+import { BookOpenTextIcon, MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { useTheme } from "next-themes"
 
 import { CalendarCnLogo } from "@/components/marketing/branding/logo"
@@ -20,14 +21,20 @@ type CalendarCnFloatingNavProps = {
 
 export function CalendarCnFloatingNav({ items }: CalendarCnFloatingNavProps) {
   const { setTheme, theme } = useTheme()
+  const docsItem = React.useMemo(
+    () => items.find((item) => !item.href.startsWith("#")),
+    [items]
+  )
+  const sectionItems = React.useMemo(
+    () => items.filter((item) => item.href.startsWith("#")),
+    [items]
+  )
   const sectionIds = React.useMemo(
     () => [
       "top",
-      ...items
-        .filter((item) => item.href.startsWith("#"))
-        .map((item) => item.href.replace(/^#/, "")),
+      ...sectionItems.map((item) => item.href.replace(/^#/, "")),
     ],
-    [items]
+    [sectionItems]
   )
   const [activeHref, setActiveHref] = React.useState("")
   const [mounted, setMounted] = React.useState(false)
@@ -100,9 +107,8 @@ export function CalendarCnFloatingNav({ items }: CalendarCnFloatingNavProps) {
         </a>
 
         <nav className="hidden items-center gap-1.5 md:flex">
-          {items.map((item) => {
-            const isSectionLink = item.href.startsWith("#")
-            const isActive = isSectionLink && activeHref === item.href
+          {sectionItems.map((item) => {
+            const isActive = activeHref === item.href
 
             return (
               <a
@@ -121,18 +127,29 @@ export function CalendarCnFloatingNav({ items }: CalendarCnFloatingNavProps) {
           })}
         </nav>
 
-        <button
-          aria-label={isDark ? "Switch to white theme" : "Switch to dark theme"}
-          className="inline-flex size-10 items-center justify-center text-foreground transition-colors hover:text-foreground/80"
-          onClick={() => setTheme(toggleCalendarCnTheme(selectedTheme))}
-          type="button"
-        >
-          {isDark ? (
-            <MoonIcon className="size-4" weight="fill" />
-          ) : (
-            <SunIcon className="size-4" weight="fill" />
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            aria-label={isDark ? "Switch to white theme" : "Switch to dark theme"}
+            className="inline-flex size-10 items-center justify-center rounded-[10px] text-foreground transition-colors hover:bg-foreground/5 hover:text-foreground/80"
+            onClick={() => setTheme(toggleCalendarCnTheme(selectedTheme))}
+            type="button"
+          >
+            {isDark ? (
+              <MoonIcon className="size-4" weight="fill" />
+            ) : (
+              <SunIcon className="size-4" weight="fill" />
+            )}
+          </button>
+          {docsItem ? (
+            <Link
+              aria-label={`Open ${docsItem.label}`}
+              className="inline-flex size-10 items-center justify-center rounded-[10px] text-foreground transition-colors hover:bg-foreground/5 hover:text-foreground/80"
+              href={docsItem.href}
+            >
+              <BookOpenTextIcon className="size-4" weight="regular" />
+            </Link>
+          ) : null}
+        </div>
       </div>
     </header>
   )
