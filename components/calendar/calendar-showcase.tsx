@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   ArrowsOutCardinalIcon,
   CalendarDotsIcon,
+  CheckIcon,
   CursorClickIcon,
   SwatchesIcon,
 } from "@phosphor-icons/react"
@@ -82,30 +83,37 @@ const demoPresets: Record<
 }
 
 const demoToggleDefinitions: Array<{
+  description: string
   key: keyof DemoConfigState
   label: string
 }> = [
   {
+    description: "Tighten slot height, event padding, and toolbar spacing.",
     key: "compact",
     label: "Compact density",
   },
   {
+    description: "Focus the planner on weekdays instead of a full seven-day span.",
     key: "hideWeekends",
     label: "Hide weekends",
   },
   {
+    description: "Highlight the working window so real scheduling hours stand out.",
     key: "showBusinessHours",
     label: "Business hours",
   },
   {
+    description: "Show unavailable time ranges and block edits that overlap them.",
     key: "showBlockedRanges",
     label: "Blocked ranges",
   },
   {
+    description: "Switch the demo labels to a 24-hour scheduling format.",
     key: "twentyFourHour",
     label: "24h clock",
   },
   {
+    description: "Limit the surface to week, day, and agenda instead of all views.",
     key: "focusedViews",
     label: "Work views only",
   },
@@ -451,19 +459,47 @@ function CalendarShowcaseConfigPanel({
           })}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="space-y-3">
+          <p className="text-[11px] tracking-[0.22em] text-muted-foreground uppercase">
+            Options
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {demoToggleDefinitions.map((toggle) => (
-            <Button
+            <button
               key={toggle.key}
-              aria-pressed={config[toggle.key]}
+              aria-checked={config[toggle.key]}
+              className={cn(
+                "group flex items-start gap-3 rounded-[calc(var(--radius)*1.05)] border px-3 py-3 text-left transition-colors",
+                config[toggle.key]
+                  ? "border-primary/40 bg-primary/[0.07]"
+                  : "border-border/70 bg-background hover:bg-muted/40"
+              )}
               onClick={() => onToggle(toggle.key)}
-              size="xs"
+              role="checkbox"
               type="button"
-              variant={config[toggle.key] ? "secondary" : "outline"}
             >
-              {toggle.label}
-            </Button>
+              <span
+                aria-hidden
+                className={cn(
+                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                  config[toggle.key]
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-transparent group-hover:border-foreground/20"
+                )}
+              >
+                <CheckIcon className="size-3.5" weight="bold" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  {toggle.label}
+                </span>
+                <span className="mt-1 block text-sm leading-6 text-muted-foreground">
+                  {toggle.description}
+                </span>
+              </span>
+            </button>
           ))}
+          </div>
         </div>
 
         <div className="rounded-[calc(var(--radius)*1.05)] border border-border/70 bg-background/80 px-4 py-3">
