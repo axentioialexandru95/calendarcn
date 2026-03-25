@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 
 import { CalendarBlankIcon, ClockIcon, NotePencilIcon } from "@phosphor-icons/react"

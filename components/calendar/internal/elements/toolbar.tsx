@@ -1,5 +1,3 @@
-"use client"
-
 import type { ComponentProps, ComponentType } from "react"
 
 import {
