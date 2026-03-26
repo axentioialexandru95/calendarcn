@@ -3,6 +3,7 @@ import type { ComponentProps, ComponentType } from "react"
 import {
   CaretLeftIcon,
   CaretRightIcon,
+  CommandIcon,
   ColumnsIcon,
   ListBulletsIcon,
   PlusIcon,
@@ -70,7 +71,9 @@ export function CalendarToolbar({
   classNames,
   currentLabel,
   density = "comfortable",
+  keyboardShortcutsButtonLabel = "Shortcuts",
   onNavigate,
+  onOpenKeyboardShortcuts,
   onQuickCreate,
   onResourceFilterChange,
   onToday,
@@ -210,6 +213,17 @@ export function CalendarToolbar({
             >
               <PlusIcon className="size-4" />
               New event
+            </ToolbarButton>
+          ) : null}
+          {onOpenKeyboardShortcuts ? (
+            <ToolbarButton
+              data-testid="calendar-toolbar-shortcuts"
+              onClick={onOpenKeyboardShortcuts}
+              size="sm"
+              tone="outline"
+            >
+              <CommandIcon className="size-4" />
+              {keyboardShortcutsButtonLabel}
             </ToolbarButton>
           ) : null}
         </div>

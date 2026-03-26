@@ -6,7 +6,7 @@ import { CodePanel } from "@/components/docs/code-panel"
 import { calendarRegistryItem } from "@/lib/docs/registry"
 import { cn } from "@/lib/utils"
 
-const fallbackOrigin = "https://your-domain.com"
+const fallbackOrigin = "https://calendarcn.phantomtechind.com"
 
 function stripRegistryVersions(packages: string[]) {
   return packages.map((entry) => {
@@ -78,29 +78,29 @@ import {
         <div className="space-y-3">
           <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
             Pull the registry item directly into your app with the shadcn CLI.
-            On your deployed site this resolves to the live
-            ` /r/calendarcn.json ` registry endpoint.
+            On your deployed site this resolves to the live ` /r/calendarcn.json
+            ` registry endpoint.
           </p>
           <CodePanel code={installCommand} fileName="terminal" />
         </div>
       ) : (
         <div className="space-y-5">
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold tracking-[0.16em] uppercase text-muted-foreground">
+            <h3 className="text-sm font-semibold tracking-[0.16em] text-muted-foreground uppercase">
               Dependencies
             </h3>
             <CodePanel code={dependencyCommand} fileName="terminal" />
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold tracking-[0.16em] uppercase text-muted-foreground">
+            <h3 className="text-sm font-semibold tracking-[0.16em] text-muted-foreground uppercase">
               Installed Files
             </h3>
             <CodePanel code={filesSnippet} fileName="registry.txt" />
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold tracking-[0.16em] uppercase text-muted-foreground">
+            <h3 className="text-sm font-semibold tracking-[0.16em] text-muted-foreground uppercase">
               Imports
             </h3>
             <CodePanel code={importSnippet} fileName="app/schedule/page.tsx" />

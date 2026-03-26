@@ -110,10 +110,12 @@ export type CalendarToolbarProps = {
   currentLabel: string
   density?: CalendarDensity
   onNavigate: (direction: -1 | 1) => void
+  onOpenKeyboardShortcuts?: () => void
   onQuickCreate?: () => void
   onResourceFilterChange?: (resourceIds: string[]) => void
   onToday: () => void
   onViewChange: (view: CalendarView) => void
+  keyboardShortcutsButtonLabel?: string
   renderToolbarExtras?: (
     props: CalendarToolbarExtrasRenderProps
   ) => ReactNode

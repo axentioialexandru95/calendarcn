@@ -83,25 +83,32 @@ export function useCalendarPointerInteractions({
   const dragTouchScrollReleaseRef = React.useRef<(() => void) | null>(null)
   const resizeTouchScrollReleaseRef = React.useRef<(() => void) | null>(null)
 
-  React.useEffect(() => {
-    activeDragRef.current = activeDrag
-  }, [activeDrag])
+  const updateActiveDrag = React.useCallback((nextDrag: CalendarDragData | null) => {
+    activeDragRef.current = nextDrag
+    setActiveDrag(nextDrag)
+  }, [])
 
-  React.useEffect(() => {
-    activeDragInteractionRef.current = activeDragInteraction
-  }, [activeDragInteraction])
+  const updateActiveDragInteraction = React.useCallback((
+    nextInteraction: ActiveDragInteraction | null
+  ) => {
+    activeDragInteractionRef.current = nextInteraction
+    setActiveDragInteraction(nextInteraction)
+  }, [])
 
-  React.useEffect(() => {
-    activeResizeRef.current = activeResize
-  }, [activeResize])
+  const updateActiveResize = React.useCallback((nextResize: ActiveResizeState | null) => {
+    activeResizeRef.current = nextResize
+    setActiveResize(nextResize)
+  }, [])
 
-  React.useEffect(() => {
-    activeDragOffsetMinutesRef.current = activeDragOffsetMinutes
-  }, [activeDragOffsetMinutes])
+  const updateActiveDragOffsetMinutes = React.useCallback((nextOffsetMinutes: number) => {
+    activeDragOffsetMinutesRef.current = nextOffsetMinutes
+    setActiveDragOffsetMinutes(nextOffsetMinutes)
+  }, [])
 
-  React.useEffect(() => {
-    activeDragRectRef.current = activeDragRect
-  }, [activeDragRect])
+  const updateActiveDragRect = React.useCallback((nextRect: DOMRect | null) => {
+    activeDragRectRef.current = nextRect
+    setActiveDragRect(nextRect)
+  }, [])
 
   function releaseCapturedPointer(
     captureElement: HTMLElement | null,
@@ -159,11 +166,11 @@ export function useCalendarPointerInteractions({
       activeDragInteractionRef.current?.pointerId
     )
     releaseTouchScrollLock(dragTouchScrollReleaseRef)
-    setActiveDrag(null)
-    setActiveDragInteraction(null)
+    updateActiveDrag(null)
+    updateActiveDragInteraction(null)
     updateActiveDropTarget(null)
-    setActiveDragOffsetMinutes(0)
-    setActiveDragRect(null)
+    updateActiveDragOffsetMinutes(0)
+    updateActiveDragRect(null)
     lastDropTargetRef.current = null
   }
 
@@ -173,7 +180,7 @@ export function useCalendarPointerInteractions({
       activeResizeRef.current?.pointerId
     )
     releaseTouchScrollLock(resizeTouchScrollReleaseRef)
-    setActiveResize(null)
+    updateActiveResize(null)
     updateActiveResizeTarget(null)
     lastResizeTargetRef.current = null
   }
@@ -210,7 +217,7 @@ export function useCalendarPointerInteractions({
         // Pointer capture is not guaranteed on every platform.
       }
 
-      setActiveResize({
+      updateActiveResize({
         captureElement: event.currentTarget,
         edge,
         occurrence,
@@ -221,7 +228,13 @@ export function useCalendarPointerInteractions({
         getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
       )
     },
-    [announce, closeContextMenu, closeEventDetails, enableEventResize]
+    [
+      announce,
+      closeContextMenu,
+      closeEventDetails,
+      enableEventResize,
+      updateActiveResize,
+    ]
   )
 
   const handleEventDragPointerDown = React.useCallback(
@@ -248,12 +261,12 @@ export function useCalendarPointerInteractions({
         // Pointer capture is not guaranteed on every platform.
       }
 
-      setActiveDrag({
+      updateActiveDrag({
         kind: "event",
         occurrence,
         variant,
       })
-      setActiveDragInteraction({
+      updateActiveDragInteraction({
         captureElement: event.currentTarget,
         currentClientX: event.clientX,
         currentClientY: event.clientY,
@@ -265,10 +278,18 @@ export function useCalendarPointerInteractions({
       })
       updateActiveDropTarget(null)
       lastDropTargetRef.current = null
-      setActiveDragRect(getDragSurfaceRect(event.currentTarget))
-      setActiveDragOffsetMinutes(0)
+      updateActiveDragRect(getDragSurfaceRect(event.currentTarget))
+      updateActiveDragOffsetMinutes(0)
     },
-    [closeContextMenu, closeEventDetails, enableEventMove]
+    [
+      closeContextMenu,
+      closeEventDetails,
+      enableEventMove,
+      updateActiveDrag,
+      updateActiveDragInteraction,
+      updateActiveDragOffsetMinutes,
+      updateActiveDragRect,
+    ]
   )
 
   const commitPointerResize = React.useEffectEvent(
@@ -297,7 +318,7 @@ export function useCalendarPointerInteractions({
     clearActiveDragState()
   })
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!activeResize) {
       return
     }
@@ -360,7 +381,7 @@ export function useCalendarPointerInteractions({
 
   const activeDragPointerId = activeDragInteraction?.pointerId
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (activeDragPointerId == null) {
       return
     }
@@ -399,13 +420,13 @@ export function useCalendarPointerInteractions({
           event.preventDefault()
         }
 
-        setActiveDragInteraction({
+        updateActiveDragInteraction({
           ...interaction,
           currentClientX: event.clientX,
           currentClientY: event.clientY,
           isDragging: true,
         })
-        setActiveDragOffsetMinutes(
+        updateActiveDragOffsetMinutes(
           getDragOffsetMinutes(drag, activeDragRectRef.current, event.clientY)
         )
         updateActiveDropTarget(nextTarget)
@@ -416,22 +437,21 @@ export function useCalendarPointerInteractions({
         event.preventDefault()
       }
 
-      setActiveDragInteraction((currentInteraction) => {
-        if (
-          !currentInteraction ||
-          currentInteraction.pointerId !== pointerId ||
-          (currentInteraction.currentClientX === event.clientX &&
-            currentInteraction.currentClientY === event.clientY)
-        ) {
-          return currentInteraction
-        }
+      const currentInteraction = activeDragInteractionRef.current
 
-        return {
+      if (
+        currentInteraction &&
+        currentInteraction.pointerId === pointerId &&
+        (currentInteraction.currentClientX !== event.clientX ||
+          currentInteraction.currentClientY !== event.clientY)
+      ) {
+        updateActiveDragInteraction({
           ...currentInteraction,
           currentClientX: event.clientX,
           currentClientY: event.clientY,
-        }
-      })
+        })
+      }
+
       updateActiveDropTarget(nextTarget)
     }
 
@@ -495,7 +515,11 @@ export function useCalendarPointerInteractions({
       window.removeEventListener("pointerup", handlePointerUp)
       window.removeEventListener("pointercancel", handlePointerCancel)
     }
-  }, [activeDragPointerId])
+  }, [
+    activeDragPointerId,
+    updateActiveDragInteraction,
+    updateActiveDragOffsetMinutes,
+  ])
 
   return {
     activeDrag,

@@ -116,6 +116,19 @@ export function CalendarRoot({
 
     return dedupedFilter.length > 0 ? dedupedFilter : allResourceIds
   }, [allResourceIds, internalResourceFilter, resourceFilter])
+  const keyboardShortcutsTrigger =
+    typeof keyboardShortcuts === "object"
+      ? (keyboardShortcuts.trigger ?? "both")
+      : keyboardShortcuts
+        ? "both"
+        : null
+  const keyboardShortcutsButtonLabel =
+    typeof keyboardShortcuts === "object"
+      ? (keyboardShortcuts.buttonLabel ?? "Shortcuts")
+      : "Shortcuts"
+  const showKeyboardShortcutsButton =
+    keyboardShortcutsTrigger === "both" ||
+    keyboardShortcutsTrigger === "button"
 
   React.useEffect(() => {
     setIsHydrated(true)
@@ -312,7 +325,13 @@ export function CalendarRoot({
         classNames={classNames}
         currentLabel={derived.currentLabel}
         density={density}
+        keyboardShortcutsButtonLabel={keyboardShortcutsButtonLabel}
         onNavigate={actions.handleNavigate}
+        onOpenKeyboardShortcuts={
+          showKeyboardShortcutsButton
+            ? () => actions.setIsKeyboardShortcutsOpen(true)
+            : undefined
+        }
         onQuickCreate={onEventCreate ? actions.handleQuickCreate : undefined}
         onResourceFilterChange={
           resources?.length && resources.length > 1 ? setActiveResourceIds : undefined

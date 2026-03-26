@@ -63,8 +63,17 @@ test.describe("calendar interactions", () => {
     page,
   }) => {
     await page.goto("/calendar-lab")
+    await expect(
+      page.getByTestId("calendar-resize-handle-focus-end")
+    ).toBeVisible()
 
     const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
+    const targetSlot = page
+      .locator('[role="grid"]')
+      .nth(2)
+      .locator('[data-calendar-drop-target-minute="840"]')
+      .first()
+    await targetSlot.scrollIntoViewIfNeeded()
     const box = await focusEvent.boundingBox()
 
     if (!box) {
@@ -73,10 +82,22 @@ test.describe("calendar interactions", () => {
 
     const startX = box.x + box.width / 2
     const startY = box.y + 20
+    const targetBox = await targetSlot.boundingBox()
+
+    if (!targetBox) {
+      throw new Error("Unable to determine drag preview target coordinates.")
+    }
 
     await page.mouse.move(startX, startY)
     await page.mouse.down()
-    await page.mouse.move(startX + 120, startY + 120, { steps: 12 })
+    await page.mouse.move(
+      targetBox.x + targetBox.width / 2,
+      targetBox.y + targetBox.height / 2,
+      { steps: 12 }
+    )
+    await expect(
+      page.locator('[data-calendar-drop-preview="time-grid"]')
+    ).toHaveCount(1)
 
     const previewState = await page.evaluate(() => {
       const timedPreviewCount = document.querySelectorAll(
@@ -183,7 +204,7 @@ test.describe("calendar interactions", () => {
 
     await page.getByTestId("calendar-event-change-confirm").click()
 
-    await expect(planningEvent).toHaveAttribute("aria-label", /14:30 - 16:00/i)
+    await expect(planningEvent).toHaveAttribute("aria-label", /13:30 - 15:00/i)
   })
 
   test("selects only the targeted recurring occurrence", async ({ page }) => {

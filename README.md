@@ -18,28 +18,30 @@ The fastest way to add CalendarCN to an existing app is the hosted registry
 item:
 
 ```bash
-npx shadcn@latest add https://your-domain.com/r/calendarcn.json
+npx shadcn@latest add https://calendarcn.phantomtechind.com/r/calendarcn.json
 ```
 
-If you want a namespace-style command, add the registry to your target app's
+The registry item installs the full self-contained calendar source under
+`components/calendar`.
+
+## Optional Alias Shortcut
+
+If your team wants a shorter project-local alias, add it once in that app's
 `components.json`:
 
 ```json
 {
   "registries": {
-    "@calendarcn": "https://your-domain.com/r/{name}.json"
+    "@calendarcn": "https://calendarcn.phantomtechind.com/r/{name}.json"
   }
 }
 ```
 
-Then install with:
+Then you can use:
 
 ```bash
 npx shadcn@latest add @calendarcn/calendarcn
 ```
-
-The registry item installs the full self-contained calendar source under
-`components/calendar`.
 
 ## Clone the Reference App
 

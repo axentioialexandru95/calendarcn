@@ -16,7 +16,7 @@ type CalendarCnHeroSnippetProps = {
   }
 }
 
-const fallbackOrigin = "https://your-domain.com"
+const fallbackOrigin = "https://calendarcn.phantomtechind.com"
 const shellTokenPattern =
   /(https?:\/\/[^\s]+)|(\b(?:npx|pnpm|cd)\b)|(\b(?:add|install|dev)\b)|(\b(?:calendarcn\.json|@calendarcn\/calendarcn)\b)|([/.@_-][A-Za-z0-9/_:-]*)/g
 

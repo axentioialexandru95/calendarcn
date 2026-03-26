@@ -126,13 +126,21 @@ export function useCalendarEventActions({
     typeof eventDetails === "object" ? eventDetails.openOnSelect ?? true : true
   const keyboardShortcutsEnabled =
     keyboardShortcuts !== undefined && keyboardShortcuts !== false
+  const keyboardShortcutsTrigger =
+    typeof keyboardShortcuts === "object"
+      ? (keyboardShortcuts.trigger ?? "both")
+      : keyboardShortcutsEnabled
+        ? "both"
+        : null
+  const keyboardShortcutsKeyTriggerEnabled =
+    keyboardShortcutsTrigger === "both" || keyboardShortcutsTrigger === "?"
 
   const announce = React.useCallback((message: string) => {
     setLiveAnnouncement(message)
   }, [])
 
   React.useEffect(() => {
-    if (!isHydrated || !keyboardShortcutsEnabled) {
+    if (!isHydrated || !keyboardShortcutsKeyTriggerEnabled) {
       return
     }
 
@@ -171,7 +179,7 @@ export function useCalendarEventActions({
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [isHydrated, keyboardShortcutsEnabled])
+  }, [isHydrated, keyboardShortcutsKeyTriggerEnabled])
 
   function formatAnnouncementRange(
     start: Date,
@@ -683,6 +691,7 @@ export function useCalendarEventActions({
     handleSelectEvent,
     handleToday,
     isKeyboardShortcutsOpen,
+    keyboardShortcutsKeyTriggerEnabled,
     keyboardShortcutsEnabled,
     liveAnnouncement,
     moveOccurrenceWithTarget,
