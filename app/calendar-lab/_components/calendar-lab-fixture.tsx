@@ -44,6 +44,7 @@ export function CalendarLabFixture({
   scenario = "default",
 }: CalendarLabFixtureProps) {
   const [initialDate] = React.useState(() => new Date(initialDateIso))
+  const [isReady, setIsReady] = React.useState(false)
   const resources = React.useMemo(() => buildDemoResources(), [])
   const blockedRanges = React.useMemo(
     () => buildDemoBlockedRanges(initialDate),
@@ -65,8 +66,15 @@ export function CalendarLabFixture({
   const eventChangeConfirmation: CalendarEventChangeConfirmation | undefined =
     scenario === "confirm" ? true : undefined
 
+  React.useEffect(() => {
+    setIsReady(true)
+  }, [])
+
   return (
-    <main className="min-h-svh bg-background px-4 py-6 text-foreground">
+    <main
+      className="min-h-svh bg-background px-4 py-6 text-foreground"
+      data-calendar-lab-ready={isReady ? "true" : "false"}
+    >
       <div className="mx-auto max-w-7xl">
         <CalendarRoot
           availableViews={availableViews}

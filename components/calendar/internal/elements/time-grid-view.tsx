@@ -28,6 +28,7 @@ import { TimeGridPreviewLayer } from "./time-grid/time-grid-preview-layer"
 import { TimeSlotDropZone } from "./time-grid/time-slot-drop-zone"
 import {
   getTimeGridDropTargetFromPoint,
+  getPointerDistance,
   hasPointerExceededSlop,
   lockDocumentTouchScroll,
   touchLongPressDelay,
@@ -81,6 +82,35 @@ type TouchCreateState = {
   releaseScrollLock: (() => void) | null
   startMinute: number
   timerId: number | null
+}
+
+function getClosestTouchPoint(
+  touchList: TouchList,
+  referenceX: number,
+  referenceY: number
+) {
+  const touches = Array.from(touchList)
+
+  if (touches.length === 0) {
+    return null
+  }
+
+  return touches.reduce((closestTouch, touch) => {
+    const closestDistance = getPointerDistance(
+      referenceX,
+      referenceY,
+      closestTouch.clientX,
+      closestTouch.clientY
+    )
+    const nextDistance = getPointerDistance(
+      referenceX,
+      referenceY,
+      touch.clientX,
+      touch.clientY
+    )
+
+    return nextDistance < closestDistance ? touch : closestTouch
+  })
 }
 
 function CalendarTimeGridView(props: TimeGridViewProps) {
@@ -234,6 +264,35 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
     },
     [clearTouchCreateState, props.onEventCreate]
   )
+  const updateTouchCreateDraftFromPoint = React.useEffectEvent(
+    (touchCreate: TouchCreateState, clientX: number, clientY: number) => {
+      const target = getTimeGridDropTargetFromPoint(clientX, clientY)
+
+      if (
+        !target ||
+        target.kind !== "slot" ||
+        !isSameDay(target.day, touchCreate.day)
+      ) {
+        return
+      }
+
+      setDraft((currentDraft) => {
+        if (
+          currentDraft &&
+          isSameDay(currentDraft.day, touchCreate.day) &&
+          currentDraft.endMinute === target.minuteOfDay
+        ) {
+          return currentDraft
+        }
+
+        return {
+          day: touchCreate.day,
+          endMinute: target.minuteOfDay,
+          startMinute: touchCreate.startMinute,
+        }
+      })
+    }
+  )
 
   React.useEffect(() => {
     if (!draft || draftMode !== "mouse") {
@@ -287,35 +346,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
       }
 
       event.preventDefault()
-
-      const target = getTimeGridDropTargetFromPoint(
-        event.clientX,
-        event.clientY
-      )
-
-      if (
-        !target ||
-        target.kind !== "slot" ||
-        !isSameDay(target.day, touchCreate.day)
-      ) {
-        return
-      }
-
-      setDraft((currentDraft) => {
-        if (
-          currentDraft &&
-          isSameDay(currentDraft.day, touchCreate.day) &&
-          currentDraft.endMinute === target.minuteOfDay
-        ) {
-          return currentDraft
-        }
-
-        return {
-          day: touchCreate.day,
-          endMinute: target.minuteOfDay,
-          startMinute: touchCreate.startMinute,
-        }
-      })
+      updateTouchCreateDraftFromPoint(touchCreate, event.clientX, event.clientY)
     }
 
     function handlePointerUp(event: PointerEvent) {
@@ -342,6 +373,83 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
         return
       }
 
+      if (touchCreate.isActive) {
+        return
+      }
+
+      clearTouchCreateState({
+        clearDraft: true,
+      })
+    }
+
+    function handleTouchMove(event: TouchEvent) {
+      const touchCreate = touchCreateRef.current
+
+      if (!touchCreate) {
+        return
+      }
+
+      const touch = getClosestTouchPoint(
+        event.touches.length > 0 ? event.touches : event.changedTouches,
+        touchCreate.initialClientX,
+        touchCreate.initialClientY
+      )
+
+      if (!touch) {
+        return
+      }
+
+      if (!touchCreate.isActive) {
+        if (
+          hasPointerExceededSlop(
+            touchCreate.initialClientX,
+            touchCreate.initialClientY,
+            touch.clientX,
+            touch.clientY
+          )
+        ) {
+          clearTouchCreateState()
+        }
+
+        return
+      }
+
+      event.preventDefault()
+      updateTouchCreateDraftFromPoint(touchCreate, touch.clientX, touch.clientY)
+    }
+
+    function handleTouchEnd(event: TouchEvent) {
+      const touchCreate = touchCreateRef.current
+
+      if (!touchCreate) {
+        return
+      }
+
+      if (!touchCreate.isActive) {
+        clearTouchCreateState()
+        return
+      }
+
+      const touch = getClosestTouchPoint(
+        event.changedTouches,
+        touchCreate.initialClientX,
+        touchCreate.initialClientY
+      )
+
+      if (touch) {
+        updateTouchCreateDraftFromPoint(touchCreate, touch.clientX, touch.clientY)
+      }
+
+      event.preventDefault()
+      commitDraft()
+      clearTouchCreateState()
+    }
+
+    function handleTouchCancel() {
+      if (!touchCreateRef.current) {
+        return
+      }
+
       clearTouchCreateState({
         clearDraft: true,
       })
@@ -352,13 +460,27 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
     })
     window.addEventListener("pointerup", handlePointerUp)
     window.addEventListener("pointercancel", handlePointerCancel)
+    window.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    })
+    window.addEventListener("touchend", handleTouchEnd, {
+      passive: false,
+    })
+    window.addEventListener("touchcancel", handleTouchCancel)
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove)
       window.removeEventListener("pointerup", handlePointerUp)
       window.removeEventListener("pointercancel", handlePointerCancel)
+      window.removeEventListener("touchmove", handleTouchMove)
+      window.removeEventListener("touchend", handleTouchEnd)
+      window.removeEventListener("touchcancel", handleTouchCancel)
     }
-  }, [activeTouchCreatePointerId, clearTouchCreateState])
+  }, [
+    activeTouchCreatePointerId,
+    clearTouchCreateState,
+    updateTouchCreateDraftFromPoint,
+  ])
 
   React.useEffect(() => {
     return () => {
@@ -686,6 +808,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                         >
                           <TimeSlotDropZone
                             active={
+                              !draft &&
                               focusedSlot.dayIndex === dayIndex &&
                               focusedSlot.minuteOfDay === minuteOfDay
                             }

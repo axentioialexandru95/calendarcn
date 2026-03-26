@@ -1,4 +1,10 @@
-import { expect, test, type Browser, type Locator } from "@playwright/test"
+import {
+  expect,
+  test,
+  type Browser,
+  type CDPSession,
+  type Locator,
+} from "@playwright/test"
 
 const baseUrl = "http://127.0.0.1:3000"
 const touchPointerId = 7
@@ -150,6 +156,36 @@ test.describe("calendar mobile touch interactions", () => {
       await context.close()
     }
   })
+
+  test("opens the create flow after a real mobile touch drag on an empty slot", async ({
+    browser,
+  }) => {
+    const { context, page } = await createRealTouchMobilePage(browser)
+
+    try {
+      const mondayGrid = getDayGrid(page, 0)
+      const startSlot = mondayGrid
+        .locator('[data-calendar-drop-target-minute="390"]')
+        .first()
+      const endSlot = mondayGrid
+        .locator('[data-calendar-drop-target-minute="450"]')
+        .first()
+      const startPoint = await getLocatorPoint(startSlot)
+      const endPoint = await getLocatorPoint(endSlot)
+      const cdp = await context.newCDPSession(page)
+
+      await dispatchRealTouchEvent(cdp, "touchStart", startPoint)
+      await page.waitForTimeout(450)
+      await dispatchRealTouchEvent(cdp, "touchMove", endPoint)
+      await page.waitForTimeout(50)
+      await dispatchRealTouchEvent(cdp, "touchEnd")
+
+      const sheet = page.getByTestId("calendar-create-sheet")
+      await expect(sheet).toBeVisible()
+    } finally {
+      await context.close()
+    }
+  })
 })
 
 function getDayGrid(
@@ -170,11 +206,41 @@ async function createMobilePage(browser: Browser) {
 
   await page.goto(`${baseUrl}/calendar-lab`)
   await expect(page.getByTestId("calendar-root")).toBeVisible()
+  await waitForCalendarLabReady(page)
 
   return {
     context,
     page,
   }
+}
+
+async function createRealTouchMobilePage(browser: Browser) {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: {
+      height: 844,
+      width: 390,
+    },
+  })
+  const page = await context.newPage()
+
+  await page.goto(`${baseUrl}/calendar-lab`)
+  await expect(page.getByTestId("calendar-root")).toBeVisible()
+  await waitForCalendarLabReady(page)
+
+  return {
+    context,
+    page,
+  }
+}
+
+async function waitForCalendarLabReady(
+  page: Awaited<ReturnType<typeof createMobilePage>>["page"]
+) {
+  await expect(
+    page.locator('[data-calendar-lab-ready="true"]')
+  ).toBeVisible()
 }
 
 async function getLocatorPoint(
@@ -260,4 +326,17 @@ async function dispatchWindowPointer(
       type,
     }
   )
+}
+
+async function dispatchRealTouchEvent(
+  cdp: CDPSession,
+  type: "touchEnd" | "touchMove" | "touchStart",
+  point?: { x: number; y: number }
+) {
+  await cdp.send("Input.dispatchTouchEvent", {
+    type,
+    touchPoints: point
+      ? [{ x: point.x, y: point.y, radiusX: 2, radiusY: 2 }]
+      : [],
+  })
 }
