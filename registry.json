@@ -10,7 +10,9 @@
       "description": "A shadcn-compatible scheduling surface with month, week, day, and agenda views, drag and drop, resizing, and typed event contracts.",
       "dependencies": [
         "@phosphor-icons/react@^2.1.10",
-        "date-fns@^4.1.0"
+        "clsx@^2.1.1",
+        "date-fns@^4.1.0",
+        "tailwind-merge@^3.5.0"
       ],
       "files": [
         {
@@ -26,22 +28,6 @@
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/root.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/toolbar.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/time-grid-view.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/month-view.tsx",
-          "type": "registry:component"
-        },
-        {
           "path": "components/calendar/internal/elements/agenda-view.tsx",
           "type": "registry:component"
         },
@@ -50,11 +36,11 @@
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/event-context-menu.tsx",
+          "path": "components/calendar/internal/elements/event-change-confirmation-dialog.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/event-change-confirmation-dialog.tsx",
+          "path": "components/calendar/internal/elements/event-context-menu.tsx",
           "type": "registry:component"
         },
         {
@@ -70,11 +56,119 @@
           "type": "registry:component"
         },
         {
+          "path": "components/calendar/internal/elements/month-view.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/calendar/portals.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/root-utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/use-calendar-derived-state.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/use-calendar-event-actions.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/use-calendar-pointer-interactions.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid-view.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid/all-day-drop-zone.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid/time-grid-background.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid/time-grid-preview-layer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid/time-grid-utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid/time-slot-drop-zone.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/time-grid/use-time-grid-navigation.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/toolbar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/use-modal-focus.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/lib/utils.ts",
+          "type": "registry:component"
+        },
+        {
           "path": "components/calendar/internal/shared.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/ui/button.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/ui/input.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/ui/label.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/ui/textarea.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/calendar/date-range.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/calendar/formatting.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/calendar/ics.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/calendar/occurrences.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/calendar/operations.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/calendar/permissions.ts",
           "type": "registry:component"
         }
       ],
-      "docs": "Build the registry with `pnpm registry:build`, then install locally with `npx shadcn@latest add ./public/r/calendarcn.json` or host `/r/calendarcn.json` and add it by URL. Import `CalendarRoot` from `@/components/calendar`."
+      "docs": "Build the registry with `pnpm registry:build`, then install locally with `npx shadcn@latest add ./public/r/calendarcn.json` or host `/r/calendarcn.json` and add it by URL. The registry item installs the full self-contained calendar source under `components/calendar`. Import `CalendarRoot` from `@/components/calendar`."
     }
   ]
 }

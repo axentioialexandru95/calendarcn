@@ -5,10 +5,7 @@ import type {
   CalendarDropTarget,
   CalendarOccurrence,
 } from "../../../types"
-import {
-  canMoveOccurrence,
-  canResizeOccurrence,
-} from "../../../utils"
+import { canMoveOccurrence, canResizeOccurrence } from "../../../utils"
 
 import {
   areDropTargetsEqual,
@@ -18,6 +15,8 @@ import {
   getDragSurfaceRect,
   getPointerDistance,
   getTimeGridDropTargetFromPoint,
+  isTouchPointer,
+  lockDocumentTouchScroll,
   type ActiveDragInteraction,
   type ActiveResizeState,
 } from "./root-utils"
@@ -64,16 +63,25 @@ export function useCalendarPointerInteractions({
   const [activeDragInteraction, setActiveDragInteraction] =
     React.useState<ActiveDragInteraction | null>(null)
   const activeDragRef = React.useRef<CalendarDragData | null>(null)
-  const activeDragInteractionRef = React.useRef<ActiveDragInteraction | null>(null)
+  const activeDragInteractionRef = React.useRef<ActiveDragInteraction | null>(
+    null
+  )
   const [activeResize, setActiveResize] =
     React.useState<ActiveResizeState | null>(null)
+  const activeResizeRef = React.useRef<ActiveResizeState | null>(null)
   const [activeResizeTarget, setActiveResizeTarget] =
     React.useState<CalendarDropTarget | null>(null)
   const activeResizeTargetRef = React.useRef<CalendarDropTarget | null>(null)
   const lastResizeTargetRef = React.useRef<CalendarDropTarget | null>(null)
-  const [activeDragRect, setActiveDragRect] = React.useState<DOMRect | null>(null)
+  const [activeDragRect, setActiveDragRect] = React.useState<DOMRect | null>(
+    null
+  )
   const activeDragRectRef = React.useRef<DOMRect | null>(null)
-  const suppressedPointerClickOccurrenceIdRef = React.useRef<string | null>(null)
+  const suppressedPointerClickOccurrenceIdRef = React.useRef<string | null>(
+    null
+  )
+  const dragTouchScrollReleaseRef = React.useRef<(() => void) | null>(null)
+  const resizeTouchScrollReleaseRef = React.useRef<(() => void) | null>(null)
 
   React.useEffect(() => {
     activeDragRef.current = activeDrag
@@ -84,12 +92,40 @@ export function useCalendarPointerInteractions({
   }, [activeDragInteraction])
 
   React.useEffect(() => {
+    activeResizeRef.current = activeResize
+  }, [activeResize])
+
+  React.useEffect(() => {
     activeDragOffsetMinutesRef.current = activeDragOffsetMinutes
   }, [activeDragOffsetMinutes])
 
   React.useEffect(() => {
     activeDragRectRef.current = activeDragRect
   }, [activeDragRect])
+
+  function releaseCapturedPointer(
+    captureElement: HTMLElement | null,
+    pointerId: number | null | undefined
+  ) {
+    if (!captureElement || pointerId == null) {
+      return
+    }
+
+    try {
+      if (captureElement.hasPointerCapture(pointerId)) {
+        captureElement.releasePointerCapture(pointerId)
+      }
+    } catch {
+      // Ignore capture errors during teardown.
+    }
+  }
+
+  function releaseTouchScrollLock(
+    releaseRef: React.MutableRefObject<(() => void) | null>
+  ) {
+    releaseRef.current?.()
+    releaseRef.current = null
+  }
 
   function updateActiveDropTarget(target: CalendarDropTarget | null) {
     if (areDropTargetsEqual(activeDropTargetRef.current, target)) {
@@ -118,6 +154,11 @@ export function useCalendarPointerInteractions({
   }
 
   function clearActiveDragState() {
+    releaseCapturedPointer(
+      activeDragInteractionRef.current?.captureElement ?? null,
+      activeDragInteractionRef.current?.pointerId
+    )
+    releaseTouchScrollLock(dragTouchScrollReleaseRef)
     setActiveDrag(null)
     setActiveDragInteraction(null)
     updateActiveDropTarget(null)
@@ -127,6 +168,11 @@ export function useCalendarPointerInteractions({
   }
 
   function clearActiveResize() {
+    releaseCapturedPointer(
+      activeResizeRef.current?.captureElement ?? null,
+      activeResizeRef.current?.pointerId
+    )
+    releaseTouchScrollLock(resizeTouchScrollReleaseRef)
     setActiveResize(null)
     updateActiveResizeTarget(null)
     lastResizeTargetRef.current = null
@@ -154,10 +200,22 @@ export function useCalendarPointerInteractions({
 
       closeContextMenu()
       closeEventDetails()
+      if (isTouchPointer(event.pointerType)) {
+        resizeTouchScrollReleaseRef.current = lockDocumentTouchScroll()
+      }
+
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Pointer capture is not guaranteed on every platform.
+      }
+
       setActiveResize({
+        captureElement: event.currentTarget,
         edge,
         occurrence,
         pointerId: event.pointerId,
+        pointerType: event.pointerType,
       })
       updateActiveResizeTarget(
         getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
@@ -179,18 +237,31 @@ export function useCalendarPointerInteractions({
       closeContextMenu()
       closeEventDetails()
       suppressedPointerClickOccurrenceIdRef.current = null
+      if (isTouchPointer(event.pointerType)) {
+        event.preventDefault()
+        dragTouchScrollReleaseRef.current = lockDocumentTouchScroll()
+      }
+
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Pointer capture is not guaranteed on every platform.
+      }
+
       setActiveDrag({
         kind: "event",
         occurrence,
         variant,
       })
       setActiveDragInteraction({
+        captureElement: event.currentTarget,
         currentClientX: event.clientX,
         currentClientY: event.clientY,
         initialClientX: event.clientX,
         initialClientY: event.clientY,
         isDragging: false,
         pointerId: event.pointerId,
+        pointerType: event.pointerType,
       })
       updateActiveDropTarget(null)
       lastDropTargetRef.current = null
@@ -238,6 +309,10 @@ export function useCalendarPointerInteractions({
         return
       }
 
+      if (isTouchPointer(resize.pointerType)) {
+        event.preventDefault()
+      }
+
       updateActiveResizeTarget(
         getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
       )
@@ -270,7 +345,9 @@ export function useCalendarPointerInteractions({
       clearPointerResize()
     }
 
-    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: false,
+    })
     window.addEventListener("pointerup", handlePointerUp)
     window.addEventListener("pointercancel", handlePointerCancel)
 
@@ -318,6 +395,10 @@ export function useCalendarPointerInteractions({
           return
         }
 
+        if (isTouchPointer(interaction.pointerType)) {
+          event.preventDefault()
+        }
+
         setActiveDragInteraction({
           ...interaction,
           currentClientX: event.clientX,
@@ -331,7 +412,10 @@ export function useCalendarPointerInteractions({
         return
       }
 
-      event.preventDefault()
+      if (isTouchPointer(interaction.pointerType)) {
+        event.preventDefault()
+      }
+
       setActiveDragInteraction((currentInteraction) => {
         if (
           !currentInteraction ||
@@ -371,7 +455,8 @@ export function useCalendarPointerInteractions({
       const dragOffsetMinutes = activeDragOffsetMinutesRef.current
       const wasDragging = interaction.isDragging
 
-      suppressedPointerClickOccurrenceIdRef.current = drag.occurrence.occurrenceId
+      suppressedPointerClickOccurrenceIdRef.current =
+        drag.occurrence.occurrenceId
       clearPointerDrag()
 
       if (!wasDragging) {
@@ -392,13 +477,16 @@ export function useCalendarPointerInteractions({
       const drag = activeDragRef.current
 
       if (drag?.kind === "event") {
-        suppressedPointerClickOccurrenceIdRef.current = drag.occurrence.occurrenceId
+        suppressedPointerClickOccurrenceIdRef.current =
+          drag.occurrence.occurrenceId
       }
 
       clearPointerDrag()
     }
 
-    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: false,
+    })
     window.addEventListener("pointerup", handlePointerUp)
     window.addEventListener("pointercancel", handlePointerCancel)
 

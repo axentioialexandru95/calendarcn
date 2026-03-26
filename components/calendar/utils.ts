@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "./internal/lib/utils"
 
 import type { CalendarClassNames, CalendarSlot } from "./types"
 

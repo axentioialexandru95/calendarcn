@@ -1,11 +1,10 @@
+import type { PointerEvent as ReactPointerEvent } from "react"
+
 import { isSameDay } from "date-fns"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../../lib/utils"
 
-import type {
-  CalendarClassNames,
-  CalendarCreateDraft,
-} from "../../../types"
+import type { CalendarClassNames, CalendarCreateDraft } from "../../../types"
 import { getCalendarSlotClassName } from "../../../utils"
 
 import { formatTimeGridSlotLabel } from "./time-grid-utils"
@@ -24,6 +23,11 @@ type TimeSlotDropZoneProps = {
   onBeginCreate: () => void
   onExtendCreate: () => void
   onFocusCell: () => void
+  onTouchCreatePointerDown?: (
+    day: Date,
+    minuteOfDay: number,
+    event: ReactPointerEvent<HTMLDivElement>
+  ) => void
   slotId: string
   timeZone?: string
 }
@@ -42,6 +46,7 @@ export function TimeSlotDropZone({
   onBeginCreate,
   onExtendCreate,
   onFocusCell,
+  onTouchCreatePointerDown,
   slotId,
   timeZone,
 }: TimeSlotDropZoneProps) {
@@ -65,7 +70,9 @@ export function TimeSlotDropZone({
         cn(
           "h-full border-b border-border/50 text-left transition-colors",
           isDragTarget ? "bg-muted/70" : "",
-          active && focusVisible ? "bg-primary/8 ring-2 ring-inset ring-primary/35" : "",
+          active && focusVisible
+            ? "bg-primary/8 ring-2 ring-primary/35 ring-inset"
+            : "",
           blocked ? "cursor-not-allowed" : "",
           draft && isSameDay(draft.day, day) ? "cursor-crosshair" : ""
         )
@@ -73,6 +80,11 @@ export function TimeSlotDropZone({
       onPointerDownCapture={onFocusCell}
       onPointerDown={(event) => {
         if (event.button !== 0 || blocked) {
+          return
+        }
+
+        if (event.pointerType === "touch") {
+          onTouchCreatePointerDown?.(day, minuteOfDay, event)
           return
         }
 

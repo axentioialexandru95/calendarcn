@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { KeyboardIcon } from "@phosphor-icons/react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "../ui/button"
 
 import type { CalendarKeyboardShortcutsConfig } from "../../types"
 import { useModalFocus } from "./use-modal-focus"
@@ -65,12 +65,12 @@ export function CalendarKeyboardShortcutsDialog({
 
   const title =
     typeof config === "object"
-      ? config.title ?? "Keyboard shortcuts"
+      ? (config.title ?? "Keyboard shortcuts")
       : "Keyboard shortcuts"
   const description =
     typeof config === "object"
-      ? config.description ??
-        "Use the keyboard to nudge, resize, and inspect events without leaving the current view."
+      ? (config.description ??
+        "Use the keyboard to nudge, resize, and inspect events without leaving the current view.")
       : "Use the keyboard to nudge, resize, and inspect events without leaving the current view."
 
   return (

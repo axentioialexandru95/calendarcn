@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
 import {
   formatDayNumber,
@@ -13,10 +13,7 @@ import {
   isOutsideMonth,
   isToday,
 } from "../../utils"
-import {
-  CalendarEventCard,
-  getResolvedAccentColor,
-} from "./event-card"
+import { CalendarEventCard, getResolvedAccentColor } from "./event-card"
 import { maxMonthEvents, type SharedViewProps } from "../shared"
 
 export const CalendarMonthView = React.memo(function CalendarMonthView(
@@ -128,7 +125,9 @@ function MonthDayCell({
         isOutsideMonth(day, anchorDate) ? "monthCellMuted" : "monthCell",
         cn(
           "flex flex-col border-r border-b border-border/70 px-2 py-2 transition-colors",
-          density === "compact" ? "min-h-[9rem] gap-1.5" : "min-h-[10.5rem] gap-2",
+          density === "compact"
+            ? "min-h-[9rem] gap-1.5"
+            : "min-h-[10.5rem] gap-2",
           isDragTarget ? "bg-muted/50" : "",
           isOutsideMonth(day, anchorDate) ? "bg-muted/25" : "bg-background"
         )

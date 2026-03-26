@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { isSameDay, startOfDay } from "date-fns"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
 import type { CalendarCreateDraft } from "../../types"
 import {
@@ -21,14 +21,17 @@ import {
   formatDurationLabel,
 } from "../../utils"
 import { CalendarEventCard, getResolvedAccentColor } from "./event-card"
-import {
-  type SharedViewProps,
-  type TimeGridViewProps,
-} from "../shared"
+import { type SharedViewProps, type TimeGridViewProps } from "../shared"
 import { AllDayDropZone } from "./time-grid/all-day-drop-zone"
 import { TimeGridBackground } from "./time-grid/time-grid-background"
 import { TimeGridPreviewLayer } from "./time-grid/time-grid-preview-layer"
 import { TimeSlotDropZone } from "./time-grid/time-slot-drop-zone"
+import {
+  getTimeGridDropTargetFromPoint,
+  hasPointerExceededSlop,
+  lockDocumentTouchScroll,
+  touchLongPressDelay,
+} from "./root/root-utils"
 import {
   clampGridMinute,
   formatDraftRangeLabel,
@@ -66,10 +69,28 @@ export const CalendarDayView = React.memo(function CalendarDayView(
   )
 })
 
+type DraftMode = "mouse" | "touch"
+
+type TouchCreateState = {
+  captureElement: HTMLDivElement
+  day: Date
+  initialClientX: number
+  initialClientY: number
+  isActive: boolean
+  pointerId: number
+  releaseScrollLock: (() => void) | null
+  startMinute: number
+  timerId: number | null
+}
+
 function CalendarTimeGridView(props: TimeGridViewProps) {
   const [draft, setDraft] = React.useState<CalendarCreateDraft | null>(null)
+  const [draftMode, setDraftMode] = React.useState<DraftMode | null>(null)
   const [now, setNow] = React.useState(() => new Date())
+  const [activeTouchCreatePointerId, setActiveTouchCreatePointerId] =
+    React.useState<number | null>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const touchCreateRef = React.useRef<TouchCreateState | null>(null)
   const minMinute = props.minHour * 60
   const maxMinute = props.maxHour * 60
   const totalMinutes = maxMinute - minMinute
@@ -91,8 +112,17 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
     onEventCreate: props.onEventCreate,
     slotDuration: props.slotDuration,
   })
+  const clearDraft = React.useEffectEvent(() => {
+    setDraft(null)
+    setDraftMode(null)
+  })
   const commitDraft = React.useEffectEvent(() => {
-    if (!draft || !props.onEventCreate) {
+    if (!draft) {
+      return
+    }
+
+    if (!props.onEventCreate) {
+      clearDraft()
       return
     }
 
@@ -108,11 +138,105 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
       start,
       end,
     })
-    setDraft(null)
+    clearDraft()
   })
 
+  const clearTouchCreateState = React.useCallback(
+    (options: { clearDraft?: boolean } = {}) => {
+      const touchCreate = touchCreateRef.current
+
+      if (touchCreate?.timerId != null) {
+        window.clearTimeout(touchCreate.timerId)
+      }
+
+      touchCreate?.releaseScrollLock?.()
+
+      if (touchCreate) {
+        try {
+          if (
+            touchCreate.captureElement.hasPointerCapture(touchCreate.pointerId)
+          ) {
+            touchCreate.captureElement.releasePointerCapture(
+              touchCreate.pointerId
+            )
+          }
+        } catch {
+          // Ignore capture teardown errors.
+        }
+      }
+
+      touchCreateRef.current = null
+      setActiveTouchCreatePointerId(null)
+
+      if (options.clearDraft) {
+        setDraft(null)
+        setDraftMode(null)
+      }
+    },
+    []
+  )
+
+  const handleTouchCreatePointerDown = React.useCallback(
+    (
+      day: Date,
+      minuteOfDay: number,
+      event: React.PointerEvent<HTMLDivElement>
+    ) => {
+      if (!props.onEventCreate) {
+        return
+      }
+
+      clearTouchCreateState({
+        clearDraft: true,
+      })
+
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Pointer capture is not guaranteed on every platform.
+      }
+
+      const nextTouchCreate: TouchCreateState = {
+        captureElement: event.currentTarget,
+        day,
+        initialClientX: event.clientX,
+        initialClientY: event.clientY,
+        isActive: false,
+        pointerId: event.pointerId,
+        releaseScrollLock: null,
+        startMinute: minuteOfDay,
+        timerId: null,
+      }
+
+      nextTouchCreate.timerId = window.setTimeout(() => {
+        const activeTouchCreate = touchCreateRef.current
+
+        if (
+          !activeTouchCreate ||
+          activeTouchCreate.pointerId !== event.pointerId ||
+          activeTouchCreate.isActive
+        ) {
+          return
+        }
+
+        activeTouchCreate.isActive = true
+        activeTouchCreate.releaseScrollLock = lockDocumentTouchScroll()
+        setDraft({
+          day: activeTouchCreate.day,
+          endMinute: activeTouchCreate.startMinute,
+          startMinute: activeTouchCreate.startMinute,
+        })
+        setDraftMode("touch")
+      }, touchLongPressDelay)
+
+      touchCreateRef.current = nextTouchCreate
+      setActiveTouchCreatePointerId(event.pointerId)
+    },
+    [clearTouchCreateState, props.onEventCreate]
+  )
+
   React.useEffect(() => {
-    if (!draft) {
+    if (!draft || draftMode !== "mouse") {
       return
     }
 
@@ -120,12 +244,127 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
       commitDraft()
     }
 
+    function handlePointerCancel() {
+      clearDraft()
+    }
+
     window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerCancel)
 
     return () => {
       window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerCancel)
     }
-  }, [draft])
+  }, [draft, draftMode])
+
+  React.useEffect(() => {
+    if (activeTouchCreatePointerId == null) {
+      return
+    }
+
+    const pointerId = activeTouchCreatePointerId
+
+    function handlePointerMove(event: PointerEvent) {
+      const touchCreate = touchCreateRef.current
+
+      if (!touchCreate || event.pointerId !== pointerId) {
+        return
+      }
+
+      if (!touchCreate.isActive) {
+        if (
+          hasPointerExceededSlop(
+            touchCreate.initialClientX,
+            touchCreate.initialClientY,
+            event.clientX,
+            event.clientY
+          )
+        ) {
+          clearTouchCreateState()
+        }
+
+        return
+      }
+
+      event.preventDefault()
+
+      const target = getTimeGridDropTargetFromPoint(
+        event.clientX,
+        event.clientY
+      )
+
+      if (
+        !target ||
+        target.kind !== "slot" ||
+        !isSameDay(target.day, touchCreate.day)
+      ) {
+        return
+      }
+
+      setDraft((currentDraft) => {
+        if (
+          currentDraft &&
+          isSameDay(currentDraft.day, touchCreate.day) &&
+          currentDraft.endMinute === target.minuteOfDay
+        ) {
+          return currentDraft
+        }
+
+        return {
+          day: touchCreate.day,
+          endMinute: target.minuteOfDay,
+          startMinute: touchCreate.startMinute,
+        }
+      })
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      const touchCreate = touchCreateRef.current
+
+      if (!touchCreate || event.pointerId !== pointerId) {
+        return
+      }
+
+      if (!touchCreate.isActive) {
+        clearTouchCreateState()
+        return
+      }
+
+      event.preventDefault()
+      commitDraft()
+      clearTouchCreateState()
+    }
+
+    function handlePointerCancel(event: PointerEvent) {
+      const touchCreate = touchCreateRef.current
+
+      if (!touchCreate || event.pointerId !== pointerId) {
+        return
+      }
+
+      clearTouchCreateState({
+        clearDraft: true,
+      })
+    }
+
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: false,
+    })
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerCancel)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerCancel)
+    }
+  }, [activeTouchCreatePointerId, clearTouchCreateState])
+
+  React.useEffect(() => {
+    return () => {
+      clearTouchCreateState()
+    }
+  }, [clearTouchCreateState])
 
   React.useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -172,7 +411,10 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
 
   const allDayEventsByDay = React.useMemo(() => {
     return new Map(
-      props.days.map((day) => [day.getTime(), getAllDayEvents(props.occurrences, day)])
+      props.days.map((day) => [
+        day.getTime(),
+        getAllDayEvents(props.occurrences, day),
+      ])
     )
   }, [props.days, props.occurrences])
 
@@ -375,7 +617,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                   aria-describedby={gridInstructionsId}
                   aria-labelledby={headerId}
                   aria-rowcount={slotCount}
-                  className="relative h-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35"
+                  className="relative h-full outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-inset"
                   onBlur={(event) => {
                     if (
                       event.relatedTarget instanceof Node &&
@@ -428,7 +670,10 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                   >
                     {Array.from({ length: slotCount }).map((_, index) => {
                       const minuteOfDay = minMinute + index * props.slotDuration
-                      const slotStart = setMinuteOfDay(startOfDay(day), minuteOfDay)
+                      const slotStart = setMinuteOfDay(
+                        startOfDay(day),
+                        minuteOfDay
+                      )
                       const slotEnd = setMinuteOfDay(
                         startOfDay(day),
                         Math.min(minuteOfDay + props.slotDuration, 1_440)
@@ -445,9 +690,10 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                               focusedSlot.minuteOfDay === minuteOfDay
                             }
                             blocked={
-                              props.blockedRanges?.some((range) =>
-                                slotStart.getTime() < range.end.getTime() &&
-                                slotEnd.getTime() > range.start.getTime()
+                              props.blockedRanges?.some(
+                                (range) =>
+                                  slotStart.getTime() < range.end.getTime() &&
+                                  slotEnd.getTime() > range.start.getTime()
                               ) ?? false
                             }
                             classNames={props.classNames}
@@ -458,7 +704,8 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                             isDragTarget={
                               showTimedSlotDropHighlight &&
                               props.activeDropTarget?.kind === "slot" &&
-                              props.activeDropTarget.day.getTime() === day.getTime() &&
+                              props.activeDropTarget.day.getTime() ===
+                                day.getTime() &&
                               props.activeDropTarget.minuteOfDay === minuteOfDay
                             }
                             locale={props.locale}
@@ -468,6 +715,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                                 return
                               }
 
+                              setDraftMode("mouse")
                               setDraft({
                                 day,
                                 startMinute: minuteOfDay,
@@ -492,6 +740,9 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                               })
                               focusDayGrid(dayIndex)
                             }}
+                            onTouchCreatePointerDown={
+                              handleTouchCreatePointerDown
+                            }
                             slotId={getTimeGridSlotId(day, minuteOfDay)}
                             timeZone={props.timeZone}
                           />
@@ -516,7 +767,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                       }}
                     >
                       {props.showCreatePreviewMeta ? (
-                        <span className="absolute left-2 top-2 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-xs">
+                        <span className="absolute top-2 left-2 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-xs">
                           {formatDraftRangeLabel(draft, {
                             day,
                             hourCycle: props.hourCycle,
@@ -566,7 +817,8 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                             props.slotHeight,
                           height: Math.max(
                             props.slotHeight - 4,
-                            (item.height / props.slotDuration) * props.slotHeight
+                            (item.height / props.slotDuration) *
+                              props.slotHeight
                           ),
                           left: `calc(${left}% + 0px)`,
                           width: `calc(${width}% - 0px)`,
@@ -581,7 +833,8 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           classNames={props.classNames}
                           density={props.density}
                           dragging={
-                            props.draggingOccurrenceId === item.occurrence.occurrenceId
+                            props.draggingOccurrenceId ===
+                            item.occurrence.occurrenceId
                           }
                           event={item.occurrence}
                           interactive={props.interactive}
@@ -598,7 +851,8 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
                           }
                           previewMetaLabel={
                             props.showDragPreviewMeta &&
-                            props.previewOccurrenceId === item.occurrence.occurrenceId
+                            props.previewOccurrenceId ===
+                              item.occurrence.occurrenceId
                               ? formatDurationLabel(
                                   item.occurrence.start,
                                   item.occurrence.end,

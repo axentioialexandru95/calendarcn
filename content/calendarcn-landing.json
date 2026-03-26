@@ -24,16 +24,11 @@
     "body": "CalendarCN gives you a reusable scheduler with month, week, day, and agenda views, recurring events, resource lanes, drag-and-drop editing, resize handles, and typed callbacks you can wire into your own state and persistence.",
     "snippet": {
       "eyebrow": "Quick start",
-      "title": "Clone the starter and make it yours",
+      "title": "Install the calendar directly into your app",
       "copyLabel": "Copy commands",
       "copiedLabel": "Copied",
-      "body": "CalendarCN ships as a starter today rather than a registry package. Pull the repo, install dependencies, and wire the exported calendar primitives into your own data, permissions, and persistence layer.",
-      "commands": [
-        "npx degit axentioialexandru95/calendarcn my-calendarcn-app",
-        "cd my-calendarcn-app",
-        "pnpm install",
-        "pnpm dev"
-      ]
+      "body": "Use the hosted registry item for the fastest install path. Clone the repo only when you want the full docs site, showcase, and reference app.",
+      "commands": ["npx shadcn@latest add {origin}/r/calendarcn.json"]
     },
     "points": [
       "Month, week, day, and agenda views on one event model",

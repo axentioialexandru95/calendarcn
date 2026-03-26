@@ -18,20 +18,35 @@ import {
 } from "../../../utils"
 
 export const dragActivationDistance = 6
+export const touchLongPressDelay = 320
+export const touchGestureMoveSlop = 10
+
+let activeTouchScrollLocks = 0
+let previousTouchScrollStyles: {
+  bodyOverflow: string
+  bodyOverscrollBehavior: string
+  bodyTouchAction: string
+  documentOverscrollBehavior: string
+  documentTouchAction: string
+} | null = null
 
 export type ActiveDragInteraction = {
+  captureElement: HTMLElement | null
   currentClientX: number
   currentClientY: number
   initialClientX: number
   initialClientY: number
   isDragging: boolean
   pointerId: number
+  pointerType: string
 }
 
 export type ActiveResizeState = {
+  captureElement: HTMLElement | null
   edge: "start" | "end"
   occurrence: CalendarOccurrence
   pointerId: number
+  pointerType: string
 }
 
 export function getCalendarSurfaceShadowClassName(
@@ -147,7 +162,8 @@ export function getDragOffsetMinutes(
   const durationMinutes = Math.max(
     1,
     Math.round(
-      (dragData.occurrence.end.getTime() - dragData.occurrence.start.getTime()) /
+      (dragData.occurrence.end.getTime() -
+        dragData.occurrence.start.getTime()) /
         60_000
     )
   )
@@ -185,7 +201,9 @@ export function getResizeOperation(
   }
 
   const adjustedEnd =
-    target.kind === "slot" ? addMinutes(rawDate, slotDuration) : addDays(rawDate, 1)
+    target.kind === "slot"
+      ? addMinutes(rawDate, slotDuration)
+      : addDays(rawDate, 1)
 
   return {
     occurrence,
@@ -226,7 +244,82 @@ export function getPointerDistance(
   currentClientX: number,
   currentClientY: number
 ) {
-  return Math.hypot(currentClientX - startClientX, currentClientY - startClientY)
+  return Math.hypot(
+    currentClientX - startClientX,
+    currentClientY - startClientY
+  )
+}
+
+export function isTouchPointer(pointerType: string | null | undefined) {
+  return pointerType === "touch"
+}
+
+export function hasPointerExceededSlop(
+  startClientX: number,
+  startClientY: number,
+  currentClientX: number,
+  currentClientY: number,
+  slop = touchGestureMoveSlop
+) {
+  return (
+    getPointerDistance(
+      startClientX,
+      startClientY,
+      currentClientX,
+      currentClientY
+    ) > slop
+  )
+}
+
+export function lockDocumentTouchScroll() {
+  if (typeof document === "undefined" || !document.body) {
+    return () => {}
+  }
+
+  const documentElement = document.documentElement
+  const body = document.body
+
+  if (activeTouchScrollLocks === 0) {
+    previousTouchScrollStyles = {
+      bodyOverflow: body.style.overflow,
+      bodyOverscrollBehavior: body.style.overscrollBehavior,
+      bodyTouchAction: body.style.touchAction,
+      documentOverscrollBehavior: documentElement.style.overscrollBehavior,
+      documentTouchAction: documentElement.style.touchAction,
+    }
+    documentElement.style.overscrollBehavior = "none"
+    documentElement.style.touchAction = "none"
+    body.style.overflow = "hidden"
+    body.style.overscrollBehavior = "none"
+    body.style.touchAction = "none"
+  }
+
+  activeTouchScrollLocks += 1
+
+  let released = false
+
+  return () => {
+    if (released) {
+      return
+    }
+
+    released = true
+    activeTouchScrollLocks = Math.max(0, activeTouchScrollLocks - 1)
+
+    if (activeTouchScrollLocks > 0 || !previousTouchScrollStyles) {
+      return
+    }
+
+    documentElement.style.overscrollBehavior =
+      previousTouchScrollStyles.documentOverscrollBehavior
+    documentElement.style.touchAction =
+      previousTouchScrollStyles.documentTouchAction
+    body.style.overflow = previousTouchScrollStyles.bodyOverflow
+    body.style.overscrollBehavior =
+      previousTouchScrollStyles.bodyOverscrollBehavior
+    body.style.touchAction = previousTouchScrollStyles.bodyTouchAction
+    previousTouchScrollStyles = null
+  }
 }
 
 export function getDragOverlayStyle(
@@ -239,7 +332,8 @@ export function getDragOverlayStyle(
 
   return {
     height: dragRect.height,
-    left: dragRect.left + interaction.currentClientX - interaction.initialClientX,
+    left:
+      dragRect.left + interaction.currentClientX - interaction.initialClientX,
     position: "fixed",
     top: dragRect.top + interaction.currentClientY - interaction.initialClientY,
     width: dragRect.width,

@@ -23,6 +23,7 @@ import {
   intervalOverlapsBlockedRanges,
   parseICSText,
 } from "@/components/calendar/utils"
+import { hasPointerExceededSlop } from "@/components/calendar/internal/elements/root/root-utils"
 
 describe("calendar utilities", () => {
   it("expands recurring events into stable occurrence ids", () => {
@@ -227,6 +228,11 @@ describe("calendar utilities", () => {
     expect(duplicate.end).toEqual(at(0, 10, 30))
   })
 
+  it("cancels touch hold creation only after the pointer moves beyond the slop threshold", () => {
+    expect(hasPointerExceededSlop(100, 100, 107, 106)).toBe(false)
+    expect(hasPointerExceededSlop(100, 100, 112, 111)).toBe(true)
+  })
+
   it("applies details updates to the matching source event", () => {
     const focusEvent: CalendarEvent = {
       id: "focus",
@@ -272,9 +278,9 @@ describe("calendar utilities", () => {
       resourceId: "design",
     })
 
-    expect(filterOccurrencesByResource([movable, locked], ["product"])).toEqual([
-      movable,
-    ])
+    expect(filterOccurrencesByResource([movable, locked], ["product"])).toEqual(
+      [movable]
+    )
     expect(canMoveOccurrence(movable)).toBe(true)
     expect(canResizeOccurrence(locked)).toBe(false)
     expect(canDeleteOccurrence(locked)).toBe(false)

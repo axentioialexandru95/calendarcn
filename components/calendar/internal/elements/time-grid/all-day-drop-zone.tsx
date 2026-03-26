@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "../../lib/utils"
 
 import type {
   CalendarClassNames,
@@ -15,10 +15,7 @@ import {
   type CalendarEventMenuPosition,
   type TimeGridViewProps,
 } from "../../shared"
-import {
-  CalendarEventCard,
-  getResolvedAccentColor,
-} from "../event-card"
+import { CalendarEventCard, getResolvedAccentColor } from "../event-card"
 
 type AllDayDropZoneProps = {
   activeDropTarget?: TimeGridViewProps["activeDropTarget"]

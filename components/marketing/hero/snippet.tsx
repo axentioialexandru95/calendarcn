@@ -16,14 +16,25 @@ type CalendarCnHeroSnippetProps = {
   }
 }
 
+const fallbackOrigin = "https://your-domain.com"
 const shellTokenPattern =
-  /(\b(?:npx|pnpm|cd)\b)|(\b(?:degit|install|dev)\b)|(\b(?:axentioialexandru95\/calendarcn|my-calendarcn-app)\b)|([/.@_-][A-Za-z0-9/_-]*)/g
+  /(https?:\/\/[^\s]+)|(\b(?:npx|pnpm|cd)\b)|(\b(?:add|install|dev)\b)|(\b(?:calendarcn\.json|@calendarcn\/calendarcn)\b)|([/.@_-][A-Za-z0-9/_:-]*)/g
 
 export function CalendarCnHeroSnippet({ content }: CalendarCnHeroSnippetProps) {
   const [copied, setCopied] = React.useState(false)
+  const [origin, setOrigin] = React.useState(fallbackOrigin)
+
+  React.useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
+
+  const commands = React.useMemo(
+    () => content.commands.map((line) => line.replaceAll("{origin}", origin)),
+    [content.commands, origin]
+  )
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(content.commands.join("\n"))
+    await navigator.clipboard.writeText(commands.join("\n"))
     setCopied(true)
     window.setTimeout(() => {
       setCopied(false)
@@ -72,7 +83,7 @@ export function CalendarCnHeroSnippet({ content }: CalendarCnHeroSnippetProps) {
           </div>
           <pre className="overflow-x-auto px-4 py-4 text-xs leading-6 sm:text-sm sm:leading-7">
             <code>
-              {content.commands.map((line, index) => (
+              {commands.map((line, index) => (
                 <div
                   key={`${index}-${line}`}
                   className="grid grid-cols-[1.25rem_minmax(0,1fr)]"
@@ -125,15 +136,19 @@ function highlightCommandLine(line: string) {
 
 function getShellTokenClassName(match: RegExpMatchArray) {
   if (match[1]) {
-    return "text-sky-300"
+    return "text-emerald-300"
   }
 
   if (match[2]) {
-    return "text-fuchsia-300"
+    return "text-sky-300"
   }
 
   if (match[3]) {
-    return "text-emerald-300"
+    return "text-fuchsia-300"
+  }
+
+  if (match[4]) {
+    return "text-amber-200"
   }
 
   return "text-amber-300"

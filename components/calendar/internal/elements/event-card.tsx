@@ -5,7 +5,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
 import type {
   CalendarClassNames,
@@ -182,7 +182,11 @@ export function EventSurface({
   }
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
-    if (shouldSuppressClick?.(event.currentTarget.dataset.calendarOccurrenceId ?? "")) {
+    if (
+      shouldSuppressClick?.(
+        event.currentTarget.dataset.calendarOccurrenceId ?? ""
+      )
+    ) {
       event.preventDefault()
       event.stopPropagation()
       return
@@ -447,7 +451,7 @@ function getEventSurfaceClassName(
   preview: boolean
 ) {
   return cn(
-    "relative w-full min-w-0 overflow-hidden rounded-[min(var(--radius-sm),4px)] border pr-[10px] pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+    "relative w-full min-w-0 touch-none overflow-hidden rounded-[min(var(--radius-sm),4px)] border pr-[10px] pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
     density === "compact" ? "px-2 py-1.5" : "px-2 py-2",
     variant === "month" || variant === "all-day"
       ? density === "compact"

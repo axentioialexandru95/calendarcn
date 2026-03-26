@@ -10,7 +10,7 @@ import {
   SquaresFourIcon,
 } from "@phosphor-icons/react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
 import { type CalendarView } from "../../types"
 import { getCalendarSlotClassName } from "../../utils"
@@ -82,11 +82,10 @@ export function CalendarToolbar({
   timeZone,
   view,
 }: CalendarToolbarProps) {
-  const visibleResourceCount = activeResourceIds.length || resources?.length || 0
+  const visibleResourceCount =
+    activeResourceIds.length || resources?.length || 0
   const hasResourceFilters = Boolean(
-    resources &&
-      resources.length > 1 &&
-      onResourceFilterChange
+    resources && resources.length > 1 && onResourceFilterChange
   )
   const allResourceIds = resources?.map((resource) => resource.id) ?? []
   const allResourcesSelected =
@@ -242,7 +241,9 @@ export function CalendarToolbar({
                         : [...activeResourceIds, resource.id]
 
                       onResourceFilterChange(
-                        nextSelection.length > 0 ? nextSelection : allResourceIds
+                        nextSelection.length > 0
+                          ? nextSelection
+                          : allResourceIds
                       )
                     }}
                     size="sm"

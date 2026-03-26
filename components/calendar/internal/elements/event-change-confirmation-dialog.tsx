@@ -1,8 +1,11 @@
 import * as React from "react"
 
-import { ArrowsOutCardinalIcon, ClockClockwiseIcon } from "@phosphor-icons/react"
+import {
+  ArrowsOutCardinalIcon,
+  ClockClockwiseIcon,
+} from "@phosphor-icons/react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "../ui/button"
 
 import type {
   CalendarEventChangeConfirmation,
@@ -68,7 +71,7 @@ export function CalendarEventChangeConfirmationDialog({
     context.action === "move" ? "Apply change" : "Apply resize"
   )
   const resolvedCancelLabel =
-    typeof config === "object" ? config.cancelLabel ?? "Cancel" : "Cancel"
+    typeof config === "object" ? (config.cancelLabel ?? "Cancel") : "Cancel"
   const Icon =
     context.action === "move" ? ArrowsOutCardinalIcon : ClockClockwiseIcon
 
@@ -107,7 +110,9 @@ export function CalendarEventChangeConfirmationDialog({
           </div>
         </div>
         <div className="mt-4 rounded-[calc(var(--radius)*0.95)] border border-border/70 bg-muted/30 px-3 py-3 text-sm">
-          <p className="font-medium text-foreground">{context.occurrence.title}</p>
+          <p className="font-medium text-foreground">
+            {context.occurrence.title}
+          </p>
           <div className="mt-2 grid gap-2 text-muted-foreground sm:grid-cols-2">
             <div>
               <p className="text-[11px] tracking-[0.2em] uppercase">From</p>
@@ -136,7 +141,7 @@ export function CalendarEventChangeConfirmationDialog({
                     timeZone,
                   },
                   context.action === "move"
-                    ? context.allDay ?? context.occurrence.allDay
+                    ? (context.allDay ?? context.occurrence.allDay)
                     : context.occurrence.allDay
                 )}
               </p>
@@ -183,7 +188,7 @@ function getDefaultDescription(
       ? "apply the new time and date"
       : "apply the new duration"
 
-  return `Review the updated schedule for "${context.occurrence.title}" before you ${actionLabel}. ${formatEventRange(context.nextStart, context.nextEnd, options, context.action === "move" ? context.allDay ?? context.occurrence.allDay : context.occurrence.allDay)}`
+  return `Review the updated schedule for "${context.occurrence.title}" before you ${actionLabel}. ${formatEventRange(context.nextStart, context.nextEnd, options, context.action === "move" ? (context.allDay ?? context.occurrence.allDay) : context.occurrence.allDay)}`
 }
 
 function formatEventRange(

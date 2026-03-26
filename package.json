@@ -18,7 +18,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "registry:build": "shadcn build registry.json -o public/r"
+    "registry:build": "shadcn build registry.json -o public/r",
+    "registry:check": "pnpm registry:build && node scripts/registry-check.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

@@ -10,11 +10,11 @@ import {
 } from "@phosphor-icons/react"
 import { addDays, format } from "date-fns"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { Label } from "../ui/label"
+import { Textarea } from "../ui/textarea"
 
 import type {
   CalendarEvent,
@@ -68,7 +68,9 @@ export function CalendarEventDetailsSheet({
   secondaryTimeZone,
   timeZone,
 }: CalendarEventDetailsSheetProps) {
-  const [formState, setFormState] = React.useState<DetailsFormState | null>(null)
+  const [formState, setFormState] = React.useState<DetailsFormState | null>(
+    null
+  )
   const [error, setError] = React.useState<string>()
   const [isEditing, setIsEditing] = React.useState(false)
   const sheetRef = React.useRef<HTMLDivElement | null>(null)
@@ -118,20 +120,26 @@ export function CalendarEventDetailsSheet({
     (item) => item.id === (getEventResourceId(occurrence) ?? "")
   )
   const detailsTitle =
-    typeof config === "object" ? config.title ?? "Event details" : "Event details"
+    typeof config === "object"
+      ? (config.title ?? "Event details")
+      : "Event details"
   const detailsDescription =
     typeof config === "object"
-      ? config.description ??
-        "Inspect the current appointment or switch into edit mode to update the source event."
+      ? (config.description ??
+        "Inspect the current appointment or switch into edit mode to update the source event.")
       : "Inspect the current appointment or switch into edit mode to update the source event."
   const editLabel =
-    typeof config === "object" ? config.editLabel ?? "Edit event" : "Edit event"
+    typeof config === "object"
+      ? (config.editLabel ?? "Edit event")
+      : "Edit event"
   const submitLabel =
-    typeof config === "object" ? config.submitLabel ?? "Save changes" : "Save changes"
+    typeof config === "object"
+      ? (config.submitLabel ?? "Save changes")
+      : "Save changes"
   const cancelLabel =
-    typeof config === "object" ? config.cancelLabel ?? "Cancel" : "Cancel"
+    typeof config === "object" ? (config.cancelLabel ?? "Cancel") : "Cancel"
   const closeLabel =
-    typeof config === "object" ? config.closeLabel ?? "Close" : "Close"
+    typeof config === "object" ? (config.closeLabel ?? "Close") : "Close"
 
   function updateFormState<Key extends keyof DetailsFormState>(
     key: Key,
@@ -245,7 +253,7 @@ export function CalendarEventDetailsSheet({
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
-        className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border/80 bg-background shadow-[-24px_0_80px_-40px_rgba(15,23,42,0.65)] outline-none animate-in slide-in-from-right"
+        className="relative z-10 flex h-full w-full max-w-xl animate-in flex-col border-l border-border/80 bg-background shadow-[-24px_0_80px_-40px_rgba(15,23,42,0.65)] outline-none slide-in-from-right"
         ref={sheetRef}
         role="dialog"
         tabIndex={-1}
@@ -274,7 +282,10 @@ export function CalendarEventDetailsSheet({
             {customContent}
           </div>
         ) : (
-          <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
+          <form
+            className="flex min-h-0 flex-1 flex-col"
+            onSubmit={handleSubmit}
+          >
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
               <div className="space-y-2">
                 <p className="text-xl font-semibold tracking-tight">
@@ -331,7 +342,9 @@ export function CalendarEventDetailsSheet({
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="calendar-details-start-date">Start date</Label>
+                      <Label htmlFor="calendar-details-start-date">
+                        Start date
+                      </Label>
                       <Input
                         id="calendar-details-start-date"
                         onChange={(event) =>
@@ -342,7 +355,9 @@ export function CalendarEventDetailsSheet({
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="calendar-details-end-date">End date</Label>
+                      <Label htmlFor="calendar-details-end-date">
+                        End date
+                      </Label>
                       <Input
                         id="calendar-details-end-date"
                         onChange={(event) =>
@@ -369,7 +384,9 @@ export function CalendarEventDetailsSheet({
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="calendar-details-end-time">End time</Label>
+                        <Label htmlFor="calendar-details-end-time">
+                          End time
+                        </Label>
                         <Input
                           id="calendar-details-end-time"
                           onChange={(event) =>
@@ -391,7 +408,9 @@ export function CalendarEventDetailsSheet({
                       type="checkbox"
                     />
                     <span>
-                      <span className="block text-sm font-medium">All-day event</span>
+                      <span className="block text-sm font-medium">
+                        All-day event
+                      </span>
                       <span className="block text-xs text-muted-foreground">
                         Hide time inputs and keep the event pinned to full days.
                       </span>
@@ -570,7 +589,7 @@ function SummaryBlock({
         <Icon className="size-3.5" />
         {label}
       </p>
-      <p className="mt-2 text-sm leading-6 text-foreground whitespace-pre-wrap">
+      <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-foreground">
         {children}
       </p>
     </div>

@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
 import type {
   CalendarClassNames,
@@ -15,10 +15,7 @@ import {
   getDayEvents,
   getEventMetaLabel,
 } from "../../utils"
-import {
-  CalendarEventCard,
-  getResolvedAccentColor,
-} from "./event-card"
+import { CalendarEventCard, getResolvedAccentColor } from "./event-card"
 import type {
   CalendarAgendaViewProps,
   CalendarEventMenuPosition,

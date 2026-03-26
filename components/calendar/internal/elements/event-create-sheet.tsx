@@ -1,13 +1,17 @@
 import * as React from "react"
 
-import { CalendarBlankIcon, ClockIcon, NotePencilIcon } from "@phosphor-icons/react"
+import {
+  CalendarBlankIcon,
+  ClockIcon,
+  NotePencilIcon,
+} from "@phosphor-icons/react"
 import { addDays, format } from "date-fns"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
+import { Label } from "../ui/label"
+import { Textarea } from "../ui/textarea"
 
 import type {
   CalendarCreateOperation,
@@ -89,19 +93,19 @@ export function CalendarEventCreateSheet({
 
   const resolvedTitle =
     typeof config === "object"
-      ? config.title ?? "Create appointment"
+      ? (config.title ?? "Create appointment")
       : "Create appointment"
   const resolvedDescription =
     typeof config === "object"
-      ? config.description ??
-        "Add details before the appointment is inserted into the calendar."
+      ? (config.description ??
+        "Add details before the appointment is inserted into the calendar.")
       : "Add details before the appointment is inserted into the calendar."
   const resolvedSubmitLabel =
     typeof config === "object"
-      ? config.submitLabel ?? "Save appointment"
+      ? (config.submitLabel ?? "Save appointment")
       : "Save appointment"
   const resolvedCancelLabel =
-    typeof config === "object" ? config.cancelLabel ?? "Cancel" : "Cancel"
+    typeof config === "object" ? (config.cancelLabel ?? "Cancel") : "Cancel"
 
   function updateFormState<Key extends keyof CreateFormState>(
     key: Key,
@@ -190,7 +194,7 @@ export function CalendarEventCreateSheet({
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
-        className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border/80 bg-background shadow-[-24px_0_80px_-40px_rgba(15,23,42,0.65)] outline-none animate-in slide-in-from-right"
+        className="relative z-10 flex h-full w-full max-w-xl animate-in flex-col border-l border-border/80 bg-background shadow-[-24px_0_80px_-40px_rgba(15,23,42,0.65)] outline-none slide-in-from-right"
         ref={sheetRef}
         role="dialog"
         tabIndex={-1}
@@ -221,7 +225,9 @@ export function CalendarEventCreateSheet({
                 <Input
                   autoFocus
                   id="calendar-create-title"
-                  onChange={(event) => updateFormState("title", event.target.value)}
+                  onChange={(event) =>
+                    updateFormState("title", event.target.value)
+                  }
                   placeholder="Weekly product sync"
                   value={formState.title}
                 />
@@ -280,7 +286,9 @@ export function CalendarEventCreateSheet({
                 </div>
                 {!formState.allDay ? (
                   <div className="space-y-2">
-                    <Label htmlFor="calendar-create-start-time">Start time</Label>
+                    <Label htmlFor="calendar-create-start-time">
+                      Start time
+                    </Label>
                     <Input
                       id="calendar-create-start-time"
                       onChange={(event) =>
@@ -339,7 +347,7 @@ export function CalendarEventCreateSheet({
               <div className="space-y-2">
                 <Label htmlFor="calendar-create-description">Description</Label>
                 <div className="relative">
-                  <NotePencilIcon className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
+                  <NotePencilIcon className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
                   <Textarea
                     className="pl-9"
                     id="calendar-create-description"

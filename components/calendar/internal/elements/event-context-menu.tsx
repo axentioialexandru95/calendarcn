@@ -10,7 +10,7 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "../lib/utils"
 
 import type { CalendarOccurrence } from "../../types"
 import { getEventMetaLabel, getOccurrenceAccentColor } from "../../utils"
@@ -183,7 +183,7 @@ export function CalendarEventContextMenu({
     <div
       ref={menuRef}
       aria-label={`Actions for ${occurrence.title}`}
-      className="fixed z-50 w-[15rem] overflow-hidden rounded-[calc(var(--radius)*1.05)] border border-border/80 bg-popover/98 p-1 shadow-[0_18px_48px_-24px_rgba(15,23,42,0.52)] ring-1 ring-black/5 backdrop-blur-xl animate-in fade-in-0 zoom-in-95"
+      className="fixed z-50 w-[15rem] animate-in overflow-hidden rounded-[calc(var(--radius)*1.05)] border border-border/80 bg-popover/98 p-1 shadow-[0_18px_48px_-24px_rgba(15,23,42,0.52)] ring-1 ring-black/5 backdrop-blur-xl fade-in-0 zoom-in-95"
       data-testid="calendar-event-context-menu"
       onKeyDown={handleMenuKeyDown}
       role="menu"
@@ -215,9 +215,7 @@ export function CalendarEventContextMenu({
                 })}
               </span>
               <span className="truncate text-[10px] tracking-[0.18em] uppercase">
-                {occurrence.calendarLabel ??
-                  occurrence.resourceId ??
-                  "Event"}
+                {occurrence.calendarLabel ?? occurrence.resourceId ?? "Event"}
               </span>
             </div>
             {occurrence.location ? (
@@ -289,9 +287,7 @@ function ContextActionButton({
       >
         <Icon className="size-3.5" />
       </span>
-      <span className="min-w-0 truncate text-[13px] font-medium">
-        {label}
-      </span>
+      <span className="min-w-0 truncate text-[13px] font-medium">{label}</span>
     </button>
   )
 }
