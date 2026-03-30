@@ -3,6 +3,7 @@ import { addDays, addMinutes } from "date-fns"
 import type {
   CalendarCreateOperation,
   CalendarEvent,
+  CalendarEventCreateDefaults,
   CalendarEventUpdateOperation,
   CalendarMoveOperation,
   CalendarOccurrence,
@@ -63,7 +64,7 @@ export function applyEventUpdateOperation(
 
 export function createEventFromOperation(
   operation: CalendarCreateOperation,
-  overrides: Partial<CalendarEvent> = {}
+  overrides: CalendarEventCreateDefaults = {}
 ): CalendarEvent {
   return {
     id: crypto.randomUUID(),

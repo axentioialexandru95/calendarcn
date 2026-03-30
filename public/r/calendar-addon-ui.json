@@ -1,0 +1,33 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "calendar-addon-ui",
+  "title": "Calendar Add-on UI",
+  "description": "Internal button, input, label, and textarea primitives used by the optional calendar add-ons.",
+  "registryDependencies": [
+    "@calendarcn/calendar-core"
+  ],
+  "files": [
+    {
+      "path": "components/calendar/addons/ui/button.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { cn } from \"../../internal/lib/utils\"\n\ntype ButtonProps = React.ComponentProps<\"button\"> & {\n  size?: \"default\" | \"sm\" | \"icon-sm\"\n  variant?: \"default\" | \"outline\" | \"secondary\" | \"ghost\"\n}\n\nexport const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(\n  (\n    {\n      className,\n      size = \"default\",\n      type = \"button\",\n      variant = \"default\",\n      ...props\n    },\n    ref\n  ) => {\n    return (\n      <button\n        className={cn(\n          \"inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0\",\n          size === \"default\" ? \"h-9 px-2.5\" : \"\",\n          size === \"sm\" ? \"h-8 px-2.5\" : \"\",\n          size === \"icon-sm\" ? \"size-8\" : \"\",\n          variant === \"default\"\n            ? \"bg-primary text-primary-foreground hover:bg-primary/90\"\n            : \"\",\n          variant === \"outline\"\n            ? \"border-border bg-background text-foreground shadow-xs hover:bg-muted\"\n            : \"\",\n          variant === \"secondary\"\n            ? \"bg-secondary text-secondary-foreground hover:bg-secondary/80\"\n            : \"\",\n          variant === \"ghost\" ? \"hover:bg-muted hover:text-foreground\" : \"\",\n          className\n        )}\n        ref={ref}\n        type={type}\n        {...props}\n      />\n    )\n  }\n)\n\nButton.displayName = \"Button\"\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "components/calendar/addons/ui/input.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { cn } from \"../../internal/lib/utils\"\n\nfunction Input({\n  className,\n  type = \"text\",\n  ...props\n}: React.ComponentProps<\"input\">) {\n  return (\n    <input\n      className={cn(\n        \"flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[border-color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50\",\n        className\n      )}\n      type={type}\n      {...props}\n    />\n  )\n}\n\nexport { Input }\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "components/calendar/addons/ui/label.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { cn } from \"../../internal/lib/utils\"\n\nfunction Label({ className, ...props }: React.ComponentProps<\"label\">) {\n  return (\n    <label\n      className={cn(\n        \"text-sm leading-none font-medium text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nexport { Label }\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "components/calendar/addons/ui/textarea.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\n\nimport { cn } from \"../../internal/lib/utils\"\n\nfunction Textarea({ className, ...props }: React.ComponentProps<\"textarea\">) {\n  return (\n    <textarea\n      className={cn(\n        \"flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-[border-color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50\",\n        className\n      )}\n      {...props}\n    />\n  )\n}\n\nexport { Textarea }\n",
+      "type": "registry:component"
+    }
+  ],
+  "docs": "Internal dependency shared by the optional add-on items.",
+  "type": "registry:block"
+}

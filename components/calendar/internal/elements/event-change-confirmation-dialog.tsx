@@ -5,7 +5,7 @@ import {
   ClockClockwiseIcon,
 } from "@phosphor-icons/react"
 
-import { Button } from "../ui/button"
+import { Button } from "../../addons/ui/button"
 
 import type {
   CalendarEventChangeConfirmation,

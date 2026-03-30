@@ -4,11 +4,11 @@ import * as React from "react"
 import { set } from "date-fns"
 
 import {
-  CalendarRoot,
   type CalendarEvent,
   type CalendarEventChangeConfirmation,
   type CalendarView,
-} from "@/components/calendar"
+} from "@/components/calendar/types"
+import { CalendarScheduler } from "@/components/calendar/scheduler"
 import { useCalendarController } from "@/hooks/use-calendar-controller"
 import {
   buildDemoBlockedRanges,
@@ -25,7 +25,8 @@ type CalendarLabFixtureProps = {
 }
 
 const createSheetConfig = {
-  description: "Capture the details before the appointment lands on the schedule.",
+  description:
+    "Capture the details before the appointment lands on the schedule.",
   submitLabel: "Create appointment",
   title: "New appointment",
 } as const
@@ -55,7 +56,8 @@ export function CalendarLabFixture({
     () => buildScenarioEvents(initialDate, scenario),
     [initialDate, scenario]
   )
-  const availableViews = scenario === "recurrence" ? (["week"] as CalendarView[]) : fullViewSet
+  const availableViews =
+    scenario === "recurrence" ? (["week"] as CalendarView[]) : fullViewSet
   const controller = useCalendarController({
     availableViews,
     createDefaults,
@@ -76,7 +78,7 @@ export function CalendarLabFixture({
       data-calendar-lab-ready={isReady ? "true" : "false"}
     >
       <div className="mx-auto max-w-7xl">
-        <CalendarRoot
+        <CalendarScheduler
           availableViews={availableViews}
           blockedRanges={blockedRanges}
           businessHours={businessHours}

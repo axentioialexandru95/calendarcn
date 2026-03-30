@@ -4,19 +4,18 @@
   "homepage": "https://github.com/axentioialexandru95/calendarcn",
   "items": [
     {
-      "name": "calendarcn",
+      "name": "calendar-core",
       "type": "registry:block",
-      "title": "CalendarCN",
-      "description": "A shadcn-compatible scheduling surface with month, week, day, and agenda views, drag and drop, resizing, and typed event contracts.",
+      "title": "Calendar Core",
+      "description": "Primitive scheduling surface with month, week, day, and agenda views, recurrence expansion, drag and resize interactions, and typed event contracts.",
       "dependencies": [
-        "@phosphor-icons/react@^2.1.10",
         "clsx@^2.1.1",
         "date-fns@^4.1.0",
         "tailwind-merge@^3.5.0"
       ],
       "files": [
         {
-          "path": "components/calendar/index.ts",
+          "path": "components/calendar/root.tsx",
           "type": "registry:component"
         },
         {
@@ -28,6 +27,22 @@
           "type": "registry:component"
         },
         {
+          "path": "components/calendar/views/agenda.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/views/day.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/views/month.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/views/week.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "components/calendar/internal/elements/agenda-view.tsx",
           "type": "registry:component"
         },
@@ -36,35 +51,15 @@
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/event-change-confirmation-dialog.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/event-context-menu.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/event-create-sheet.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/event-details-sheet.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/keyboard-shortcuts-dialog.tsx",
-          "type": "registry:component"
-        },
-        {
           "path": "components/calendar/internal/elements/month-view.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/root.tsx",
+          "path": "components/calendar/internal/elements/time-grid-view.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/root/calendar/portals.tsx",
+          "path": "components/calendar/internal/elements/use-modal-focus.ts",
           "type": "registry:component"
         },
         {
@@ -72,19 +67,15 @@
           "type": "registry:component"
         },
         {
+          "path": "components/calendar/internal/elements/root/use-calendar-core-actions.ts",
+          "type": "registry:component"
+        },
+        {
           "path": "components/calendar/internal/elements/root/use-calendar-derived-state.ts",
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/root/use-calendar-event-actions.ts",
-          "type": "registry:component"
-        },
-        {
           "path": "components/calendar/internal/elements/root/use-calendar-pointer-interactions.ts",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/time-grid-view.tsx",
           "type": "registry:component"
         },
         {
@@ -112,35 +103,11 @@
           "type": "registry:component"
         },
         {
-          "path": "components/calendar/internal/elements/toolbar.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/elements/use-modal-focus.ts",
-          "type": "registry:component"
-        },
-        {
           "path": "components/calendar/internal/lib/utils.ts",
           "type": "registry:component"
         },
         {
           "path": "components/calendar/internal/shared.ts",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/ui/button.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/ui/input.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/ui/label.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "components/calendar/internal/ui/textarea.tsx",
           "type": "registry:component"
         },
         {
@@ -168,7 +135,170 @@
           "type": "registry:component"
         }
       ],
-      "docs": "Build the registry with `pnpm registry:build`, then install locally with `npx shadcn@latest add ./public/r/calendarcn.json` or host `/r/calendarcn.json` and add it by URL. The registry item installs the full self-contained calendar source under `components/calendar`. Import `CalendarRoot` from `@/components/calendar`."
+      "docs": "Install the primitive scheduling surface with `npx shadcn@latest add @calendarcn/calendar-core`. Import `CalendarRoot` from `@/components/calendar/root` and compose your own toolbar or add-ons."
+    },
+    {
+      "name": "calendar-toolbar",
+      "type": "registry:block",
+      "title": "Calendar Toolbar",
+      "description": "Controlled navigation and view-switching toolbar for `CalendarRoot`.",
+      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "registryDependencies": ["@calendarcn/calendar-core"],
+      "files": [
+        {
+          "path": "components/calendar/toolbar.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/toolbar.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Install alongside `calendar-core` with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-toolbar`. Import `CalendarToolbar` from `@/components/calendar/toolbar`."
+    },
+    {
+      "name": "calendar-addon-ui",
+      "type": "registry:block",
+      "title": "Calendar Add-on UI",
+      "description": "Internal button, input, label, and textarea primitives used by the optional calendar add-ons.",
+      "registryDependencies": ["@calendarcn/calendar-core"],
+      "files": [
+        {
+          "path": "components/calendar/addons/ui/button.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/addons/ui/input.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/addons/ui/label.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/addons/ui/textarea.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Internal dependency shared by the optional add-on items."
+    },
+    {
+      "name": "calendar-event-sheet",
+      "type": "registry:block",
+      "title": "Calendar Event Sheets",
+      "description": "Optional create and details sheets that you can wire to your own `CalendarRoot` selection and request state.",
+      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "registryDependencies": [
+        "@calendarcn/calendar-core",
+        "@calendarcn/calendar-addon-ui"
+      ],
+      "files": [
+        {
+          "path": "components/calendar/addons/event-sheet/create-sheet.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/addons/event-sheet/details-sheet.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-create-sheet.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-details-sheet.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Install with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-event-sheet` and import the sheets from `@/components/calendar/addons/event-sheet/*`."
+    },
+    {
+      "name": "calendar-interactions",
+      "type": "registry:block",
+      "title": "Calendar Interactions",
+      "description": "Optional context menu and confirmation dialog primitives for event actions and guarded schedule changes.",
+      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "registryDependencies": [
+        "@calendarcn/calendar-core",
+        "@calendarcn/calendar-addon-ui"
+      ],
+      "files": [
+        {
+          "path": "components/calendar/addons/interactions/change-confirmation.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/addons/interactions/context-menu.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-change-confirmation-dialog.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/event-context-menu.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Install with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-interactions` and import the add-ons from `@/components/calendar/addons/interactions/*`."
+    },
+    {
+      "name": "calendar-shortcuts",
+      "type": "registry:block",
+      "title": "Calendar Shortcuts",
+      "description": "Optional keyboard shortcuts dialog for documenting the built-in grid and event key bindings.",
+      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "registryDependencies": [
+        "@calendarcn/calendar-core",
+        "@calendarcn/calendar-addon-ui"
+      ],
+      "files": [
+        {
+          "path": "components/calendar/addons/shortcuts/dialog.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/keyboard-shortcuts-dialog.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Install with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-shortcuts` and import the dialog from `@/components/calendar/addons/shortcuts/dialog`."
+    },
+    {
+      "name": "calendarcn",
+      "type": "registry:block",
+      "title": "CalendarCN Starter",
+      "description": "Batteries-included CalendarCN starter that composes the primitive root, toolbar, event sheets, interactions, and keyboard shortcuts into one ready-to-wire scheduler.",
+      "registryDependencies": [
+        "@calendarcn/calendar-core",
+        "@calendarcn/calendar-toolbar",
+        "@calendarcn/calendar-event-sheet",
+        "@calendarcn/calendar-interactions",
+        "@calendarcn/calendar-shortcuts"
+      ],
+      "files": [
+        {
+          "path": "components/calendar/scheduler.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/utils/class-names.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/calendar/portals.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/use-calendar-event-actions.ts",
+          "type": "registry:component"
+        }
+      ],
+      "docs": "Install the batteries-included starter with `npx shadcn@latest add @calendarcn/calendarcn`. Import `CalendarScheduler` from `@/components/calendar/scheduler`."
     }
   ]
 }

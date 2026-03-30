@@ -14,6 +14,7 @@ import type {
   CalendarDropTarget,
   CalendarEvent,
   CalendarEventChangeConfirmation,
+  CalendarEventMenuPosition,
   CalendarEventDetailsConfig,
   CalendarEventDetailsRenderProps,
   CalendarEventVariant,
@@ -38,10 +39,7 @@ export const defaultMinHour = 6
 export const defaultMaxHour = 23
 export const maxMonthEvents = 4
 
-export type CalendarEventMenuPosition = {
-  x: number
-  y: number
-}
+export type { CalendarEventMenuPosition }
 
 export type CalendarRootProps = {
   date: Date
@@ -88,15 +86,9 @@ export type CalendarRootProps = {
   hourCycle?: 12 | 24
   scrollToTime?: "now" | string
   renderEvent?: CalendarEventRenderer
-  renderEventDetails?: (
-    props: CalendarEventDetailsRenderProps
-  ) => ReactNode
-  renderToolbarExtras?: (
-    props: CalendarToolbarExtrasRenderProps
-  ) => ReactNode
-  renderEmptyState?: (
-    props: CalendarEmptyStateRenderProps
-  ) => ReactNode
+  renderEventDetails?: (props: CalendarEventDetailsRenderProps) => ReactNode
+  renderToolbarExtras?: (props: CalendarToolbarExtrasRenderProps) => ReactNode
+  renderEmptyState?: (props: CalendarEmptyStateRenderProps) => ReactNode
   getEventColor?: (occurrence: CalendarOccurrence) => string
   showCreatePreviewMeta?: boolean
   showDragPreviewMeta?: boolean
@@ -116,9 +108,7 @@ export type CalendarToolbarProps = {
   onToday: () => void
   onViewChange: (view: CalendarView) => void
   keyboardShortcutsButtonLabel?: string
-  renderToolbarExtras?: (
-    props: CalendarToolbarExtrasRenderProps
-  ) => ReactNode
+  renderToolbarExtras?: (props: CalendarToolbarExtrasRenderProps) => ReactNode
   resources?: CalendarResource[]
   secondaryTimeZone?: string
   showSecondaryTimeZone?: boolean

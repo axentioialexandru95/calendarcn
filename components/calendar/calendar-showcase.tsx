@@ -9,7 +9,7 @@ import {
   SwatchesIcon,
 } from "@phosphor-icons/react"
 
-import { CalendarRoot } from "@/components/calendar"
+import { CalendarScheduler } from "@/components/calendar/scheduler"
 import { CalendarCnLogo } from "@/components/marketing/branding/logo"
 import { Button } from "@/components/ui/button"
 import { useCalendarController } from "@/hooks/use-calendar-controller"
@@ -25,7 +25,7 @@ import type {
   CalendarDensity,
   CalendarEventChangeConfirmation,
   CalendarView,
-} from "@/components/calendar"
+} from "@/components/calendar/types"
 
 type CalendarShowcaseVariant = "embed" | "standalone"
 
@@ -61,7 +61,8 @@ const demoPresets: Record<
     },
   },
   workweek: {
-    description: "A focused product team setup with work hours and blocked lunch.",
+    description:
+      "A focused product team setup with work hours and blocked lunch.",
     label: "Workweek",
     state: {
       compact: true,
@@ -97,17 +98,20 @@ const demoToggleDefinitions: Array<{
     label: "Compact density",
   },
   {
-    description: "Focus the planner on weekdays instead of a full seven-day span.",
+    description:
+      "Focus the planner on weekdays instead of a full seven-day span.",
     key: "hideWeekends",
     label: "Hide weekends",
   },
   {
-    description: "Highlight the working window so real scheduling hours stand out.",
+    description:
+      "Highlight the working window so real scheduling hours stand out.",
     key: "showBusinessHours",
     label: "Business hours",
   },
   {
-    description: "Show unavailable time ranges and block edits that overlap them.",
+    description:
+      "Show unavailable time ranges and block edits that overlap them.",
     key: "showBlockedRanges",
     label: "Blocked ranges",
   },
@@ -117,7 +121,8 @@ const demoToggleDefinitions: Array<{
     label: "24h clock",
   },
   {
-    description: "Limit the surface to week, day, and agenda instead of all views.",
+    description:
+      "Limit the surface to week, day, and agenda instead of all views.",
     key: "focusedViews",
     label: "Work views only",
   },
@@ -170,13 +175,13 @@ function CalendarShowcaseSurface({
   }, [demoConfig])
   const calendarConfig = React.useMemo<{
     availableViews: CalendarView[]
-    blockedRanges: CalendarRootComponentProps["blockedRanges"]
-    businessHours: CalendarRootComponentProps["businessHours"]
+    blockedRanges: CalendarSchedulerComponentProps["blockedRanges"]
+    businessHours: CalendarSchedulerComponentProps["businessHours"]
     density: CalendarDensity
-    hiddenDays: NonNullable<CalendarRootComponentProps["hiddenDays"]>
-    hourCycle: NonNullable<CalendarRootComponentProps["hourCycle"]>
-    locale: NonNullable<CalendarRootComponentProps["locale"]>
-    scrollToTime: NonNullable<CalendarRootComponentProps["scrollToTime"]>
+    hiddenDays: NonNullable<CalendarSchedulerComponentProps["hiddenDays"]>
+    hourCycle: NonNullable<CalendarSchedulerComponentProps["hourCycle"]>
+    locale: NonNullable<CalendarSchedulerComponentProps["locale"]>
+    scrollToTime: NonNullable<CalendarSchedulerComponentProps["scrollToTime"]>
   }>(() => {
     const availableViews = demoConfig.focusedViews
       ? (["week", "day", "agenda"] as CalendarView[])
@@ -233,7 +238,7 @@ function CalendarShowcaseSurface({
   })
 
   const calendar = (
-    <CalendarRoot
+    <CalendarScheduler
       createEventSheet={{
         description:
           "Capture the details before the appointment lands on the schedule.",
@@ -487,41 +492,41 @@ function CalendarShowcaseConfigPanel({
             Options
           </p>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {demoToggleDefinitions.map((toggle) => (
-            <button
-              key={toggle.key}
-              aria-checked={config[toggle.key]}
-              className={cn(
-                "group flex items-start gap-3 rounded-[calc(var(--radius)*1.05)] border px-3 py-3 text-left transition-colors",
-                config[toggle.key]
-                  ? "border-primary/40 bg-primary/[0.07]"
-                  : "border-border/70 bg-background hover:bg-muted/40"
-              )}
-              onClick={() => onToggle(toggle.key)}
-              role="checkbox"
-              type="button"
-            >
-              <span
-                aria-hidden
+            {demoToggleDefinitions.map((toggle) => (
+              <button
+                key={toggle.key}
+                aria-checked={config[toggle.key]}
                 className={cn(
-                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                  "group flex items-start gap-3 rounded-[calc(var(--radius)*1.05)] border px-3 py-3 text-left transition-colors",
                   config[toggle.key]
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-transparent group-hover:border-foreground/20"
+                    ? "border-primary/40 bg-primary/[0.07]"
+                    : "border-border/70 bg-background hover:bg-muted/40"
                 )}
+                onClick={() => onToggle(toggle.key)}
+                role="checkbox"
+                type="button"
               >
-                <CheckIcon className="size-3.5" weight="bold" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">
-                  {toggle.label}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                    config[toggle.key]
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-transparent group-hover:border-foreground/20"
+                  )}
+                >
+                  <CheckIcon className="size-3.5" weight="bold" />
                 </span>
-                <span className="mt-1 block text-sm leading-6 text-muted-foreground">
-                  {toggle.description}
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">
+                    {toggle.label}
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-muted-foreground">
+                    {toggle.description}
+                  </span>
                 </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -533,7 +538,7 @@ function CalendarShowcaseConfigPanel({
             {activeConfigTokens.map((token) => (
               <span
                 key={token}
-                className="max-w-full break-all rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 font-mono text-[11px] leading-5 whitespace-normal text-foreground"
+                className="max-w-full rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 font-mono text-[11px] leading-5 break-all whitespace-normal text-foreground"
               >
                 {token}
               </span>
@@ -567,10 +572,7 @@ function FeatureRow({
   )
 }
 
-function isSameDemoConfigState(
-  left: DemoConfigState,
-  right: DemoConfigState
-) {
+function isSameDemoConfigState(left: DemoConfigState, right: DemoConfigState) {
   return (
     left.compact === right.compact &&
     left.focusedViews === right.focusedViews &&
@@ -580,4 +582,6 @@ function isSameDemoConfigState(
     left.twentyFourHour === right.twentyFourHour
   )
 }
-type CalendarRootComponentProps = React.ComponentProps<typeof CalendarRoot>
+type CalendarSchedulerComponentProps = React.ComponentProps<
+  typeof CalendarScheduler
+>

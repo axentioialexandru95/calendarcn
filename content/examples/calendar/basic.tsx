@@ -4,15 +4,18 @@ import * as React from "react"
 import { addDays, set } from "date-fns"
 
 import type {
+  CalendarClassNames,
   CalendarCreateOperation,
   CalendarEvent,
   CalendarMoveOperation,
   CalendarResizeOperation,
   CalendarView,
-} from "@/components/calendar"
-import { CalendarRoot } from "@/components/calendar"
+} from "@/components/calendar/types"
+import { CalendarRoot } from "@/components/calendar/root"
+import { CalendarToolbar } from "@/components/calendar/toolbar"
 import {
   applyMoveOperation,
+  getRangeLabel,
   applyResizeOperation,
   createEventFromOperation,
   shiftDate,
@@ -70,10 +73,24 @@ const starterEvents: CalendarEvent[] = [
   },
 ]
 
+const primitiveSelectedEventClassNames = {
+  agendaEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+  monthEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+  timeGridEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+} satisfies CalendarClassNames
+
 export function BasicCalendarExample() {
   const [date, setDate] = React.useState(seedDate)
   const [events, setEvents] = React.useState(starterEvents)
+  const [selectedEventId, setSelectedEventId] = React.useState<string>()
   const [view, setView] = React.useState<CalendarView>("week")
+  const currentLabel = React.useMemo(
+    () => getRangeLabel(date, view),
+    [date, view]
+  )
 
   function handleNavigate(direction: -1 | 1) {
     setDate((currentDate) => shiftDate(currentDate, view, direction))
@@ -100,19 +117,33 @@ export function BasicCalendarExample() {
   }
 
   return (
-    <CalendarRoot
-      classNames={docsCalendarExampleClassNames}
-      date={date}
-      events={events}
-      onDateChange={setDate}
-      onEventCreate={handleCreate}
-      onEventMove={handleMove}
-      onEventResize={handleResize}
-      onNavigate={handleNavigate}
-      onToday={() => setDate(seedDate)}
-      onViewChange={setView}
-      scrollToTime="08:30"
-      view={view}
-    />
+    <div className="overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70">
+      <CalendarToolbar
+        activeResourceIds={[]}
+        availableViews={["month", "week", "day", "agenda"]}
+        classNames={docsCalendarExampleClassNames}
+        currentLabel={currentLabel}
+        onNavigate={handleNavigate}
+        onToday={() => setDate(seedDate)}
+        onViewChange={setView}
+        view={view}
+      />
+      <CalendarRoot
+        classNames={{
+          ...docsCalendarExampleClassNames,
+          ...primitiveSelectedEventClassNames,
+          root: `${docsCalendarExampleClassNames.root} !rounded-t-none !border-t-0`,
+        }}
+        date={date}
+        events={events}
+        onEventCreate={handleCreate}
+        onEventMove={handleMove}
+        onEventResize={handleResize}
+        onSelectedEventChange={setSelectedEventId}
+        scrollToTime="08:30"
+        selectedEventId={selectedEventId}
+        view={view}
+      />
+    </div>
   )
 }

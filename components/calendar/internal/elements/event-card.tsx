@@ -267,6 +267,7 @@ export function EventSurface({
         "group/event relative w-full min-w-0",
         variant === "time-grid" ? "h-full" : undefined
       )}
+      data-calendar-drag-overlay={overlay ? "true" : undefined}
       data-calendar-drag-surface="true"
       data-selected={selected ? "true" : undefined}
       style={style}
@@ -277,7 +278,6 @@ export function EventSurface({
           getEventSurfaceClassName(
             density,
             variant,
-            selected,
             dragging,
             overlay,
             preview
@@ -321,7 +321,7 @@ export function EventSurface({
           </span>
         ) : null}
       </button>
-      {showResizeHandles && !overlay ? (
+      {showResizeHandles && !overlay && !dragging ? (
         <>
           <ResizeHandle
             accentColor={accentColor}
@@ -399,7 +399,7 @@ function ResizeHandle({
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
-          selectedHandleVisibilityClass(false)
+          selectedHandleVisibilityClass()
         )}
         style={{
           backgroundColor: `${accentColor}55`,
@@ -409,7 +409,7 @@ function ResizeHandle({
         aria-hidden
         className={cn(
           "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
-          selectedHandleVisibilityClass(false),
+          selectedHandleVisibilityClass(),
           "scale-95"
         )}
         style={{
@@ -445,7 +445,6 @@ function getEventSurfaceStyle(): CSSProperties {
 function getEventSurfaceClassName(
   density: CalendarDensity,
   variant: EventVariant,
-  selected: boolean | undefined,
   isDragging: boolean,
   overlay: boolean,
   preview: boolean
@@ -460,7 +459,6 @@ function getEventSurfaceClassName(
       : "text-sm",
     variant === "agenda" ? "min-h-20" : "",
     variant === "time-grid" ? "h-full" : "",
-    selected ? "border-ring ring-2 ring-ring/60" : "",
     preview ? "shadow-sm" : "",
     overlay
       ? "pointer-events-none shadow-sm"
@@ -470,8 +468,6 @@ function getEventSurfaceClassName(
   )
 }
 
-function selectedHandleVisibilityClass(isDragging: boolean) {
-  return isDragging
-    ? "opacity-100"
-    : "group-data-[selected=true]/event:opacity-100"
+function selectedHandleVisibilityClass() {
+  return "group-data-[selected=true]/event:opacity-100"
 }

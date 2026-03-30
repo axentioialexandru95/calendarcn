@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { KeyboardIcon } from "@phosphor-icons/react"
 
-import { Button } from "../ui/button"
+import { Button } from "../../addons/ui/button"
 
 import type { CalendarKeyboardShortcutsConfig } from "../../types"
 import { useModalFocus } from "./use-modal-focus"

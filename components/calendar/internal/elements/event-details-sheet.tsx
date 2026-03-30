@@ -11,10 +11,10 @@ import {
 import { addDays, format } from "date-fns"
 
 import { cn } from "../lib/utils"
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { Label } from "../ui/label"
-import { Textarea } from "../ui/textarea"
+import { Button } from "../../addons/ui/button"
+import { Input } from "../../addons/ui/input"
+import { Label } from "../../addons/ui/label"
+import { Textarea } from "../../addons/ui/textarea"
 
 import type {
   CalendarEvent,

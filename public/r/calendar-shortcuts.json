@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "calendar-shortcuts",
+  "title": "Calendar Shortcuts",
+  "description": "Optional keyboard shortcuts dialog for documenting the built-in grid and event key bindings.",
+  "dependencies": [
+    "@phosphor-icons/react@^2.1.10"
+  ],
+  "registryDependencies": [
+    "@calendarcn/calendar-core",
+    "@calendarcn/calendar-addon-ui"
+  ],
+  "files": [
+    {
+      "path": "components/calendar/addons/shortcuts/dialog.tsx",
+      "content": "\"use client\"\n\nexport { CalendarKeyboardShortcutsDialog } from \"../../internal/elements/keyboard-shortcuts-dialog\"\n",
+      "type": "registry:component"
+    },
+    {
+      "path": "components/calendar/internal/elements/keyboard-shortcuts-dialog.tsx",
+      "content": "import * as React from \"react\"\n\nimport { KeyboardIcon } from \"@phosphor-icons/react\"\n\nimport { Button } from \"../../addons/ui/button\"\n\nimport type { CalendarKeyboardShortcutsConfig } from \"../../types\"\nimport { useModalFocus } from \"./use-modal-focus\"\n\ntype CalendarKeyboardShortcutsDialogProps = {\n  config?: CalendarKeyboardShortcutsConfig\n  onOpenChange: (open: boolean) => void\n  open: boolean\n}\n\nconst shortcutRows = [\n  {\n    description: \"Move the active schedule slot through the week or day grid.\",\n    keys: \"Arrow keys in grid\",\n  },\n  {\n    description: \"Create from the active schedule slot.\",\n    keys: \"Enter / Space\",\n  },\n  {\n    description: \"Move the selected event in time or across days.\",\n    keys: \"Arrow keys on event\",\n  },\n  {\n    description: \"Resize the selected event from the end.\",\n    keys: \"Shift + Arrow keys\",\n  },\n  {\n    description: \"Resize the selected event from the start.\",\n    keys: \"Alt + Arrow keys\",\n  },\n  {\n    description: \"Open the event context menu.\",\n    keys: \"Shift + F10\",\n  },\n  {\n    description: \"Open this shortcut dialog when enabled.\",\n    keys: \"?\",\n  },\n]\n\nexport function CalendarKeyboardShortcutsDialog({\n  config,\n  onOpenChange,\n  open,\n}: CalendarKeyboardShortcutsDialogProps) {\n  const dialogRef = React.useRef<HTMLDivElement | null>(null)\n  const titleId = React.useId()\n  const descriptionId = React.useId()\n\n  useModalFocus({\n    containerRef: dialogRef,\n    onClose: () => onOpenChange(false),\n    open,\n  })\n\n  if (!open) {\n    return null\n  }\n\n  const title =\n    typeof config === \"object\"\n      ? (config.title ?? \"Keyboard shortcuts\")\n      : \"Keyboard shortcuts\"\n  const description =\n    typeof config === \"object\"\n      ? (config.description ??\n        \"Use the keyboard to nudge, resize, and inspect events without leaving the current view.\")\n      : \"Use the keyboard to nudge, resize, and inspect events without leaving the current view.\"\n\n  return (\n    <div className=\"fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm\">\n      <button\n        aria-label=\"Close keyboard shortcuts\"\n        className=\"absolute inset-0\"\n        onClick={() => onOpenChange(false)}\n        type=\"button\"\n      />\n      <div\n        aria-describedby={descriptionId}\n        aria-labelledby={titleId}\n        aria-modal=\"true\"\n        className=\"relative z-10 w-[min(100%-2rem,32rem)] rounded-[calc(var(--radius)*1.2)] border border-border/80 bg-background p-5 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.65)] outline-none\"\n        data-testid=\"calendar-keyboard-shortcuts-dialog\"\n        ref={dialogRef}\n        role=\"dialog\"\n        tabIndex={-1}\n      >\n        <div className=\"flex items-start gap-3\">\n          <div className=\"inline-flex size-10 shrink-0 items-center justify-center rounded-[calc(var(--radius)*0.85)] bg-primary/10 text-primary\">\n            <KeyboardIcon className=\"size-5\" />\n          </div>\n          <div className=\"min-w-0 flex-1\">\n            <h2 className=\"text-base font-semibold tracking-tight\" id={titleId}>\n              {title}\n            </h2>\n            <p\n              className=\"mt-1 text-sm leading-6 text-muted-foreground\"\n              id={descriptionId}\n            >\n              {description}\n            </p>\n          </div>\n        </div>\n        <div className=\"mt-5 space-y-2\">\n          {shortcutRows.map((row) => (\n            <div\n              key={row.keys}\n              className=\"grid gap-2 rounded-[calc(var(--radius)*0.95)] border border-border/70 bg-muted/25 px-3 py-3 sm:grid-cols-[10rem_1fr] sm:items-center\"\n            >\n              <p className=\"font-mono text-sm font-medium text-foreground\">\n                {row.keys}\n              </p>\n              <p className=\"text-sm leading-6 text-muted-foreground\">\n                {row.description}\n              </p>\n            </div>\n          ))}\n        </div>\n\n        <div className=\"mt-5 flex justify-end\">\n          <Button onClick={() => onOpenChange(false)} variant=\"outline\">\n            Close\n          </Button>\n        </div>\n      </div>\n    </div>\n  )\n}\n",
+      "type": "registry:component"
+    }
+  ],
+  "docs": "Install with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-shortcuts` and import the dialog from `@/components/calendar/addons/shortcuts/dialog`.",
+  "type": "registry:block"
+}

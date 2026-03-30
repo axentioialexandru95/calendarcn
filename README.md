@@ -1,6 +1,8 @@
 # CalendarCN
 
-CalendarCN is an open-source, shadcn-compatible calendar registry item with month, week, day, and agenda views, drag and drop, resizing, recurring events, and typed event contracts.
+CalendarCN is an open-source, shadcn-compatible calendar registry with month,
+week, day, and agenda views, drag and drop, resizing, recurring events, and
+typed event contracts.
 
 ## License
 
@@ -12,22 +14,14 @@ If CalendarCN helped you, you can support it here:
 
 - [Buy me a coffee](https://buymeacoffee.com/phantomtechind)
 
-## Install from a hosted registry
+## Install From a Hosted Registry
 
-The fastest way to add CalendarCN to an existing app is the hosted registry
-item:
+CalendarCN now ships in two paths:
 
-```bash
-npx shadcn@latest add https://calendarcn.phantomtechind.com/r/calendarcn.json
-```
+1. Primitive: `calendar-core` plus small optional add-ons
+2. Starter: `calendarcn`, the batteries-included composed scheduler
 
-The registry item installs the full self-contained calendar source under
-`components/calendar`.
-
-## Optional Alias Shortcut
-
-If your team wants a shorter project-local alias, add it once in that app's
-`components.json`:
+Add the CalendarCN registry alias once in your app's `components.json`:
 
 ```json
 {
@@ -37,10 +31,40 @@ If your team wants a shorter project-local alias, add it once in that app's
 }
 ```
 
-Then you can use:
+### Primitive install
+
+This is the default path. It keeps the calendar surface and toolbar as separate
+open-code files so you can modify them directly.
+
+```bash
+npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-toolbar
+```
+
+Use it from a client component:
+
+```tsx
+"use client"
+
+import { CalendarRoot } from "@/components/calendar/root"
+import { CalendarToolbar } from "@/components/calendar/toolbar"
+```
+
+### Starter install
+
+Use the starter bundle when you want the current full CalendarCN experience,
+including the composed toolbar, event sheets, interaction dialogs, and
+shortcuts dialog.
 
 ```bash
 npx shadcn@latest add @calendarcn/calendarcn
+```
+
+Use it from a client component:
+
+```tsx
+"use client"
+
+import { CalendarScheduler } from "@/components/calendar/scheduler"
 ```
 
 ## Clone the Reference App
@@ -61,15 +85,42 @@ pnpm dev
 pnpm registry:build
 ```
 
-This generates `public/r/calendarcn.json` and `public/r/registry.json`.
+This generates one JSON file per registry item under `public/r`, plus the
+aggregate `public/r/registry.json`.
 
 ## Install Locally with shadcn
 
-```bash
-npx shadcn@latest add ./public/r/calendarcn.json
+Build the registry, run the local docs app, and point `@calendarcn` at the
+served registry files:
+
+```json
+{
+  "registries": {
+    "@calendarcn": "http://localhost:3000/r/{name}.json"
+  }
+}
 ```
 
-The CLI supports local registry JSON files directly, so you can test the install flow before hosting the registry.
+Start the local registry host:
+
+```bash
+pnpm dev
+```
+
+Primitive:
+
+```bash
+npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-toolbar
+```
+
+Starter:
+
+```bash
+npx shadcn@latest add @calendarcn/calendarcn
+```
+
+This mirrors the hosted install flow and keeps transitive registry dependencies
+working while you test the split primitive items locally.
 
 ## Verify the Registry
 
@@ -77,13 +128,25 @@ The CLI supports local registry JSON files directly, so you can test the install
 pnpm registry:check
 ```
 
-This rebuilds the registry, verifies the item is self-contained, and smoke
-tests installation into a temporary app.
+This rebuilds the registry, verifies dependency closures for every item, checks
+that user-facing items do not overwrite each other, and smoke tests `tsc` plus
+`next build` across the primitive and starter install matrix.
 
 ## Use the calendar
 
 ```tsx
-import { CalendarRoot } from "@/components/calendar"
+"use client"
+
+import { CalendarRoot } from "@/components/calendar/root"
+import { CalendarToolbar } from "@/components/calendar/toolbar"
 ```
 
-The registry item excludes the landing page demo and showcase data on purpose.
+Or the starter bundle:
+
+```tsx
+"use client"
+
+import { CalendarScheduler } from "@/components/calendar/scheduler"
+```
+
+The registry items exclude the landing page demo and showcase data on purpose.

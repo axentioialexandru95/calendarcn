@@ -16,31 +16,38 @@ export const calendarUsageSnippet = `"use client"
 import * as React from "react"
 
 import type {
+  CalendarClassNames,
   CalendarCreateOperation,
   CalendarEvent,
-  CalendarEventUpdateOperation,
   CalendarMoveOperation,
   CalendarResizeOperation,
   CalendarView,
-} from "@/components/calendar"
-import { CalendarRoot } from "@/components/calendar"
+} from "@/components/calendar/types"
+import { CalendarRoot } from "@/components/calendar/root"
+import { CalendarToolbar } from "@/components/calendar/toolbar"
 import {
-  applyEventUpdateOperation,
+  getRangeLabel,
   applyMoveOperation,
   applyResizeOperation,
   createEventFromOperation,
   shiftDate,
 } from "@/components/calendar/utils"
 
+const primitiveEventClassNames: CalendarClassNames = {
+  agendaEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+  monthEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+  timeGridEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+}
+
 export function TeamSchedule() {
   const [date, setDate] = React.useState(new Date())
   const [events, setEvents] = React.useState<CalendarEvent[]>([])
-  const [resourceFilter, setResourceFilter] = React.useState(["product"])
+  const [selectedEventId, setSelectedEventId] = React.useState<string>()
   const [view, setView] = React.useState<CalendarView>("week")
-
-  function handleNavigate(direction: -1 | 1) {
-    setDate((currentDate) => shiftDate(currentDate, view, direction))
-  }
+  const currentLabel = React.useMemo(() => getRangeLabel(date, view), [date, view])
 
   function handleCreate(operation: CalendarCreateOperation) {
     setEvents((currentEvents) => [
@@ -59,50 +66,55 @@ export function TeamSchedule() {
     setEvents((currentEvents) => applyResizeOperation(currentEvents, operation))
   }
 
-  function handleUpdate(operation: CalendarEventUpdateOperation) {
-    setEvents((currentEvents) =>
-      applyEventUpdateOperation(currentEvents, operation)
-    )
-  }
-
   return (
-    <CalendarRoot
-      date={date}
-      eventDetails
-      events={events}
-      keyboardShortcuts
-      onDateChange={setDate}
-      onEventCreate={handleCreate}
-      onEventMove={handleMove}
-      onEventResize={handleResize}
-      onEventUpdate={handleUpdate}
-      onNavigate={handleNavigate}
-      onResourceFilterChange={setResourceFilter}
-      onToday={() => setDate(new Date())}
-      onViewChange={setView}
-      resourceFilter={resourceFilter}
-      secondaryTimeZone="America/New_York"
-      showSecondaryTimeZone
-      view={view}
-    />
+    <div className="overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70">
+      <CalendarToolbar
+        activeResourceIds={[]}
+        availableViews={["month", "week", "day", "agenda"]}
+        currentLabel={currentLabel}
+        onNavigate={(direction) =>
+          setDate((currentDate) => shiftDate(currentDate, view, direction))
+        }
+        onToday={() => setDate(new Date())}
+        onViewChange={setView}
+        view={view}
+      />
+      <CalendarRoot
+        classNames={primitiveEventClassNames}
+        date={date}
+        events={events}
+        onEventCreate={handleCreate}
+        onEventMove={handleMove}
+        onEventResize={handleResize}
+        onSelectedEventChange={setSelectedEventId}
+        secondaryTimeZone="America/New_York"
+        selectedEventId={selectedEventId}
+        showSecondaryTimeZone
+        view={view}
+      />
+    </div>
   )
 }`
 
 export const calendarExamples = {
   basic: {
     group: "pattern",
-    highlights: ["Controlled state", "All core views", "Create, move, resize"],
+    highlights: ["Primitive root", "Separate toolbar", "Create, move, resize"],
     href: "/docs/calendar/patterns/starter",
     tabLabel: "Starter",
-    title: "Starter surface",
+    title: "Primitive starter",
     description:
-      "A controlled week calendar with local create, move, and resize handlers wired directly into state.",
+      "Compose `CalendarRoot` and `CalendarToolbar` directly when you want the smallest install surface and total source ownership.",
     filePath: "content/examples/calendar/basic.tsx",
     component: BasicCalendarExample,
   },
   workweek: {
     group: "pattern",
-    highlights: ["Compact density", "Weekday-only", "Business hour constraints"],
+    highlights: [
+      "Compact density",
+      "Weekday-only",
+      "Business hour constraints",
+    ],
     href: "/docs/calendar/patterns/workweek",
     tabLabel: "Workweek",
     title: "Workweek constraints",
@@ -113,7 +125,11 @@ export const calendarExamples = {
   },
   resources: {
     group: "pattern",
-    highlights: ["Resource lanes", "Shared interaction model", "Day + agenda views"],
+    highlights: [
+      "Resource lanes",
+      "Shared interaction model",
+      "Day + agenda views",
+    ],
     href: "/docs/calendar/patterns/resources",
     tabLabel: "Resources",
     title: "Resource lanes",
@@ -124,18 +140,26 @@ export const calendarExamples = {
   },
   interactions: {
     group: "pattern",
-    highlights: ["Optimistic updates", "Move confirmation", "Built-in create sheet"],
+    highlights: [
+      "Starter bundle",
+      "Move confirmation",
+      "Built-in create sheet",
+    ],
     href: "/docs/calendar/patterns/interactions",
     tabLabel: "Interactions",
     title: "Direct editing flow",
     description:
-      "Combine optimistic move and resize updates with create sheets and optional move confirmations.",
+      "Use the `CalendarScheduler` starter when you want the current full CalendarCN overlays and productized interaction flow.",
     filePath: "content/examples/calendar/interactions.tsx",
     component: InteractionCalendarExample,
   },
   month: {
     group: "view",
-    highlights: ["Long-range planning", "All-day spans", "Milestones and campaigns"],
+    highlights: [
+      "Long-range planning",
+      "All-day spans",
+      "Milestones and campaigns",
+    ],
     href: "/docs/calendar/views/month",
     tabLabel: "Month",
     title: "Month view",
@@ -146,7 +170,11 @@ export const calendarExamples = {
   },
   week: {
     group: "view",
-    highlights: ["Time grid planning", "Drag and resize", "Seven-day coordination"],
+    highlights: [
+      "Time grid planning",
+      "Drag and resize",
+      "Seven-day coordination",
+    ],
     href: "/docs/calendar/views/week",
     tabLabel: "Week",
     title: "Week view",
@@ -157,7 +185,11 @@ export const calendarExamples = {
   },
   day: {
     group: "view",
-    highlights: ["Single-day focus", "High detail", "Tighter daily coordination"],
+    highlights: [
+      "Single-day focus",
+      "High detail",
+      "Tighter daily coordination",
+    ],
     href: "/docs/calendar/views/day",
     tabLabel: "Day",
     title: "Day view",
@@ -168,7 +200,11 @@ export const calendarExamples = {
   },
   agenda: {
     group: "view",
-    highlights: ["List layout", "Upcoming schedule", "Great for mobile and read-only views"],
+    highlights: [
+      "List layout",
+      "Upcoming schedule",
+      "Great for mobile and read-only views",
+    ],
     href: "/docs/calendar/views/agenda",
     tabLabel: "Agenda",
     title: "Agenda view",
@@ -197,16 +233,13 @@ export const calendarApiSections = {
   core: {
     agendaDays: {
       default: "14",
-      description: "Number of days to include when the current view is `agenda`.",
+      description:
+        "Number of days to include when the current view is `agenda`.",
       type: "`number`",
     },
-    availableViews: {
-      description:
-        "Restrict the visible view switcher and resolve the current view against that list.",
-      type: "`CalendarView[]`",
-    },
     date: {
-      description: "Anchor date for the visible range. Required and fully controlled.",
+      description:
+        "Anchor date for the visible range. Required and fully controlled.",
       required: true,
       type: "`Date`",
     },
@@ -216,30 +249,6 @@ export const calendarApiSections = {
       required: true,
       type: "`CalendarEvent[]`",
     },
-    onDateChange: {
-      description: "Called when the calendar changes its anchor date.",
-      parameters: [
-        {
-          description: "The next anchor date for the current range.",
-          name: "date",
-        },
-      ],
-      required: true,
-      returns: "`void`",
-      type: "`(date) => void`",
-    },
-    onViewChange: {
-      description: "Called when the user switches between month, week, day, and agenda.",
-      parameters: [
-        {
-          description: "The next active view.",
-          name: "view",
-        },
-      ],
-      required: true,
-      returns: "`void`",
-      type: "`(view) => void`",
-    },
     view: {
       description:
         "Current visible mode. Use with `date` for a fully controlled calendar state model.",
@@ -248,24 +257,9 @@ export const calendarApiSections = {
     },
   },
   interactions: {
-    createEventSheet: {
-      description:
-        "Enable the built-in create sheet and optionally customize its labels and copy.",
-      type: "`boolean | { title?: string; description?: string; submitLabel?: string; cancelLabel?: string }`",
-    },
-    eventChangeConfirmation: {
-      description:
-        "Gate move and resize commits behind your own confirmation logic, labels, and copy.",
-      type: "`boolean | CalendarEventChangeConfirmation`",
-    },
-    onEventArchive: {
-      description: "Archive the selected occurrence from the built-in context menu.",
-      returns: "`void`",
-      type: "`(occurrence) => void`",
-    },
     onEventCreate: {
       description:
-        "Persist a newly created time range. Pair with `createEventFromOperation` for quick local state wiring.",
+        "Persist a newly created time range immediately. Pair with `createEventFromOperation` for quick local state wiring.",
       parameters: [
         {
           description: "The draft event timing and optional metadata.",
@@ -275,19 +269,21 @@ export const calendarApiSections = {
       returns: "`void`",
       type: "`(operation) => void`",
     },
-    onEventDelete: {
-      description: "Delete the selected occurrence from the built-in context menu.",
+    onEventCreateRequest: {
+      description:
+        "Intercept creates before they commit. Use this when your app opens a sheet, side panel, or custom form instead of inserting immediately.",
       returns: "`void`",
-      type: "`(occurrence) => void`",
+      type: "`(operation) => void`",
     },
-    onEventDuplicate: {
-      description: "Duplicate the selected occurrence from the built-in context menu.",
+    onEventContextMenu: {
+      description:
+        "Receive right-click and keyboard context-menu requests from the primitive surface so you can render your own menu or action panel.",
       returns: "`void`",
-      type: "`(occurrence) => void`",
+      type: "`(occurrence, position) => void`",
     },
     onEventMove: {
       description:
-        "Commit a drag move. The calendar already computes the next timing, so your handler can focus on persistence.",
+        "Commit a drag move immediately. The calendar already computes the next timing, so your handler can focus on persistence.",
       parameters: [
         {
           description: "Previous and next timing for the moved occurrence.",
@@ -297,15 +293,27 @@ export const calendarApiSections = {
       returns: "`void`",
       type: "`(operation) => void`",
     },
+    onEventMoveRequest: {
+      description:
+        "Intercept drag moves before they commit. Use this for confirmation dialogs or server-backed validation flows.",
+      returns: "`void`",
+      type: "`(operation) => void`",
+    },
     onEventResize: {
       description:
-        "Commit a resize change from the start or end handle with the resolved next range.",
+        "Commit a resize change immediately from the start or end handle with the resolved next range.",
       parameters: [
         {
           description: "Previous and next timing for the resized occurrence.",
           name: "operation",
         },
       ],
+      returns: "`void`",
+      type: "`(operation) => void`",
+    },
+    onEventResizeRequest: {
+      description:
+        "Intercept resize changes before they commit. Use this when resizing needs an extra confirmation or app-level approval step.",
       returns: "`void`",
       type: "`(operation) => void`",
     },
@@ -316,7 +324,7 @@ export const calendarApiSections = {
     },
     onEventUpdate: {
       description:
-        "Persist edits from the built-in details sheet or your own custom details renderer.",
+        "Persist edits from your own event details surface when you pair `CalendarRoot` with the optional event-sheet add-on.",
       parameters: [
         {
           description:
@@ -327,29 +335,11 @@ export const calendarApiSections = {
       returns: "`void`",
       type: "`(operation) => void`",
     },
-    onNavigate: {
-      description:
-        "Override previous and next navigation. If omitted, CalendarCN shifts the controlled `date` for you.",
-      parameters: [
-        {
-          description: "`-1` for backward navigation and `1` for forward navigation.",
-          name: "direction",
-        },
-      ],
-      returns: "`void`",
-      type: "`(direction) => void`",
-    },
     onSelectedEventChange: {
       description:
         "Control the currently selected occurrence if your app needs external selection state.",
       returns: "`void`",
       type: "`(occurrenceId?) => void`",
-    },
-    onToday: {
-      description:
-        "Override the default Today action. Useful when your examples or seeded schedules should reset to a fixed anchor date.",
-      returns: "`void`",
-      type: "`() => void`",
     },
     selectedEventId: {
       description:
@@ -384,17 +374,12 @@ export const calendarApiSections = {
     },
     resourceFilter: {
       description:
-        "Control the active resource filter from outside the toolbar. When omitted, the toolbar manages it internally.",
-      type: "`string[]`",
-    },
-    defaultResourceFilter: {
-      description:
-        "Uncontrolled initial resource selection for the built-in toolbar filter chips.",
+        "Control the active resource filter from outside the surface. The primitive root never owns this state internally.",
       type: "`string[]`",
     },
     onResourceFilterChange: {
       description:
-        "Called when the built-in resource filter chips change the visible calendar/resource selection.",
+        "Called when your own toolbar or controls update the visible calendar/resource selection.",
       type: "`(resourceIds) => void`",
     },
     secondaryTimeZone: {
@@ -416,19 +401,14 @@ export const calendarApiSections = {
   display: {
     classNames: {
       description:
-        "Per-slot class overrides for the root, toolbar, month cells, time-grid surface, agenda list, and drag overlay.",
+        "Per-slot class overrides for the root, toolbar, month cells, time-grid surface, agenda list, and drag overlay. Primitive `CalendarRoot` exposes event selection through `data-selected=true`, so use event slots like `timeGridEvent`, `monthEvent`, and `agendaEvent` when you want custom selected styling.",
       type: "`CalendarClassNames`",
     },
     density: {
       default: "`comfortable`",
-      description: "Toggle between the default surface density and a compact planner layout.",
-      type: "`\"comfortable\" | \"compact\"`",
-    },
-    surfaceShadow: {
-      default: "`\"none\"`",
       description:
-        "Optional elevation for the calendar root surface. Keep it flat by default, or opt into a preset drop shadow.",
-      type: "`\"none\" | \"sm\" | \"md\"`",
+        "Toggle between the default surface density and a compact planner layout.",
+      type: '`"comfortable" | "compact"`',
     },
     getEventColor: {
       description:
@@ -439,16 +419,6 @@ export const calendarApiSections = {
     hourCycle: {
       description: "Render time labels in 12-hour or 24-hour format.",
       type: "`12 | 24`",
-    },
-    eventDetails: {
-      description:
-        "Enable the built-in event details sheet and optionally customize its labels or open-on-select behavior.",
-      type: "`boolean | CalendarEventDetailsConfig`",
-    },
-    keyboardShortcuts: {
-      description:
-        "Enable the built-in keyboard shortcuts dialog and optional `?` key trigger.",
-      type: "`boolean | CalendarKeyboardShortcutsConfig`",
     },
     maxHour: {
       default: "23",
@@ -466,38 +436,16 @@ export const calendarApiSections = {
       returns: "`ReactNode`",
       type: "`CalendarEventRenderer`",
     },
-    renderEventDetails: {
-      description:
-        "Replace the built-in details sheet body while keeping the sheet lifecycle and open state in CalendarCN.",
-      returns: "`ReactNode`",
-      type: "`(props) => ReactNode`",
-    },
     renderEmptyState: {
       description:
         "Inject custom content for the empty schedule overlay when no visible events match the current view and filters.",
       returns: "`ReactNode`",
       type: "`(props) => ReactNode`",
     },
-    renderToolbarExtras: {
-      description:
-        "Render custom controls into the toolbar beside the built-in resource filter and view controls.",
-      returns: "`ReactNode`",
-      type: "`(props) => ReactNode`",
-    },
     scrollToTime: {
       description:
-        "Initial scroll position for day and week views. Use `\"now\"` or a `HH:mm` string.",
-      type: "`\"now\" | string`",
-    },
-    showCreatePreviewMeta: {
-      description:
-        "Show the live draft time range and duration while dragging out a new event on empty time slots.",
-      type: "`boolean`",
-    },
-    showDragPreviewMeta: {
-      description:
-        "Show duration metadata on drag and resize previews in the time grid and overlay.",
-      type: "`boolean`",
+        'Initial scroll position for day and week views. Use `"now"` or a `HH:mm` string.',
+      type: '`"now" | string`',
     },
     showSecondaryTimeZone: {
       description:

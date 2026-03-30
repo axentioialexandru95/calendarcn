@@ -437,7 +437,11 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
       )
 
       if (touch) {
-        updateTouchCreateDraftFromPoint(touchCreate, touch.clientX, touch.clientY)
+        updateTouchCreateDraftFromPoint(
+          touchCreate,
+          touch.clientX,
+          touch.clientY
+        )
       }
 
       event.preventDefault()
@@ -476,11 +480,7 @@ function CalendarTimeGridView(props: TimeGridViewProps) {
       window.removeEventListener("touchend", handleTouchEnd)
       window.removeEventListener("touchcancel", handleTouchCancel)
     }
-  }, [
-    activeTouchCreatePointerId,
-    clearTouchCreateState,
-    updateTouchCreateDraftFromPoint,
-  ])
+  }, [activeTouchCreatePointerId, clearTouchCreateState])
 
   React.useEffect(() => {
     return () => {

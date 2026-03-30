@@ -16,13 +16,19 @@ test.describe("calendar interactions", () => {
     await expect(currentLabel).toHaveText(initialLabel ?? "")
 
     await page.getByTestId("calendar-view-day").click()
-    await expect(page.getByTestId("calendar-event-focus-time-grid")).toBeVisible()
+    await expect(
+      page.getByTestId("calendar-event-focus-time-grid")
+    ).toBeVisible()
 
     await page.getByTestId("calendar-view-agenda").click()
-    await expect(page.getByTestId("calendar-event-planning-agenda")).toBeVisible()
+    await expect(
+      page.getByTestId("calendar-event-planning-agenda")
+    ).toBeVisible()
 
     await page.getByTestId("calendar-view-month").click()
-    await expect(page.getByTestId("calendar-event-planning-month")).toBeVisible()
+    await expect(
+      page.getByTestId("calendar-event-planning-month")
+    ).toBeVisible()
   })
 
   test("opens the create sheet and creates an appointment", async ({
@@ -68,6 +74,9 @@ test.describe("calendar interactions", () => {
     ).toBeVisible()
 
     const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
+    await focusEvent.click()
+    await expect(focusEvent).toHaveAttribute("data-selected", "true")
+
     const targetSlot = page
       .locator('[role="grid"]')
       .nth(2)
@@ -96,29 +105,81 @@ test.describe("calendar interactions", () => {
       { steps: 12 }
     )
     await expect(
+      page.locator('[data-calendar-drag-overlay="true"]')
+    ).toHaveCount(1)
+    await expect(
       page.locator('[data-calendar-drop-preview="time-grid"]')
     ).toHaveCount(1)
+    await expect(
+      page.getByTestId("calendar-resize-handle-focus-start")
+    ).toHaveCount(0)
+    await expect(
+      page.getByTestId("calendar-resize-handle-focus-end")
+    ).toHaveCount(0)
 
     const previewState = await page.evaluate(() => {
       const timedPreviewCount = document.querySelectorAll(
         '[data-calendar-drop-preview="time-grid"]'
       ).length
+      const dragOverlayCount = document.querySelectorAll(
+        '[data-calendar-drag-overlay="true"]'
+      ).length
       const highlightedTimedSlots = Array.from(
         document.querySelectorAll('[data-calendar-drop-target-kind="slot"]')
-      ).filter((element) =>
-        element.className.includes("bg-muted/70")
-      ).length
+      ).filter((element) => element.className.includes("bg-muted/70")).length
+      const sourceEventStates = Array.from(
+        document.querySelectorAll('[data-calendar-event-id="focus"]')
+      )
+        .filter(
+          (element) =>
+            !element.closest('[data-calendar-drag-overlay="true"]') &&
+            element instanceof HTMLButtonElement
+        )
+        .map((element) => ({
+          className: element.className,
+          selected: element.getAttribute("data-selected"),
+        }))
 
       return {
+        dragOverlayCount,
         highlightedTimedSlots,
+        sourceEventStates,
         timedPreviewCount,
       }
     })
 
     await page.mouse.up()
 
+    expect(previewState.dragOverlayCount).toBe(1)
     expect(previewState.timedPreviewCount).toBe(1)
     expect(previewState.highlightedTimedSlots).toBe(0)
+    expect(previewState.sourceEventStates).toEqual([
+      expect.objectContaining({
+        className: expect.stringContaining("opacity-0"),
+        selected: "true",
+      }),
+    ])
+  })
+
+  test("starter wrapper injects the default selected event styling", async ({
+    page,
+  }) => {
+    await page.goto("/calendar-lab")
+
+    const planningEvent = page.getByTestId("calendar-event-planning-time-grid")
+    await expect(planningEvent).toBeVisible()
+
+    await planningEvent.click()
+
+    await expect(planningEvent).toHaveAttribute("data-selected", "true")
+    await expect(planningEvent).toHaveAttribute(
+      "class",
+      /data-\[selected=true\]:border-ring/
+    )
+    await expect(planningEvent).toHaveAttribute(
+      "class",
+      /data-\[selected=true\]:ring-2/
+    )
   })
 
   test("archives an event from the context menu", async ({ page }) => {
@@ -132,9 +193,9 @@ test.describe("calendar interactions", () => {
     await page.keyboard.press("ArrowDown")
     await page.keyboard.press("Enter")
 
-    await expect(page.getByTestId("calendar-event-handoff-time-grid")).toHaveCount(
-      0
-    )
+    await expect(
+      page.getByTestId("calendar-event-handoff-time-grid")
+    ).toHaveCount(0)
   })
 
   test("blocks timed keyboard moves that overlap unavailable ranges", async ({
@@ -166,9 +227,9 @@ test.describe("calendar interactions", () => {
     await page.keyboard.press("ArrowDown")
     await page.keyboard.press("Enter")
 
-    await expect(page.getByTestId("calendar-event-planning-time-grid")).toHaveCount(
-      0
-    )
+    await expect(
+      page.getByTestId("calendar-event-planning-time-grid")
+    ).toHaveCount(0)
   })
 
   test("resizes an event through the keyboard path without a stale intermediate state", async ({
@@ -196,9 +257,7 @@ test.describe("calendar interactions", () => {
     await planningEvent.focus()
     await page.keyboard.press("ArrowUp")
 
-    const dialog = page.getByTestId(
-      "calendar-event-change-confirmation-dialog"
-    )
+    const dialog = page.getByTestId("calendar-event-change-confirmation-dialog")
     await expect(dialog).toBeVisible()
     await expect(dialog).toContainText("Planning review")
 
@@ -244,10 +303,14 @@ test.describe("calendar interactions", () => {
   }) => {
     await page.goto("/calendar-lab/details")
 
-    await expect(page.getByTestId("calendar-event-crit-time-grid")).toHaveCount(0)
+    await expect(page.getByTestId("calendar-event-crit-time-grid")).toHaveCount(
+      0
+    )
 
     await page.getByRole("button", { name: "Design" }).click()
-    await expect(page.getByTestId("calendar-event-crit-time-grid")).toBeVisible()
+    await expect(
+      page.getByTestId("calendar-event-crit-time-grid")
+    ).toBeVisible()
 
     await page.getByTestId("calendar-event-crit-time-grid").click()
 
@@ -258,13 +321,15 @@ test.describe("calendar interactions", () => {
       .evaluate((element) => {
         ;(element as HTMLButtonElement).click()
       })
-    await detailsSheet.locator("#calendar-details-title").fill("Interface critique")
+    await detailsSheet
+      .locator("#calendar-details-title")
+      .fill("Interface critique")
     await detailsSheet.locator("#calendar-details-location").fill("Design lab")
     await detailsSheet.getByTestId("calendar-event-details-submit").click()
 
-    await expect(page.getByTestId("calendar-event-crit-time-grid")).toContainText(
-      "Interface critique"
-    )
+    await expect(
+      page.getByTestId("calendar-event-crit-time-grid")
+    ).toContainText("Interface critique")
   })
 
   test("opens the keyboard shortcuts dialog from the toolbar", async ({
@@ -272,11 +337,9 @@ test.describe("calendar interactions", () => {
   }) => {
     await page.goto("/calendar-lab/details")
 
-    await page
-      .getByTestId("calendar-toolbar-shortcuts")
-      .evaluate((element) => {
-        ;(element as HTMLButtonElement).click()
-      })
+    await page.getByTestId("calendar-toolbar-shortcuts").evaluate((element) => {
+      ;(element as HTMLButtonElement).click()
+    })
 
     const dialog = page.getByTestId("calendar-keyboard-shortcuts-dialog")
     await expect(dialog).toBeVisible()

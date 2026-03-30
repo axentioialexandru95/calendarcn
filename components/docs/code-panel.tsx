@@ -83,7 +83,11 @@ export function CodePanel({ className, code, fileName, lang }: CodePanelProps) {
         className: cn(
           "my-0 overflow-hidden rounded-[1.5rem] border border-zinc-800 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.45)]",
           "[&>div:first-child]:h-auto [&>div:first-child]:border-zinc-800 [&>div:first-child]:bg-zinc-950 [&>div:first-child]:px-4 [&>div:first-child]:py-3 [&>div:first-child]:text-zinc-400",
-          "[&_.shiki]:text-[13px] [&_.shiki]:leading-6 [&_.shiki]:font-mono [&_.shiki]:[tab-size:2]",
+          "max-sm:[&_pre]:w-full max-sm:[&_pre]:max-w-full max-sm:[&_pre]:break-words max-sm:[&_pre]:whitespace-pre-wrap",
+          "max-sm:[&_code]:w-full max-sm:[&_code]:max-w-full",
+          "[&_.shiki]:font-mono [&_.shiki]:text-[13px] [&_.shiki]:leading-6 [&_.shiki]:[tab-size:2]",
+          "max-sm:[&_.shiki]:text-[12px] max-sm:[&_.shiki]:leading-5 max-sm:[&_.shiki]:break-words max-sm:[&_.shiki]:whitespace-pre-wrap",
+          "max-sm:[&_.line]:break-words max-sm:[&_.line]:whitespace-pre-wrap",
           "[&_figcaption]:font-mono [&_figcaption]:text-xs",
           className
         ),
@@ -97,7 +101,8 @@ export function CodePanel({ className, code, fileName, lang }: CodePanelProps) {
         keepBackground: true,
         title: fileName ?? "source.tsx",
         viewportProps: {
-          className: "max-h-[42rem] overflow-auto px-0 py-0",
+          className:
+            "max-h-[42rem] overflow-auto px-0 py-0 max-sm:overflow-x-hidden",
         },
       }}
       lang={lang ?? inferLanguage(fileName)}

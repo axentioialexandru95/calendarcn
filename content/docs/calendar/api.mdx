@@ -1,10 +1,12 @@
 ---
 title: API
-description: Prop and event reference for CalendarRoot, including core state, interaction callbacks, scheduling controls, and display options.
+description: Prop and event reference for the primitive `CalendarRoot` surface, plus the scheduling helpers used around it.
 ---
 
-Use this page as the typed reference for `CalendarRoot` and the scheduling helpers
-that support controlled integrations.
+Use this page as the typed reference for the primitive `CalendarRoot` surface
+and the scheduling helpers that support controlled integrations. For the
+composed starter bundle, install `calendarcn` and import
+`CalendarScheduler` from `@/components/calendar/scheduler`.
 
 ## Core State
 
@@ -19,5 +21,10 @@ that support controlled integrations.
 <ApiTable section="scheduling" />
 
 ## Display
+
+Primitive display slots are intentionally neutral. Event selection still sets
+`data-selected="true"` on the rendered event surface, but visible selected
+chrome is expected to come from your `classNames` overrides unless you use the
+starter `CalendarScheduler` wrapper.
 
 <ApiTable section="display" />

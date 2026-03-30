@@ -4,9 +4,11 @@ description: Install CalendarCN, preview the main examples, and wire the calenda
 ---
 
 <Callout type="info">
-  CalendarCN installs source into your app. The docs below focus on wiring the
-  calendar into controlled React state so drag, resize, and creation behavior
-  stay explicit and easy to persist.
+  CalendarCN installs source into your app. The primary path is now primitive:
+  `CalendarRoot` for the surface, `CalendarToolbar` for navigation, and optional
+  add-ons for sheets, menus, and shortcut docs. `CalendarScheduler` remains
+  available as the starter bundle when you want the current full CalendarCN
+  behavior in one install.
 </Callout>
 
 ## Preview
@@ -40,26 +42,32 @@ teams need to wire up.
 - Event cards stay as buttons. Arrow keys move a selected event, `Shift + Arrow`
   resizes the end, `Alt + Arrow` resizes the start, and `Shift + F10` opens the
   event context menu.
-- Confirmation, create, details, and keyboard-shortcuts overlays all use modal
-  dialogs with focus trap, escape handling, overlay dismiss, and focus restore.
 - Month uses grid semantics and agenda uses list semantics so assistive
   technology gets the same structural cues as the visual layout.
-- Press `?` anywhere outside inputs to open the shortcuts dialog when keyboard
-  shortcuts are enabled.
+- The optional sheets, confirmation dialog, and shortcuts dialog add-ons all
+  use modal focus management with escape handling, overlay dismiss, and focus
+  restore.
 
 ## Notes
 
 - `CalendarRoot` is fully controlled. Keep `date`, `view`, and `events` in your
   own state or wire them into your store.
+- `CalendarToolbar` is separate on purpose. Primitive installs keep navigation,
+  view switching, and quick actions outside the surface component.
+- `CalendarRoot` exposes selected events through `data-selected="true"` on the
+  event surface. Primitive installs should style selected state through
+  `classNames` or CSS selectors, while `CalendarScheduler` already ships with
+  starter defaults for selected events.
 - The utility helpers in `@/components/calendar/utils` are the fastest path to
   local optimistic handlers for move, resize, and create flows.
+- Use `onEventCreateRequest`, `onEventMoveRequest`, and
+  `onEventResizeRequest` when your app wants to open a sheet or confirmation
+  dialog before committing a change.
 - `resources`, `businessHours`, and `blockedRanges` are optional. The same core
   interaction model works with or without them.
-- Use `eventDetails`, `keyboardShortcuts`, `resourceFilter`, and
-  `secondaryTimeZone` to productize the base surface without forking the core
-  views.
-- Use `eventChangeConfirmation` when your app needs to gate schedule changes
-  behind a dialog or persistence check.
+- `CalendarScheduler` is the starter bundle. Use it when you want the current
+  composed toolbar, create/details sheets, confirmation dialog, and shortcuts
+  dialog out of the box.
 - `exportEventsToICS`, `parseICSText`, and `parseICSFile` live in
   `@/components/calendar/utils` for import and export workflows outside the
   rendered calendar.

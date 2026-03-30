@@ -39,7 +39,7 @@
   "snapshot": {
     "eyebrow": "What you get",
     "title": "A scheduler that fits inside an existing product.",
-    "body": "Use the full CalendarRoot surface or compose the exported views yourself. The same event and resource contracts power both the demo and the library.",
+    "body": "Install the primitive surface, pair it with the toolbar, or keep composing down to the exported views. The same event and resource contracts power both the demo and the open-code registry items.",
     "viewCountLabel": "Views",
     "slotCountLabel": "Style slots",
     "metrics": [
@@ -55,7 +55,9 @@
     "viewsLabel": "Exported views",
     "importLabel": "Quick import",
     "importLines": [
-      "import { CalendarRoot, type CalendarEvent } from \"@/components/calendar\"",
+      "import { CalendarRoot } from \"@/components/calendar/root\"",
+      "import { CalendarToolbar } from \"@/components/calendar/toolbar\"",
+      "import type { CalendarEvent } from \"@/components/calendar/types\"",
       "",
       "const events: CalendarEvent[] = [",
       "  { id: \"kickoff\", title: \"Kickoff\", start, end, resourceId: \"product\" },",
@@ -65,19 +67,19 @@
   "components": {
     "eyebrow": "Exports",
     "title": "Composable building blocks for shipping scheduling UI.",
-    "body": "CalendarCN is structured as a reusable library. Use the full scheduler shell or pull in the toolbar, individual views, types, and slots where they fit.",
+    "body": "CalendarCN is structured as open code for shadcn-style installs. Use the primitive surface, the starter scheduler, or pull in the toolbar, individual views, types, and slots where they fit.",
     "items": [
       {
         "name": "CalendarRoot",
-        "title": "The orchestrator for the full schedule",
+        "title": "The primitive scheduling surface",
         "body": "It coordinates visible range, recurrence expansion, selection, drag and resize interactions, and view rendering from one controlled API.",
-        "detail": "Use it when you want a complete scheduler surface without moving persistence or business rules into the component."
+        "detail": "Use it when you want the calendar surface without baking toolbar, sheets, or persistence rules into the component."
       },
       {
         "name": "CalendarToolbar",
         "title": "Navigation wired to calendar state",
         "body": "Previous, next, today, and view switching already line up with the calendar API, so you are not rebuilding basic controls around every embed.",
-        "detail": "Keep the default toolbar or restyle it to match the surrounding app shell."
+        "detail": "Install it separately when you want the lean primitive path, or swap it for your own controls."
       },
       {
         "name": "Views",
@@ -123,31 +125,45 @@
   "integration": {
     "eyebrow": "Integration model",
     "title": "Own the state. Let the calendar handle the surface.",
-    "body": "CalendarCN is designed as a controlled component. Your app keeps the source of truth for date, view, events, and persistence; the calendar turns that into visible occurrences and interaction callbacks.",
+    "body": "CalendarCN is designed as controlled open code. Your app keeps the source of truth for date, view, events, and persistence; the calendar turns that into visible occurrences and interaction callbacks.",
     "codeTitle": "Controlled setup",
     "codeLines": [
-      "import { CalendarRoot, type CalendarEvent } from \"@/components/calendar\"",
+      "\"use client\"",
+      "",
+      "import { CalendarRoot } from \"@/components/calendar/root\"",
+      "import { CalendarToolbar } from \"@/components/calendar/toolbar\"",
+      "import type { CalendarEvent, CalendarView } from \"@/components/calendar/types\"",
+      "import { getRangeLabel, shiftDate } from \"@/components/calendar/utils\"",
       "",
       "const [events, setEvents] = useState<CalendarEvent[]>(seed)",
       "const [date, setDate] = useState(new Date())",
-      "const [view, setView] = useState(\"week\")",
+      "const [view, setView] = useState<CalendarView>(\"week\")",
+      "const currentLabel = getRangeLabel(date, view)",
       "const blockedRanges = [{ id: \"lunch\", start, end }]",
       "",
-      "<CalendarRoot",
-      "  availableViews={[\"week\", \"day\", \"agenda\"]}",
-      "  hiddenDays={[0, 6]}",
-      "  businessHours={[{ days: [1, 2, 3, 4, 5], start: \"09:00\", end: \"18:00\" }]}",
-      "  blockedRanges={blockedRanges}",
-      "  density=\"compact\"",
-      "  date={date}",
-      "  events={events}",
-      "  hourCycle={24}",
-      "  locale=\"en-GB\"",
-      "  scrollToTime=\"08:30\"",
-      "  view={view}",
-      "  onDateChange={setDate}",
-      "  onViewChange={setView}",
-      "/>"
+      "<>",
+      "  <CalendarToolbar",
+      "    activeResourceIds={[]}",
+      "    availableViews={[\"week\", \"day\", \"agenda\"]}",
+      "    currentLabel={currentLabel}",
+      "    onNavigate={(direction) => setDate((currentDate) => shiftDate(currentDate, view, direction))}",
+      "    onToday={() => setDate(new Date())}",
+      "    onViewChange={setView}",
+      "    view={view}",
+      "  />",
+      "  <CalendarRoot",
+      "    hiddenDays={[0, 6]}",
+      "    businessHours={[{ days: [1, 2, 3, 4, 5], start: \"09:00\", end: \"18:00\" }]}",
+      "    blockedRanges={blockedRanges}",
+      "    density=\"compact\"",
+      "    date={date}",
+      "    events={events}",
+      "    hourCycle={24}",
+      "    locale=\"en-GB\"",
+      "    scrollToTime=\"08:30\"",
+      "    view={view}",
+      "  />",
+      "</>"
     ],
     "flow": [
       {

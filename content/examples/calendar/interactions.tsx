@@ -10,8 +10,8 @@ import type {
   CalendarMoveOperation,
   CalendarResizeOperation,
   CalendarView,
-} from "@/components/calendar"
-import { CalendarRoot } from "@/components/calendar"
+} from "@/components/calendar/types"
+import { CalendarScheduler } from "@/components/calendar/scheduler"
 import {
   applyMoveOperation,
   applyResizeOperation,
@@ -83,7 +83,7 @@ export function InteractionCalendarExample() {
   }
 
   return (
-    <CalendarRoot
+    <CalendarScheduler
       classNames={docsCalendarExampleClassNames}
       createEventSheet={{
         title: "New appointment",

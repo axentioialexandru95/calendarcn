@@ -8,8 +8,8 @@ import type {
   CalendarEvent,
   CalendarMoveOperation,
   CalendarResizeOperation,
-} from "@/components/calendar"
-import { CalendarRoot } from "@/components/calendar"
+} from "@/components/calendar/types"
+import { CalendarScheduler } from "@/components/calendar/scheduler"
 import {
   applyMoveOperation,
   applyResizeOperation,
@@ -79,7 +79,7 @@ export function AgendaCalendarExample() {
   }
 
   return (
-    <CalendarRoot
+    <CalendarScheduler
       agendaDays={8}
       availableViews={["agenda"]}
       classNames={docsCalendarExampleClassNames}

@@ -1,16 +1,16 @@
 ---
 title: Starter
-description: The default controlled calendar setup with create, move, and resize handlers wired into local state.
+description: The primitive controlled calendar setup with `CalendarRoot` and `CalendarToolbar` wired into local state.
 ---
 
 ## Starter Surface
 
 <CalendarExample id="basic" />
 
-Use this version when you want the smallest controlled integration that still
-shows the full interaction model: local state, optimistic updates, direct event
-creation, and the standard multi-view toolbar.
+Use this version when you want the smallest controlled integration: separate
+surface and toolbar primitives, local state, optimistic updates, and direct
+event creation without the bundled overlays.
 
-- Best for your first install of `CalendarRoot`
+- Best for your first install of `calendar-core` + `calendar-toolbar`
 - Good base for product scheduling or internal team calendars
 - Keeps all views available so users can switch between month, week, day, and agenda

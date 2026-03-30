@@ -3,8 +3,10 @@ import * as React from "react"
 import type {
   CalendarCreateOperation,
   CalendarEvent,
+  CalendarEventCreateDefaults,
   CalendarEventUpdateOperation,
   CalendarMoveOperation,
+  CalendarOccurrence,
   CalendarResizeOperation,
   CalendarView,
 } from "@/components/calendar/types"
@@ -19,31 +21,60 @@ import {
   shiftDate,
 } from "@/components/calendar/utils"
 
-type UseCalendarControllerOptions = {
+export type UseCalendarControllerOptions = {
   availableViews?: CalendarView[]
   initialDate?: Date
   initialEvents?: CalendarEvent[]
   initialView?: CalendarView
-  createDefaults?: Partial<CalendarEvent>
+  createDefaults?: CalendarEventCreateDefaults
+}
+
+export type UseCalendarControllerResult = {
+  date: Date
+  events: CalendarEvent[]
+  goToToday: () => void
+  isPending: boolean
+  selectedEventId: string | undefined
+  setDate: (nextDate: Date) => void
+  setEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>
+  setSelectedEventId: React.Dispatch<React.SetStateAction<string | undefined>>
+  setView: (nextView: CalendarView) => void
+  step: (direction: -1 | 1) => void
+  view: CalendarView
+  handleEventCreate: (operation: CalendarCreateOperation) => void
+  handleEventArchive: (occurrence: CalendarOccurrence) => void
+  handleEventDelete: (occurrence: CalendarOccurrence) => void
+  handleEventDuplicate: (occurrence: CalendarOccurrence) => void
+  handleEventMove: (operation: CalendarMoveOperation) => void
+  handleEventResize: (operation: CalendarResizeOperation) => void
+  handleEventUpdate: (operation: CalendarEventUpdateOperation) => void
 }
 
 export function useCalendarController(
   options: UseCalendarControllerOptions = {}
-) {
-  const [events, setEvents] = React.useState(options.initialEvents ?? [])
+): UseCalendarControllerResult {
+  const [events, setEvents] = React.useState<CalendarEvent[]>(
+    options.initialEvents ?? []
+  )
   const availableViews = React.useMemo(
     () => normalizeAvailableViews(options.availableViews),
     [options.availableViews]
   )
-  const [date, setDateState] = React.useState(options.initialDate ?? new Date())
+  const [date, setDateState] = React.useState<Date>(
+    options.initialDate ?? new Date()
+  )
   const [view, setViewState] = React.useState<CalendarView>(
     resolveCalendarView(options.initialView ?? "week", availableViews)
   )
-  const [selectedEventId, setSelectedEventId] = React.useState<string>()
+  const [selectedEventId, setSelectedEventId] = React.useState<
+    string | undefined
+  >()
   const [isPending, startTransition] = React.useTransition()
 
   React.useEffect(() => {
-    setViewState((currentView) => resolveCalendarView(currentView, availableViews))
+    setViewState((currentView) =>
+      resolveCalendarView(currentView, availableViews)
+    )
   }, [availableViews])
 
   function setDate(nextDate: Date) {
@@ -105,16 +136,14 @@ export function useCalendarController(
     })
   }
 
-  function handleEventDuplicate(
-    occurrence: CalendarMoveOperation["occurrence"]
-  ) {
+  function handleEventDuplicate(occurrence: CalendarOccurrence) {
     setEvents((currentEvents) => [
       ...currentEvents,
       duplicateOccurrenceAsEvent(occurrence),
     ])
   }
 
-  function handleEventArchive(occurrence: CalendarMoveOperation["occurrence"]) {
+  function handleEventArchive(occurrence: CalendarOccurrence) {
     setEvents((currentEvents) =>
       currentEvents.map((event) => {
         if (event.id !== occurrence.sourceEventId) {
@@ -130,7 +159,7 @@ export function useCalendarController(
     setSelectedEventId(undefined)
   }
 
-  function handleEventDelete(occurrence: CalendarMoveOperation["occurrence"]) {
+  function handleEventDelete(occurrence: CalendarOccurrence) {
     setEvents((currentEvents) =>
       currentEvents.filter((event) => event.id !== occurrence.sourceEventId)
     )
@@ -138,7 +167,9 @@ export function useCalendarController(
   }
 
   function handleEventUpdate(operation: CalendarEventUpdateOperation) {
-    setEvents((currentEvents) => applyEventUpdateOperation(currentEvents, operation))
+    setEvents((currentEvents) =>
+      applyEventUpdateOperation(currentEvents, operation)
+    )
   }
 
   return {

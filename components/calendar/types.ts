@@ -8,6 +8,11 @@ export type CalendarDensity = "comfortable" | "compact"
 
 export type CalendarSurfaceShadow = "none" | "sm" | "md"
 
+export type CalendarEventMenuPosition = {
+  x: number
+  y: number
+}
+
 export const calendarEventVariants = [
   "month",
   "all-day",
@@ -53,10 +58,7 @@ export type CalendarBusinessHoursWindow = {
   end: string
 }
 
-export type CalendarRecurrenceEditScope =
-  | "occurrence"
-  | "following"
-  | "series"
+export type CalendarRecurrenceEditScope = "occurrence" | "following" | "series"
 
 export type CalendarBlockedRange = {
   id: string
@@ -115,6 +117,24 @@ export type CalendarEvent = {
   canUpdate?: boolean
   data?: Record<string, unknown>
 }
+
+export type CalendarEventCreateDefaults = Partial<
+  Pick<
+    CalendarEvent,
+    | "allDay"
+    | "archived"
+    | "calendarId"
+    | "calendarLabel"
+    | "color"
+    | "data"
+    | "description"
+    | "location"
+    | "readOnly"
+    | "resourceId"
+    | "timeZone"
+    | "title"
+  >
+>
 
 export type CalendarOccurrence = CalendarEvent & {
   occurrenceId: string

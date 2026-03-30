@@ -10,8 +10,8 @@ import type {
   CalendarResizeOperation,
   CalendarResource,
   CalendarView,
-} from "@/components/calendar"
-import { CalendarRoot } from "@/components/calendar"
+} from "@/components/calendar/types"
+import { CalendarScheduler } from "@/components/calendar/scheduler"
 import {
   applyMoveOperation,
   applyResizeOperation,
@@ -107,7 +107,7 @@ export function ResourceCalendarExample() {
   }
 
   return (
-    <CalendarRoot
+    <CalendarScheduler
       availableViews={["day", "agenda"]}
       classNames={docsCalendarExampleClassNames}
       date={date}
