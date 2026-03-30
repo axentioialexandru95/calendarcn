@@ -132,6 +132,27 @@ This rebuilds the registry, verifies dependency closures for every item, checks
 that user-facing items do not overwrite each other, and smoke tests `tsc` plus
 `next build` across the primitive and starter install matrix.
 
+## Run WebKit Tests From Docker
+
+On rolling distros like Arch, Playwright WebKit can fail on missing system
+libraries even when Chromium and Firefox pass. Use the Docker wrapper instead
+of trying to satisfy those native deps locally:
+
+```bash
+pnpm test:e2e:webkit:docker
+```
+
+You can forward normal Playwright filters too:
+
+```bash
+pnpm test:e2e:webkit:docker -- tests/e2e/calendar.spec.ts --grep "calendar interactions"
+```
+
+The wrapper uses the official Playwright Docker image that matches the locally
+installed Playwright version, mounts the repo into the container, and runs the
+WebKit project there so Safari coverage is reproducible on unsupported Linux
+hosts.
+
 ## Use the calendar
 
 ```tsx
