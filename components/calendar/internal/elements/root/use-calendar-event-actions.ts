@@ -29,15 +29,9 @@ import {
   setMinuteOfDay,
   shiftDate,
 } from "../../../utils"
-import type {
-  CalendarEventMenuPosition,
-  CalendarRootProps,
-} from "../../shared"
+import type { CalendarEventMenuPosition, CalendarRootProps } from "../../shared"
 
-import {
-  getMoveOperation,
-  getResizeOperation,
-} from "./root-utils"
+import { getMoveOperation, getResizeOperation } from "./root-utils"
 
 type UseCalendarEventActionsOptions = {
   createEventSheet: CalendarRootProps["createEventSheet"]
@@ -121,9 +115,12 @@ export function useCalendarEventActions({
   const [isKeyboardShortcutsOpen, setIsKeyboardShortcutsOpen] =
     React.useState(false)
   const [liveAnnouncement, setLiveAnnouncement] = React.useState("")
-  const eventDetailsEnabled = eventDetails !== undefined && eventDetails !== false
+  const eventDetailsEnabled =
+    eventDetails !== undefined && eventDetails !== false
   const openEventDetailsOnSelect =
-    typeof eventDetails === "object" ? eventDetails.openOnSelect ?? true : true
+    typeof eventDetails === "object"
+      ? (eventDetails.openOnSelect ?? true)
+      : true
   const keyboardShortcutsEnabled =
     keyboardShortcuts !== undefined && keyboardShortcuts !== false
   const keyboardShortcutsTrigger =
@@ -150,10 +147,7 @@ export function useCalendarEventActions({
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
-        !(
-          event.key === "?" ||
-          (event.key === "/" && event.shiftKey)
-        )
+        !(event.key === "?" || (event.key === "/" && event.shiftKey))
       ) {
         return
       }
@@ -280,8 +274,9 @@ export function useCalendarEventActions({
     operation: CalendarCreateOperation
   ): CalendarCreateOperation {
     const defaultResource =
-      resources?.find((resource) => resolvedResourceFilter.includes(resource.id)) ??
-      resources?.[0]
+      resources?.find((resource) =>
+        resolvedResourceFilter.includes(resource.id)
+      ) ?? resources?.[0]
 
     return {
       calendarId: operation.calendarId ?? defaultResource?.id,
@@ -298,7 +293,9 @@ export function useCalendarEventActions({
       return
     }
 
-    if (shouldBlockTimedRange(operation.start, operation.end, operation.allDay)) {
+    if (
+      shouldBlockTimedRange(operation.start, operation.end, operation.allDay)
+    ) {
       announce("Blocked time is unavailable.")
       return "Blocked time is unavailable."
     }
@@ -416,12 +413,12 @@ export function useCalendarEventActions({
       return
     }
 
-    const previousEvent =
-      optimisticEvents.find((event) => event.id === detailsOccurrence.sourceEventId) ??
-      {
-        ...detailsOccurrence,
-        id: detailsOccurrence.sourceEventId,
-      }
+    const previousEvent = optimisticEvents.find(
+      (event) => event.id === detailsOccurrence.sourceEventId
+    ) ?? {
+      ...detailsOccurrence,
+      id: detailsOccurrence.sourceEventId,
+    }
     const operation = {
       occurrence: detailsOccurrence,
       nextEvent,
@@ -452,14 +449,12 @@ export function useCalendarEventActions({
     )
   }
 
-  function requestEventChange(
-    context: CalendarEventChangeConfirmationContext
-  ) {
+  function requestEventChange(context: CalendarEventChangeConfirmationContext) {
     closeContextMenu()
 
     const allDay =
       context.action === "move"
-        ? context.allDay ?? context.occurrence.allDay
+        ? (context.allDay ?? context.occurrence.allDay)
         : context.occurrence.allDay
 
     if (shouldBlockTimedRange(context.nextStart, context.nextEnd, allDay)) {

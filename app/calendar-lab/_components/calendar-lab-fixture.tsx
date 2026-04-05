@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { set } from "date-fns"
 
 import {
   type CalendarEvent,
@@ -11,11 +10,13 @@ import {
 import { CalendarScheduler } from "@/components/calendar/scheduler"
 import { useCalendarController } from "@/hooks/use-calendar-controller"
 import {
+  CALENDAR_DEMO_TIME_ZONE,
   buildDemoBlockedRanges,
   buildDemoBusinessHours,
   buildDemoEvents,
   buildDemoResources,
 } from "@/lib/calendar-demo-data"
+import { setDateInTimeZone } from "@/lib/timezone-date"
 
 type CalendarLabScenario = "confirm" | "default" | "details" | "recurrence"
 
@@ -114,7 +115,7 @@ export function CalendarLabFixture({
           }
           scrollToTime="08:00"
           selectedEventId={controller.selectedEventId}
-          timeZone="Europe/Bucharest"
+          timeZone={CALENDAR_DEMO_TIME_ZONE}
           view={controller.view}
         />
       </div>
@@ -137,17 +138,15 @@ function buildScenarioEvents(
     {
       id: "daily-sync",
       title: "Daily sync",
-      start: set(initialDate, {
+      start: setDateInTimeZone(initialDate, CALENDAR_DEMO_TIME_ZONE, {
         hours: 8,
         minutes: 0,
         seconds: 0,
-        milliseconds: 0,
       }),
-      end: set(initialDate, {
+      end: setDateInTimeZone(initialDate, CALENDAR_DEMO_TIME_ZONE, {
         hours: 8,
         minutes: 30,
         seconds: 0,
-        milliseconds: 0,
       }),
       color: "#2563eb",
       calendarId: "product",

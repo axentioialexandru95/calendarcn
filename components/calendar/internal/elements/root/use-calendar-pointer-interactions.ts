@@ -83,27 +83,37 @@ export function useCalendarPointerInteractions({
   const dragTouchScrollReleaseRef = React.useRef<(() => void) | null>(null)
   const resizeTouchScrollReleaseRef = React.useRef<(() => void) | null>(null)
 
-  const updateActiveDrag = React.useCallback((nextDrag: CalendarDragData | null) => {
-    activeDragRef.current = nextDrag
-    setActiveDrag(nextDrag)
-  }, [])
+  const updateActiveDrag = React.useCallback(
+    (nextDrag: CalendarDragData | null) => {
+      activeDragRef.current = nextDrag
+      setActiveDrag(nextDrag)
+    },
+    []
+  )
 
-  const updateActiveDragInteraction = React.useCallback((
-    nextInteraction: ActiveDragInteraction | null
-  ) => {
-    activeDragInteractionRef.current = nextInteraction
-    setActiveDragInteraction(nextInteraction)
-  }, [])
+  const updateActiveDragInteraction = React.useCallback(
+    (nextInteraction: ActiveDragInteraction | null) => {
+      activeDragInteractionRef.current = nextInteraction
+      setActiveDragInteraction(nextInteraction)
+    },
+    []
+  )
 
-  const updateActiveResize = React.useCallback((nextResize: ActiveResizeState | null) => {
-    activeResizeRef.current = nextResize
-    setActiveResize(nextResize)
-  }, [])
+  const updateActiveResize = React.useCallback(
+    (nextResize: ActiveResizeState | null) => {
+      activeResizeRef.current = nextResize
+      setActiveResize(nextResize)
+    },
+    []
+  )
 
-  const updateActiveDragOffsetMinutes = React.useCallback((nextOffsetMinutes: number) => {
-    activeDragOffsetMinutesRef.current = nextOffsetMinutes
-    setActiveDragOffsetMinutes(nextOffsetMinutes)
-  }, [])
+  const updateActiveDragOffsetMinutes = React.useCallback(
+    (nextOffsetMinutes: number) => {
+      activeDragOffsetMinutesRef.current = nextOffsetMinutes
+      setActiveDragOffsetMinutes(nextOffsetMinutes)
+    },
+    []
+  )
 
   const updateActiveDragRect = React.useCallback((nextRect: DOMRect | null) => {
     activeDragRectRef.current = nextRect
@@ -220,6 +230,9 @@ export function useCalendarPointerInteractions({
       updateActiveResize({
         captureElement: event.currentTarget,
         edge,
+        hasPointerCapture: event.currentTarget.hasPointerCapture(
+          event.pointerId
+        ),
         occurrence,
         pointerId: event.pointerId,
         pointerType: event.pointerType,
@@ -270,6 +283,9 @@ export function useCalendarPointerInteractions({
         captureElement: event.currentTarget,
         currentClientX: event.clientX,
         currentClientY: event.clientY,
+        hasPointerCapture: event.currentTarget.hasPointerCapture(
+          event.pointerId
+        ),
         initialClientX: event.clientX,
         initialClientY: event.clientY,
         isDragging: false,
@@ -324,8 +340,16 @@ export function useCalendarPointerInteractions({
     }
 
     const resize = activeResize
+    const pointerEventTarget =
+      resize.hasPointerCapture && resize.captureElement
+        ? resize.captureElement
+        : window
 
-    function handlePointerMove(event: PointerEvent) {
+    function handlePointerMove(event: Event) {
+      if (!(event instanceof PointerEvent)) {
+        return
+      }
+
       if (event.pointerId !== resize.pointerId) {
         return
       }
@@ -339,7 +363,11 @@ export function useCalendarPointerInteractions({
       )
     }
 
-    function handlePointerUp(event: PointerEvent) {
+    function handlePointerUp(event: Event) {
+      if (!(event instanceof PointerEvent)) {
+        return
+      }
+
       if (event.pointerId !== resize.pointerId) {
         return
       }
@@ -358,7 +386,11 @@ export function useCalendarPointerInteractions({
       clearPointerResize()
     }
 
-    function handlePointerCancel(event: PointerEvent) {
+    function handlePointerCancel(event: Event) {
+      if (!(event instanceof PointerEvent)) {
+        return
+      }
+
       if (event.pointerId !== resize.pointerId) {
         return
       }
@@ -366,16 +398,19 @@ export function useCalendarPointerInteractions({
       clearPointerResize()
     }
 
-    window.addEventListener("pointermove", handlePointerMove, {
+    pointerEventTarget.addEventListener("pointermove", handlePointerMove, {
       passive: false,
     })
-    window.addEventListener("pointerup", handlePointerUp)
-    window.addEventListener("pointercancel", handlePointerCancel)
+    pointerEventTarget.addEventListener("pointerup", handlePointerUp)
+    pointerEventTarget.addEventListener("pointercancel", handlePointerCancel)
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove)
-      window.removeEventListener("pointerup", handlePointerUp)
-      window.removeEventListener("pointercancel", handlePointerCancel)
+      pointerEventTarget.removeEventListener("pointermove", handlePointerMove)
+      pointerEventTarget.removeEventListener("pointerup", handlePointerUp)
+      pointerEventTarget.removeEventListener(
+        "pointercancel",
+        handlePointerCancel
+      )
     }
   }, [activeResize])
 
@@ -387,8 +422,17 @@ export function useCalendarPointerInteractions({
     }
 
     const pointerId = activeDragPointerId
+    const pointerEventTarget =
+      activeDragInteraction?.hasPointerCapture &&
+      activeDragInteraction.captureElement
+        ? activeDragInteraction.captureElement
+        : window
 
-    function handlePointerMove(event: PointerEvent) {
+    function handlePointerMove(event: Event) {
+      if (!(event instanceof PointerEvent)) {
+        return
+      }
+
       if (event.pointerId !== pointerId) {
         return
       }
@@ -455,7 +499,11 @@ export function useCalendarPointerInteractions({
       updateActiveDropTarget(nextTarget)
     }
 
-    function handlePointerUp(event: PointerEvent) {
+    function handlePointerUp(event: Event) {
+      if (!(event instanceof PointerEvent)) {
+        return
+      }
+
       if (event.pointerId !== pointerId) {
         return
       }
@@ -489,7 +537,11 @@ export function useCalendarPointerInteractions({
       }
     }
 
-    function handlePointerCancel(event: PointerEvent) {
+    function handlePointerCancel(event: Event) {
+      if (!(event instanceof PointerEvent)) {
+        return
+      }
+
       if (event.pointerId !== pointerId) {
         return
       }
@@ -504,18 +556,22 @@ export function useCalendarPointerInteractions({
       clearPointerDrag()
     }
 
-    window.addEventListener("pointermove", handlePointerMove, {
+    pointerEventTarget.addEventListener("pointermove", handlePointerMove, {
       passive: false,
     })
-    window.addEventListener("pointerup", handlePointerUp)
-    window.addEventListener("pointercancel", handlePointerCancel)
+    pointerEventTarget.addEventListener("pointerup", handlePointerUp)
+    pointerEventTarget.addEventListener("pointercancel", handlePointerCancel)
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove)
-      window.removeEventListener("pointerup", handlePointerUp)
-      window.removeEventListener("pointercancel", handlePointerCancel)
+      pointerEventTarget.removeEventListener("pointermove", handlePointerMove)
+      pointerEventTarget.removeEventListener("pointerup", handlePointerUp)
+      pointerEventTarget.removeEventListener(
+        "pointercancel",
+        handlePointerCancel
+      )
     }
   }, [
+    activeDragInteraction,
     activeDragPointerId,
     updateActiveDragInteraction,
     updateActiveDragOffsetMinutes,

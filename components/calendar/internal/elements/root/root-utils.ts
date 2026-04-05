@@ -34,6 +34,7 @@ export type ActiveDragInteraction = {
   captureElement: HTMLElement | null
   currentClientX: number
   currentClientY: number
+  hasPointerCapture: boolean
   initialClientX: number
   initialClientY: number
   isDragging: boolean
@@ -44,6 +45,7 @@ export type ActiveDragInteraction = {
 export type ActiveResizeState = {
   captureElement: HTMLElement | null
   edge: "start" | "end"
+  hasPointerCapture: boolean
   occurrence: CalendarOccurrence
   pointerId: number
   pointerType: string
@@ -360,19 +362,59 @@ export function getCalendarDropTargetFromPoint(
     return null
   }
 
-  const match = document
-    .elementsFromPoint(clientX, clientY)
-    .find((element): element is HTMLElement => {
-      return (
-        element instanceof HTMLElement &&
-        !!element.dataset.calendarDropTargetKind
-      )
-    })
+  const match =
+    document
+      .elementsFromPoint(clientX, clientY)
+      .find((element): element is HTMLElement => {
+        return (
+          element instanceof HTMLElement &&
+          !!element.dataset.calendarDropTargetKind
+        )
+      }) ?? getFallbackCalendarDropTargetElement(clientX, clientY)
 
   if (!match) {
     return null
   }
 
+  return parseCalendarDropTargetElement(match)
+}
+
+function getFallbackCalendarDropTargetElement(
+  clientX: number,
+  clientY: number
+): HTMLElement | null {
+  const matches = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-calendar-drop-target-kind]")
+  ).filter((element) => {
+    const rect = element.getBoundingClientRect()
+
+    return (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    )
+  })
+
+  if (matches.length === 0) {
+    return null
+  }
+
+  matches.sort((left, right) => {
+    const leftRect = left.getBoundingClientRect()
+    const rightRect = right.getBoundingClientRect()
+    const leftArea = leftRect.width * leftRect.height
+    const rightArea = rightRect.width * rightRect.height
+
+    return leftArea - rightArea
+  })
+
+  return matches[0] ?? null
+}
+
+function parseCalendarDropTargetElement(
+  match: HTMLElement
+): CalendarDropTarget | null {
   const kind = match.dataset.calendarDropTargetKind
   const dayValue = match.dataset.calendarDropTargetDay
 

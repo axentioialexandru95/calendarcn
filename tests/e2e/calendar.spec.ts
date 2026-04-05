@@ -1,10 +1,10 @@
-import { expect, test, type Locator } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 
 test.describe("calendar interactions", () => {
   test("switches views and navigates on the dedicated lab fixture", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const currentLabel = page.getByTestId("calendar-current-label")
     const initialLabel = await currentLabel.textContent()
@@ -34,7 +34,7 @@ test.describe("calendar interactions", () => {
   test("opens the create sheet and creates an appointment", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     await page.getByTestId("calendar-toolbar-create").click()
 
@@ -51,7 +51,7 @@ test.describe("calendar interactions", () => {
   })
 
   test("duplicates an event from the context menu", async ({ page }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const handoffEvent = page.getByTestId("calendar-event-handoff-time-grid")
     await expect(handoffEvent).toBeVisible()
@@ -68,7 +68,7 @@ test.describe("calendar interactions", () => {
   test("shows only the event-shaped timed drop preview while dragging", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
     await expect(
       page.getByTestId("calendar-resize-handle-focus-end")
     ).toBeVisible()
@@ -164,7 +164,7 @@ test.describe("calendar interactions", () => {
   test("starter wrapper injects the default selected event styling", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const planningEvent = page.getByTestId("calendar-event-planning-time-grid")
     await expect(planningEvent).toBeVisible()
@@ -183,7 +183,7 @@ test.describe("calendar interactions", () => {
   })
 
   test("archives an event from the context menu", async ({ page }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const handoffEvent = page.getByTestId("calendar-event-handoff-time-grid")
     await expect(handoffEvent).toBeVisible()
@@ -201,13 +201,12 @@ test.describe("calendar interactions", () => {
   test("blocks timed keyboard moves that overlap unavailable ranges", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
     await expect(focusEvent).toBeVisible()
 
-    await focusEvent.focus()
-    await page.keyboard.press("ArrowUp")
+    await focusEvent.press("ArrowUp")
 
     await expect(focusEvent).toHaveAttribute("aria-label", /13:00 - 15:00/i)
     await expect(page.getByTestId("calendar-live-announcement")).toHaveText(
@@ -216,7 +215,7 @@ test.describe("calendar interactions", () => {
   })
 
   test("deletes an event from the context menu", async ({ page }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const planningEvent = page.getByTestId("calendar-event-planning-time-grid")
     await expect(planningEvent).toBeVisible()
@@ -235,13 +234,12 @@ test.describe("calendar interactions", () => {
   test("resizes an event through the keyboard path without a stale intermediate state", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab")
+    await gotoCalendarLab(page)
 
     const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
     await expect(focusEvent).toBeVisible()
 
-    await focusEvent.focus()
-    await page.keyboard.press("Shift+ArrowDown")
+    await focusEvent.press("Shift+ArrowDown")
 
     await expect(focusEvent).toHaveAttribute("aria-label", /13:00 - 15:30/i)
   })
@@ -249,13 +247,12 @@ test.describe("calendar interactions", () => {
   test("confirms keyboard-driven event moves when confirmation is enabled", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab/confirm")
+    await gotoCalendarLab(page, "/calendar-lab/confirm")
 
     const planningEvent = page.getByTestId("calendar-event-planning-time-grid")
     await expect(planningEvent).toBeVisible()
 
-    await planningEvent.focus()
-    await page.keyboard.press("ArrowUp")
+    await planningEvent.press("ArrowUp")
 
     const dialog = page.getByTestId("calendar-event-change-confirmation-dialog")
     await expect(dialog).toBeVisible()
@@ -267,7 +264,7 @@ test.describe("calendar interactions", () => {
   })
 
   test("selects only the targeted recurring occurrence", async ({ page }) => {
-    await page.goto("/calendar-lab/recurrence")
+    await gotoCalendarLab(page, "/calendar-lab/recurrence")
 
     const recurringOccurrences = page.locator(
       '[data-calendar-event-id="daily-sync"][data-calendar-variant="time-grid"]'
@@ -290,7 +287,7 @@ test.describe("calendar interactions", () => {
   test("hides the view switcher when only one view is available", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab/recurrence")
+    await gotoCalendarLab(page, "/calendar-lab/recurrence")
 
     await expect(page.getByTestId("calendar-view-week")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-day")).toHaveCount(0)
@@ -301,7 +298,7 @@ test.describe("calendar interactions", () => {
   test("filters resources and updates an event from the details sheet", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab/details")
+    await gotoCalendarLab(page, "/calendar-lab/details")
 
     await expect(page.getByTestId("calendar-event-crit-time-grid")).toHaveCount(
       0
@@ -335,11 +332,9 @@ test.describe("calendar interactions", () => {
   test("opens the keyboard shortcuts dialog from the toolbar", async ({
     page,
   }) => {
-    await page.goto("/calendar-lab/details")
+    await gotoCalendarLab(page, "/calendar-lab/details")
 
-    await page.getByTestId("calendar-toolbar-shortcuts").evaluate((element) => {
-      ;(element as HTMLButtonElement).click()
-    })
+    await page.getByTestId("calendar-toolbar-shortcuts").click()
 
     const dialog = page.getByTestId("calendar-keyboard-shortcuts-dialog")
     await expect(dialog).toBeVisible()
@@ -348,17 +343,16 @@ test.describe("calendar interactions", () => {
 })
 
 async function openContextMenu(locator: Locator) {
-  const box = await locator.boundingBox()
+  await locator.scrollIntoViewIfNeeded()
+  await locator.click({ button: "right", position: { x: 12, y: 12 } })
+}
 
-  if (!box) {
-    throw new Error("Unable to determine context menu coordinates.")
-  }
-
-  await locator.dispatchEvent("contextmenu", {
-    bubbles: true,
-    button: 2,
-    cancelable: true,
-    clientX: box.x + box.width / 2,
-    clientY: box.y + box.height / 2,
+async function gotoCalendarLab(page: Page, path = "/calendar-lab") {
+  await page.goto(path)
+  await expect(page.getByTestId("calendar-root")).toBeVisible({
+    timeout: 15_000,
+  })
+  await expect(page.locator('[data-calendar-lab-ready="true"]')).toBeVisible({
+    timeout: 15_000,
   })
 }

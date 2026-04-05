@@ -1,4 +1,4 @@
-import { addDays, set } from "date-fns"
+import { setDateInTimeZone } from "./timezone-date"
 
 import type {
   CalendarBlockedRange,
@@ -7,7 +7,8 @@ import type {
   CalendarResource,
 } from "@/components/calendar/types"
 
-export const CALENDAR_DEMO_SEED_VERSION = "2026-03-25-config-surface-v2"
+export const CALENDAR_DEMO_SEED_VERSION = "2026-03-30-timezone-stable-v1"
+export const CALENDAR_DEMO_TIME_ZONE = "Europe/Bucharest"
 
 export function buildDemoBusinessHours(): CalendarBusinessHoursWindow[] {
   return [
@@ -19,25 +20,40 @@ export function buildDemoBusinessHours(): CalendarBusinessHoursWindow[] {
   ]
 }
 
-export function buildDemoBlockedRanges(baseDate = new Date()): CalendarBlockedRange[] {
-  const day = set(baseDate, {
-    seconds: 0,
-    milliseconds: 0,
-  })
-
+export function buildDemoBlockedRanges(
+  baseDate = new Date()
+): CalendarBlockedRange[] {
   return [
     {
       id: "lunch-block",
       label: "Lunch",
-      start: set(day, { hours: 12, minutes: 0 }),
-      end: set(day, { hours: 13, minutes: 0 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 12,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 13,
+        minutes: 0,
+        seconds: 0,
+      }),
       color: "#ea580c",
     },
     {
       id: "ops-freeze",
       label: "Release freeze",
-      start: set(addDays(day, 1), { hours: 16, minutes: 0 }),
-      end: set(addDays(day, 1), { hours: 17, minutes: 0 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 1,
+        hours: 16,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 1,
+        hours: 17,
+        minutes: 0,
+        seconds: 0,
+      }),
       color: "#db2777",
     },
   ]
@@ -67,17 +83,20 @@ export function buildDemoResources(): CalendarResource[] {
 }
 
 export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
-  const day = set(baseDate, {
-    seconds: 0,
-    milliseconds: 0,
-  })
-
   return [
     {
       id: "standup",
       title: "Studio standup",
-      start: set(day, { hours: 9, minutes: 0 }),
-      end: set(day, { hours: 9, minutes: 30 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 9,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 9,
+        minutes: 30,
+        seconds: 0,
+      }),
       color: "#2563eb",
       calendarId: "product",
       calendarLabel: "Product",
@@ -86,19 +105,36 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "crit",
       title: "Interface crit",
-      start: set(day, { hours: 10, minutes: 0 }),
-      end: set(day, { hours: 11, minutes: 30 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 10,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 11,
+        minutes: 30,
+        seconds: 0,
+      }),
       color: "#db2777",
       calendarId: "design",
       calendarLabel: "Design",
       resourceId: "design",
-      description: "Review the new dense calendar interactions and mobile layout",
+      description:
+        "Review the new dense calendar interactions and mobile layout",
     },
     {
       id: "handoff",
       title: "Support handoff",
-      start: set(day, { hours: 10, minutes: 45 }),
-      end: set(day, { hours: 11, minutes: 45 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 10,
+        minutes: 45,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 11,
+        minutes: 45,
+        seconds: 0,
+      }),
       color: "#0f766e",
       calendarId: "ops",
       calendarLabel: "Operations",
@@ -107,8 +143,16 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "focus",
       title: "Focus block",
-      start: set(day, { hours: 13, minutes: 0 }),
-      end: set(day, { hours: 15, minutes: 0 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 13,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        hours: 15,
+        minutes: 0,
+        seconds: 0,
+      }),
       color: "#7c3aed",
       calendarId: "product",
       calendarLabel: "Product",
@@ -117,8 +161,18 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "planning",
       title: "Planning review",
-      start: set(addDays(day, 1), { hours: 14, minutes: 0 }),
-      end: set(addDays(day, 1), { hours: 15, minutes: 30 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 1,
+        hours: 14,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 1,
+        hours: 15,
+        minutes: 30,
+        seconds: 0,
+      }),
       color: "#ea580c",
       calendarId: "product",
       calendarLabel: "Product",
@@ -127,8 +181,18 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "dinner",
       title: "Client dinner",
-      start: set(addDays(day, 2), { hours: 19, minutes: 0 }),
-      end: set(addDays(day, 2), { hours: 21, minutes: 0 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 2,
+        hours: 19,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 2,
+        hours: 21,
+        minutes: 0,
+        seconds: 0,
+      }),
       color: "#0891b2",
       calendarId: "ops",
       calendarLabel: "Operations",
@@ -138,8 +202,18 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "travel",
       title: "Offsite in Berlin",
-      start: set(addDays(day, 3), { hours: 0, minutes: 0 }),
-      end: set(addDays(day, 5), { hours: 0, minutes: 0 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 3,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: 5,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+      }),
       allDay: true,
       color: "#16a34a",
       calendarId: "design",
@@ -150,8 +224,18 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
     {
       id: "office-hours",
       title: "Design office hours",
-      start: set(addDays(day, -1), { hours: 16, minutes: 0 }),
-      end: set(addDays(day, -1), { hours: 17, minutes: 0 }),
+      start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: -1,
+        hours: 16,
+        minutes: 0,
+        seconds: 0,
+      }),
+      end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+        dayOffset: -1,
+        hours: 17,
+        minutes: 0,
+        seconds: 0,
+      }),
       color: "#db2777",
       calendarId: "design",
       calendarLabel: "Design",

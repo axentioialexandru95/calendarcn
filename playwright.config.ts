@@ -9,6 +9,7 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:3000",
     screenshot: "only-on-failure",
+    timezoneId: "Europe/Bucharest",
     trace: "on-first-retry",
     video: "retain-on-failure",
   },
