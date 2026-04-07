@@ -327,7 +327,9 @@ function CalendarShowcaseSurface({
       }}
       date={controller.date}
       eventChangeConfirmation={eventChangeConfirmation}
-      eventDetails
+      eventDetails={{
+        openOnSelect: false,
+      }}
       events={controller.events}
       onDateChange={controller.setDate}
       onEventArchive={controller.handleEventArchive}

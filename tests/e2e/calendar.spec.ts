@@ -17,6 +17,41 @@ test.describe("calendar interactions", () => {
     ).toBeVisible()
   })
 
+  test("homepage showcase keeps single-click drag available in week/day views", async ({
+    page,
+  }) => {
+    await page.goto("/")
+
+    const homepageCalendar = page.getByTestId("calendar-root").first()
+    const standupEvent = homepageCalendar.getByTestId(
+      "calendar-event-standup-time-grid"
+    )
+
+    await standupEvent.scrollIntoViewIfNeeded()
+    await standupEvent.click()
+    await expect(standupEvent).toHaveAttribute("data-selected", "true")
+    await expect(page.getByTestId("calendar-event-details-sheet")).toHaveCount(
+      0
+    )
+
+    const startPoint = await getLocatorPoint(standupEvent)
+    const targetSlot = homepageCalendar
+      .locator('[role="grid"]')
+      .nth(1)
+      .locator('[data-calendar-drop-target-minute="480"]')
+      .first()
+    const targetPoint = await getLocatorPoint(targetSlot)
+
+    await page.mouse.move(startPoint.x, startPoint.y)
+    await page.mouse.down()
+    await page.mouse.move(targetPoint.x, targetPoint.y, {
+      steps: 12,
+    })
+    await page.mouse.up()
+
+    await expect(standupEvent).toHaveAttribute("aria-label", /8:00.*8:30/i)
+  })
+
   test("returns docs search results from the site search endpoint", async ({
     page,
   }) => {
