@@ -1,7 +1,6 @@
 import type { ComponentProps, ComponentType } from "react"
 
 import {
-  ArrowsOutCardinalIcon,
   CaretLeftIcon,
   CaretRightIcon,
   CommandIcon,
@@ -22,7 +21,6 @@ const viewLabels: Record<CalendarView, string> = {
   month: "Month",
   week: "Week",
   day: "Day",
-  timeline: "Timeline",
   agenda: "Agenda",
 }
 
@@ -30,7 +28,6 @@ const viewIcons: Record<CalendarView, ComponentType<{ className?: string }>> = {
   month: SquaresFourIcon,
   week: ColumnsIcon,
   day: RowsIcon,
-  timeline: ArrowsOutCardinalIcon,
   agenda: ListBulletsIcon,
 }
 

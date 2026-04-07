@@ -50,11 +50,6 @@ test.describe("calendar interactions", () => {
       page.getByTestId("calendar-event-focus-time-grid")
     ).toBeVisible()
 
-    await page.getByTestId("calendar-view-timeline").click()
-    await expect(
-      page.getByTestId("calendar-event-focus-timeline")
-    ).toBeVisible()
-
     await page.getByTestId("calendar-view-agenda").click()
     await expect(
       page.getByTestId("calendar-event-planning-agenda")
@@ -339,100 +334,6 @@ test.describe("calendar interactions", () => {
     )
   })
 
-  test("moves and resizes events inside the timeline view", async ({ page }) => {
-    await gotoCalendarLab(page)
-
-    await page.getByTestId("calendar-view-timeline").click()
-
-    const focusEvent = page.getByTestId("calendar-event-focus-timeline")
-    await expect(focusEvent).toBeVisible()
-    await focusEvent.click()
-    await expect(focusEvent).toHaveAttribute("data-selected", "true")
-
-    const focusStartPoint = await getLocatorPoint(focusEvent)
-    const opsTargetCell = page
-      .getByTestId("calendar-timeline-row-ops")
-      .locator('[data-calendar-drop-target-kind="day"]')
-      .nth(2)
-    const opsTargetPoint = await getLocatorPoint(opsTargetCell, {
-      x: "center",
-      y: "center",
-    })
-
-    await page.mouse.move(focusStartPoint.x, focusStartPoint.y)
-    await page.mouse.down()
-    await page.waitForTimeout(100)
-    await page.mouse.move(opsTargetPoint.x, opsTargetPoint.y, {
-      steps: 18,
-    })
-    await expect
-      .poll(async () => await opsTargetCell.getAttribute("class"))
-      .toContain("bg-muted/60")
-    await page.mouse.up()
-
-    await expect
-      .poll(async () => {
-        const productCount = await page
-          .getByTestId("calendar-timeline-row-product")
-          .locator('[data-testid="calendar-event-focus-timeline"]')
-          .count()
-        const opsCount = await page
-          .getByTestId("calendar-timeline-row-ops")
-          .locator('[data-testid="calendar-event-focus-timeline"]')
-          .count()
-
-        return {
-          opsCount,
-          productCount,
-        }
-      })
-      .toEqual({
-        opsCount: 1,
-        productCount: 0,
-      })
-    await expect(
-      page
-        .getByTestId("calendar-timeline-row-ops")
-        .locator('[data-testid="calendar-event-focus-timeline"]')
-    ).toBeVisible()
-
-    const travelEvent = page.getByTestId("calendar-event-travel-timeline")
-    await expect(travelEvent).toBeVisible()
-
-    const beforeResizeBox = await travelEvent.boundingBox()
-
-    if (!beforeResizeBox) {
-      throw new Error("Unable to determine the initial timeline event bounds.")
-    }
-
-    await travelEvent.click()
-
-    const resizeHandle = page.getByTestId("calendar-resize-handle-travel-end")
-    const resizeStartPoint = await getLocatorPoint(resizeHandle)
-    const resizeTargetCell = page
-      .getByTestId("calendar-timeline-row-design")
-      .locator('[data-calendar-drop-target-kind="day"]')
-      .last()
-    const resizeTargetPoint = await getLocatorPoint(resizeTargetCell, {
-      x: "right",
-    })
-
-    await page.mouse.move(resizeStartPoint.x, resizeStartPoint.y)
-    await page.mouse.down()
-    await page.mouse.move(resizeTargetPoint.x, resizeTargetPoint.y, {
-      steps: 18,
-    })
-    await page.mouse.up()
-
-    const afterResizeBox = await travelEvent.boundingBox()
-
-    if (!afterResizeBox) {
-      throw new Error("Unable to determine the resized timeline event bounds.")
-    }
-
-    expect(afterResizeBox.width).toBeGreaterThan(beforeResizeBox.width)
-  })
-
   test("starter wrapper injects the default selected event styling", async ({
     page,
   }) => {
@@ -667,7 +568,6 @@ test.describe("calendar interactions", () => {
 
     await expect(page.getByTestId("calendar-view-week")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-day")).toHaveCount(0)
-    await expect(page.getByTestId("calendar-view-timeline")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-month")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-agenda")).toHaveCount(0)
   })

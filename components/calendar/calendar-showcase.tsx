@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-  ArrowsOutCardinalIcon,
   CalendarDotsIcon,
   CheckIcon,
   CursorClickIcon,
@@ -212,8 +211,8 @@ function CalendarShowcaseSurface({
     scrollToTime: NonNullable<CalendarSchedulerComponentProps["scrollToTime"]>
   }>(() => {
     const availableViews = demoConfig.focusedViews
-      ? (["week", "day", "timeline", "agenda"] as CalendarView[])
-      : (["month", "week", "day", "timeline", "agenda"] as CalendarView[])
+      ? (["week", "day", "agenda"] as CalendarView[])
+      : (["month", "week", "day", "agenda"] as CalendarView[])
 
     return {
       availableViews,
@@ -235,7 +234,7 @@ function CalendarShowcaseSurface({
     ]
 
     if (calendarConfig.availableViews.length < 5) {
-      tokens.push('availableViews={["week", "day", "timeline", "agenda"]}')
+      tokens.push('availableViews={["week", "day", "agenda"]}')
     }
 
     if (calendarConfig.hiddenDays.length > 0) {
@@ -421,7 +420,7 @@ function CalendarShowcaseSurface({
                 body="The calendar is built from reusable exported components that can be dropped into your own product surfaces."
               />
               <FeatureRow
-                icon={ArrowsOutCardinalIcon}
+                icon={CalendarDotsIcon}
                 title="DnD + resize"
                 body="Drag events across views, resize in time-grid mode, and create blocks by dragging on empty time slots."
               />

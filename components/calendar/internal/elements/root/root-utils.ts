@@ -91,7 +91,6 @@ export function getPreviewOccurrence(
       start: operation.nextStart,
       end: operation.nextEnd,
       allDay: operation.allDay ?? activeDrag.occurrence.allDay,
-      resourceId: operation.nextResourceId ?? activeDrag.occurrence.resourceId,
     }
   }
 
@@ -154,7 +153,6 @@ export function getMoveOperation(
     occurrence,
     nextStart,
     nextEnd,
-    nextResourceId: target.resourceId,
     previousStart: occurrence.start,
     previousEnd: occurrence.end,
     allDay,
@@ -494,15 +492,9 @@ export function getTimeGridDropTargetFromPoint(
 }
 
 export function getResizeDropTargetFromPoint(
-  variant: CalendarEventVariant,
+  _variant: CalendarEventVariant,
   clientX: number,
   clientY: number
 ): CalendarDropTarget | null {
-  if (variant === "timeline") {
-    const target = getCalendarDropTargetFromPoint(clientX, clientY)
-
-    return target && target.kind !== "slot" ? target : null
-  }
-
   return getTimeGridDropTargetFromPoint(clientX, clientY)
 }

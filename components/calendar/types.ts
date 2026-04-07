@@ -1,12 +1,6 @@
 import type { ReactNode } from "react"
 
-export const calendarViews = [
-  "month",
-  "week",
-  "day",
-  "timeline",
-  "agenda",
-] as const
+export const calendarViews = ["month", "week", "day", "agenda"] as const
 
 export type CalendarView = (typeof calendarViews)[number]
 
@@ -24,7 +18,6 @@ export const calendarEventVariants = [
   "month",
   "all-day",
   "time-grid",
-  "timeline",
   "agenda",
 ] as const
 
@@ -48,10 +41,6 @@ export const calendarSlots = [
   "timeGridSlot",
   "timeGridEvent",
   "allDayLane",
-  "timelineGrid",
-  "timelineHeader",
-  "timelineRow",
-  "timelineEvent",
   "agendaList",
   "agendaGroup",
   "agendaEvent",
@@ -159,7 +148,6 @@ export type CalendarMoveOperation = {
   occurrence: CalendarOccurrence
   nextStart: Date
   nextEnd: Date
-  nextResourceId?: string
   previousStart: Date
   previousEnd: Date
   allDay?: boolean

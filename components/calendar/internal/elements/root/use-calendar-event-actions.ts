@@ -360,7 +360,6 @@ export function useCalendarEventActions({
       const operation = {
         allDay: context.allDay,
         nextEnd: context.nextEnd,
-        nextResourceId: context.nextResourceId,
         nextStart: context.nextStart,
         occurrence: context.occurrence,
         previousEnd: context.previousEnd,

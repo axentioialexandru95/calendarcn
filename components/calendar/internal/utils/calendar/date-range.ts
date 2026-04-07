@@ -134,7 +134,7 @@ export function getVisibleRange(
     }
   }
 
-  if (view === "week" || view === "timeline") {
+  if (view === "week") {
     return {
       start: startOfWeek(anchorDate, { weekStartsOn }),
       end: endOfWeek(anchorDate, { weekStartsOn }),
@@ -166,7 +166,7 @@ export function shiftDate(
     return addMonths(anchorDate, direction)
   }
 
-  if (view === "week" || view === "timeline" || view === "agenda") {
+  if (view === "week" || view === "agenda") {
     return addWeeks(anchorDate, direction)
   }
 

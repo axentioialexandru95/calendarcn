@@ -36,7 +36,6 @@ import {
   getResolvedAccentColor,
 } from "./internal/elements/event-card"
 import { CalendarMonthView } from "./internal/elements/month-view"
-import { CalendarTimelineView } from "./internal/elements/timeline-view"
 import {
   CalendarDayView,
   CalendarWeekView,
@@ -186,7 +185,6 @@ export function CalendarRoot({
       if (
         allDay ||
         resolvedView === "month" ||
-        resolvedView === "timeline" ||
         resolvedView === "agenda" ||
         !blockedRanges?.length
       ) {
@@ -319,9 +317,6 @@ export function CalendarRoot({
             maxHour={maxHour}
             minHour={minHour}
           />
-        ) : null}
-        {resolvedView === "timeline" ? (
-          <CalendarTimelineView {...derived.sharedViewProps} />
         ) : null}
         {resolvedView === "agenda" ? (
           <CalendarAgendaView

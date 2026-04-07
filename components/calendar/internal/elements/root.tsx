@@ -17,7 +17,6 @@ import {
 } from "../../utils"
 import { CalendarAgendaView } from "./agenda-view"
 import { CalendarMonthView } from "./month-view"
-import { CalendarTimelineView } from "./timeline-view"
 import { CalendarToolbar } from "./toolbar"
 import { CalendarDayView, CalendarWeekView } from "./time-grid-view"
 import {
@@ -347,7 +346,7 @@ export function CalendarRoot({
   )
 
   const handleToolbarViewChange = React.useCallback(
-    (nextView: "month" | "week" | "day" | "timeline" | "agenda") => {
+    (nextView: "month" | "week" | "day" | "agenda") => {
       if (nextView === "week") {
         setWeekZoomIndex(0)
       }
@@ -559,7 +558,6 @@ export function CalendarRoot({
       if (
         allDay ||
         resolvedView === "month" ||
-        resolvedView === "timeline" ||
         resolvedView === "agenda" ||
         !blockedRanges?.length
       ) {
@@ -799,9 +797,6 @@ export function CalendarRoot({
             maxHour={maxHour}
             minHour={minHour}
           />
-        ) : null}
-        {resolvedView === "timeline" ? (
-          <CalendarTimelineView {...derived.sharedViewProps} />
         ) : null}
         {resolvedView === "agenda" ? (
           <CalendarAgendaView

@@ -45,13 +45,7 @@ const createDefaults = {
   resourceId: "product",
 } as const
 
-const fullViewSet: CalendarView[] = [
-  "month",
-  "week",
-  "day",
-  "timeline",
-  "agenda",
-]
+const fullViewSet: CalendarView[] = ["month", "week", "day", "agenda"]
 
 export function CalendarLabFixture({
   initialDateIso,
@@ -104,9 +98,7 @@ export function CalendarLabFixture({
           events={controller.events}
           hourCycle={24}
           keyboardShortcuts={
-            scenario === "details" || scenario === "overlap"
-              ? true
-              : undefined
+            scenario === "details" || scenario === "overlap" ? true : undefined
           }
           locale="en-GB"
           onDateChange={controller.setDate}

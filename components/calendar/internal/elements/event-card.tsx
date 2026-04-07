@@ -142,11 +142,7 @@ function CalendarEventCardComponent({
   const dragEnabled = interactive && canMoveOccurrence(event) && !preview
 
   return (
-    <div
-      className={
-        variant === "time-grid" || variant === "timeline" ? "h-full" : undefined
-      }
-    >
+    <div className={variant === "time-grid" ? "h-full" : undefined}>
       <EventSurface
         accentColor={accentColor}
         ariaLabel={`${event.title}. ${timeLabel}.`}
@@ -353,9 +349,7 @@ export function EventSurface({
     <div
       className={cn(
         "group/event relative w-full min-w-0",
-        variant === "time-grid" || variant === "timeline"
-          ? "h-full"
-          : undefined
+        variant === "time-grid" ? "h-full" : undefined
       )}
       data-calendar-drag-overlay={overlay ? "true" : undefined}
       data-calendar-drag-surface="true"
@@ -467,8 +461,6 @@ function ResizeHandle({
   ) => void
   variant: CalendarEventVariant
 }) {
-  const isTimeline = variant === "timeline"
-
   return (
     <span
       data-calendar-event-id={event.sourceEventId}
@@ -476,16 +468,10 @@ function ResizeHandle({
       data-calendar-resize-handle={edge}
       data-testid={`calendar-resize-handle-${event.sourceEventId}-${edge}`}
       className={cn(
-        isTimeline
-          ? "absolute inset-y-0 z-20 w-4 touch-none select-none"
-          : "absolute inset-x-0 z-20 h-4 touch-none select-none",
-        isTimeline
-          ? edge === "start"
-            ? "left-0 cursor-ew-resize"
-            : "right-0 cursor-ew-resize"
-          : edge === "start"
-            ? "top-0 cursor-ns-resize"
-            : "bottom-0 cursor-ns-resize"
+        "absolute inset-x-0 z-20 h-4 touch-none select-none",
+        edge === "start"
+          ? "top-0 cursor-ns-resize"
+          : "bottom-0 cursor-ns-resize"
       )}
       onPointerDown={(pointerEvent) => {
         if (!interactive || pointerEvent.button !== 0) {
@@ -496,24 +482,14 @@ function ResizeHandle({
         pointerEvent.stopPropagation()
         onPointerDown?.(event, edge, variant, pointerEvent)
       }}
-      style={
-        isTimeline
-          ? {
-              transform:
-                edge === "start" ? "translateX(-50%)" : "translateX(50%)",
-            }
-          : {
-              transform:
-                edge === "start" ? "translateY(-50%)" : "translateY(50%)",
-            }
-      }
+      style={{
+        transform: edge === "start" ? "translateY(-50%)" : "translateY(50%)",
+      }}
     >
       <span
         aria-hidden
         className={cn(
-          isTimeline
-            ? "pointer-events-none absolute top-1.5 bottom-1.5 left-1/2 w-px -translate-x-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100"
-            : "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
+          "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
           selectedHandleVisibilityClass()
         )}
         style={{
@@ -523,9 +499,7 @@ function ResizeHandle({
       <span
         aria-hidden
         className={cn(
-          isTimeline
-            ? "pointer-events-none absolute top-1/2 left-1/2 h-8 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100"
-            : "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
+          "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
           selectedHandleVisibilityClass(),
           "scale-95"
         )}
@@ -546,8 +520,6 @@ function getEventSlotClassName(
       ? "monthEvent"
       : variant === "agenda"
         ? "agendaEvent"
-        : variant === "timeline"
-          ? "timelineEvent"
         : "timeGridEvent"
 
   return getCalendarSlotClassName(classNames, slot)
@@ -582,7 +554,7 @@ function getEventSurfaceClassName(
         : "px-2 py-1.5 pl-3 text-xs"
       : "text-sm",
     variant === "agenda" ? "min-h-20" : "",
-    variant === "time-grid" || variant === "timeline" ? "h-full" : "",
+    variant === "time-grid" ? "h-full" : "",
     preview ? "shadow-sm" : "",
     overlay
       ? "pointer-events-none shadow-sm"

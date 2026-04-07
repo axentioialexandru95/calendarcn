@@ -1,9 +1,6 @@
 import { isSameDay, isSameMonth, isSameYear } from "date-fns"
 
-import type {
-  CalendarOccurrence,
-  CalendarWeekday,
-} from "../../../types"
+import type { CalendarOccurrence, CalendarWeekday } from "../../../types"
 import {
   getDaySpan,
   getNextVisibleDay,
@@ -136,7 +133,7 @@ function getVisibleDaysInRange(
 
 export function getRangeLabel(
   anchorDate: Date,
-  view: "month" | "week" | "day" | "timeline" | "agenda",
+  view: "month" | "week" | "day" | "agenda",
   options: VisibleRangeOptions = {}
 ) {
   const range = getVisibleRange(anchorDate, view, options)

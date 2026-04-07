@@ -259,42 +259,6 @@ describe("calendar utilities", () => {
     expect(moveOperation.nextEnd).toEqual(at(1, 8, 30))
   })
 
-  it("treats timeline navigation like a week range and preserves resource moves", () => {
-    const focusEvent: CalendarEvent = {
-      id: "focus",
-      title: "Focus block",
-      start: at(0, 13, 0),
-      end: at(0, 15, 0),
-      resourceId: "product",
-    }
-    const focusOccurrence = occurrenceFromEvent(focusEvent)
-
-    const movedEvents = applyMoveOperation([focusEvent], {
-      nextEnd: at(1, 15, 0),
-      nextResourceId: "ops",
-      nextStart: at(1, 13, 0),
-      occurrence: focusOccurrence,
-      previousEnd: focusEvent.end,
-      previousStart: focusEvent.start,
-    })
-
-    expect(movedEvents[0]).toMatchObject({
-      end: at(1, 15, 0),
-      resourceId: "ops",
-      start: at(1, 13, 0),
-    })
-
-    expect(shiftDate(at(0, 10, 0), "timeline", 1)).toEqual(at(7, 10, 0))
-    const timelineRange = getVisibleRange(at(0, 10, 0), "timeline", {
-      weekStartsOn: 1,
-    })
-
-    expect(timelineRange.start).toEqual(at(-1, 0, 0))
-    expect(timelineRange.end).toEqual(
-      new Date(2026, 2, 29, 23, 59, 59, 999)
-    )
-  })
-
   it("creates and duplicates events with the expected default shaping", () => {
     const createdEvent = createEventFromOperation(
       {
