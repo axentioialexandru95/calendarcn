@@ -19,11 +19,19 @@ import {
   exportEventsToICS,
   filterOccurrencesByResource,
   getBlockedSegmentsForDay,
+  getDayEvents,
   getDayLayout,
+  getVisibleRange,
+  getWeekZoomDayCounts,
+  getZoomedWeekDays,
   intervalOverlapsBlockedRanges,
   parseICSText,
+  shiftDate,
 } from "@/components/calendar/utils"
-import { hasPointerExceededSlop } from "@/components/calendar/internal/elements/root/root-utils"
+import {
+  getMoveOperation,
+  hasPointerExceededSlop,
+} from "@/components/calendar/internal/elements/root/root-utils"
 
 describe("calendar utilities", () => {
   it("expands recurring events into stable occurrence ids", () => {
@@ -116,6 +124,49 @@ describe("calendar utilities", () => {
     ])
   })
 
+  it("builds a week zoom ladder that narrows before switching to day", () => {
+    expect(getWeekZoomDayCounts(7)).toEqual([7, 5, 3])
+    expect(getWeekZoomDayCounts(5)).toEqual([5, 3])
+    expect(getWeekZoomDayCounts(3)).toEqual([3])
+  })
+
+  it("centers zoomed week slices around the focused day when possible", () => {
+    const zoomedWeek = getZoomedWeekDays(at(2, 10, 0), 1, 3)
+
+    expect(zoomedWeek).toHaveLength(3)
+    expect(zoomedWeek.map((day) => day.getDay())).toEqual([3, 4, 5])
+  })
+
+  it("clamps zoomed week slices near the start of the visible range", () => {
+    const workweekSlice = getZoomedWeekDays(at(0, 10, 0), 1, 3, [0, 6])
+
+    expect(workweekSlice).toHaveLength(3)
+    expect(workweekSlice.map((day) => day.getDay())).toEqual([1, 2, 3])
+  })
+
+  it("treats next-day midnight ends as exclusive when bucketing day events", () => {
+    const oneDayAllDayEvent = occurrenceFromEvent({
+      allDay: true,
+      end: at(1, 0, 0),
+      id: "client-dinner",
+      start: at(0, 0, 0),
+      title: "Client dinner",
+    })
+    const midnightEndingTimedEvent = occurrenceFromEvent({
+      end: at(1, 0, 0),
+      id: "late-flight",
+      start: at(0, 22, 0),
+      title: "Late flight",
+    })
+
+    expect(
+      getDayEvents([oneDayAllDayEvent, midnightEndingTimedEvent], at(0, 0, 0))
+    ).toHaveLength(2)
+    expect(
+      getDayEvents([oneDayAllDayEvent, midnightEndingTimedEvent], at(1, 0, 0))
+    ).toHaveLength(0)
+  })
+
   it("clips blocked ranges to the current day window and detects overlaps", () => {
     const blockedRanges: CalendarBlockedRange[] = [
       {
@@ -182,6 +233,66 @@ describe("calendar utilities", () => {
       end: at(0, 15, 30),
       start: at(0, 13, 0),
     })
+  })
+
+  it("snaps timed drag moves to the configured slot duration", () => {
+    const standupEvent: CalendarEvent = {
+      id: "standup",
+      title: "Standup",
+      start: at(0, 9, 0),
+      end: at(0, 9, 30),
+    }
+    const standupOccurrence = occurrenceFromEvent(standupEvent)
+
+    const moveOperation = getMoveOperation(
+      standupOccurrence,
+      {
+        day: at(1, 0, 0),
+        kind: "slot",
+        minuteOfDay: 480,
+      },
+      2,
+      30
+    )
+
+    expect(moveOperation.nextStart).toEqual(at(1, 8, 0))
+    expect(moveOperation.nextEnd).toEqual(at(1, 8, 30))
+  })
+
+  it("treats timeline navigation like a week range and preserves resource moves", () => {
+    const focusEvent: CalendarEvent = {
+      id: "focus",
+      title: "Focus block",
+      start: at(0, 13, 0),
+      end: at(0, 15, 0),
+      resourceId: "product",
+    }
+    const focusOccurrence = occurrenceFromEvent(focusEvent)
+
+    const movedEvents = applyMoveOperation([focusEvent], {
+      nextEnd: at(1, 15, 0),
+      nextResourceId: "ops",
+      nextStart: at(1, 13, 0),
+      occurrence: focusOccurrence,
+      previousEnd: focusEvent.end,
+      previousStart: focusEvent.start,
+    })
+
+    expect(movedEvents[0]).toMatchObject({
+      end: at(1, 15, 0),
+      resourceId: "ops",
+      start: at(1, 13, 0),
+    })
+
+    expect(shiftDate(at(0, 10, 0), "timeline", 1)).toEqual(at(7, 10, 0))
+    const timelineRange = getVisibleRange(at(0, 10, 0), "timeline", {
+      weekStartsOn: 1,
+    })
+
+    expect(timelineRange.start).toEqual(at(-1, 0, 0))
+    expect(timelineRange.end).toEqual(
+      new Date(2026, 2, 29, 23, 59, 59, 999)
+    )
   })
 
   it("creates and duplicates events with the expected default shaping", () => {

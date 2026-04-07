@@ -15,7 +15,7 @@ import {
   getDragOffsetMinutes,
   getDragSurfaceRect,
   getPointerDistance,
-  getTimeGridDropTargetFromPoint,
+  getResizeDropTargetFromPoint,
   isTouchPointer,
   lockDocumentTouchScroll,
   type ActiveDragInteraction,
@@ -302,6 +302,7 @@ export function useCalendarPointerInteractions({
     (
       occurrence: CalendarOccurrence,
       edge: "start" | "end",
+      variant: CalendarDragData["variant"],
       event: React.PointerEvent<HTMLSpanElement>
     ) => {
       if (!enableEventResize || !canResizeOccurrence(occurrence)) {
@@ -330,9 +331,10 @@ export function useCalendarPointerInteractions({
         occurrence,
         pointerId: event.pointerId,
         pointerType: event.pointerType,
+        variant,
       })
       updateActiveResizeTarget(
-        getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
+        getResizeDropTargetFromPoint(variant, event.clientX, event.clientY)
       )
     },
     [
@@ -350,7 +352,15 @@ export function useCalendarPointerInteractions({
       variant: CalendarDragData["variant"],
       event: React.PointerEvent<HTMLButtonElement>
     ) => {
-      if (preferPragmaticEventMove && event.pointerType !== "touch") {
+      const selectedDesktopEvent =
+        event.pointerType !== "touch" &&
+        event.currentTarget.dataset.selected === "true"
+
+      if (
+        preferPragmaticEventMove &&
+        event.pointerType !== "touch" &&
+        !selectedDesktopEvent
+      ) {
         return
       }
 
@@ -440,10 +450,9 @@ export function useCalendarPointerInteractions({
     }
 
     const resize = activeResize
-    const pointerEventTarget =
-      resize.hasPointerCapture && resize.captureElement
-        ? resize.captureElement
-        : window
+    // Resize handles unmount as soon as the preview state replaces the source
+    // event, so window-level listeners keep the interaction alive after that.
+    const pointerEventTarget = window
 
     function handlePointerMove(event: Event) {
       if (!(event instanceof PointerEvent)) {
@@ -459,7 +468,11 @@ export function useCalendarPointerInteractions({
       }
 
       updateActiveResizeTarget(
-        getTimeGridDropTargetFromPoint(event.clientX, event.clientY)
+        getResizeDropTargetFromPoint(
+          resize.variant,
+          event.clientX,
+          event.clientY
+        )
       )
     }
 
@@ -473,7 +486,11 @@ export function useCalendarPointerInteractions({
       }
 
       const target =
-        getTimeGridDropTargetFromPoint(event.clientX, event.clientY) ??
+        getResizeDropTargetFromPoint(
+          resize.variant,
+          event.clientX,
+          event.clientY
+        ) ??
         activeResizeTargetRef.current ??
         lastResizeTargetRef.current
 

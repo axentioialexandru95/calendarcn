@@ -56,7 +56,8 @@ export function parseTimeStringToMinuteOfDay(value: string) {
 
 export function normalizeHiddenDays(hiddenDays?: CalendarWeekday[]) {
   const nextHiddenDays = Array.from(new Set(hiddenDays ?? [])).filter(
-    (day): day is CalendarWeekday => allWeekdays.includes(day as CalendarWeekday)
+    (day): day is CalendarWeekday =>
+      allWeekdays.includes(day as CalendarWeekday)
   )
 
   return nextHiddenDays.length === allWeekdays.length ? [] : nextHiddenDays
@@ -111,7 +112,9 @@ export function getNextVisibleDay(
 }
 
 export function isHiddenDay(day: Date, hiddenDays?: CalendarWeekday[]) {
-  return normalizeHiddenDays(hiddenDays).includes(getDay(day) as CalendarWeekday)
+  return normalizeHiddenDays(hiddenDays).includes(
+    getDay(day) as CalendarWeekday
+  )
 }
 
 export function getVisibleRange(
@@ -131,7 +134,7 @@ export function getVisibleRange(
     }
   }
 
-  if (view === "week") {
+  if (view === "week" || view === "timeline") {
     return {
       start: startOfWeek(anchorDate, { weekStartsOn }),
       end: endOfWeek(anchorDate, { weekStartsOn }),
@@ -163,7 +166,7 @@ export function shiftDate(
     return addMonths(anchorDate, direction)
   }
 
-  if (view === "week" || view === "agenda") {
+  if (view === "week" || view === "timeline" || view === "agenda") {
     return addWeeks(anchorDate, direction)
   }
 
@@ -190,6 +193,47 @@ export function getWeekDays(
   return Array.from({ length: 7 }, (_, index) => addDays(start, index)).filter(
     (day) => !isHiddenDay(day, hiddenDays)
   )
+}
+
+export function getWeekZoomDayCounts(visibleDayCount: number) {
+  if (visibleDayCount <= 1) {
+    return [1]
+  }
+
+  if (visibleDayCount <= 3) {
+    return [visibleDayCount]
+  }
+
+  if (visibleDayCount <= 5) {
+    return [visibleDayCount, 3]
+  }
+
+  return [visibleDayCount, 5, 3]
+}
+
+export function getZoomedWeekDays(
+  anchorDate: Date,
+  weekStartsOn: CalendarWeekday,
+  visibleDayCount: number,
+  hiddenDays?: CalendarWeekday[]
+) {
+  const weekDays = getWeekDays(anchorDate, weekStartsOn, hiddenDays)
+
+  if (visibleDayCount >= weekDays.length) {
+    return weekDays
+  }
+
+  const focusDay = getNextVisibleDay(anchorDate, hiddenDays)
+  const focusIndex = weekDays.findIndex(
+    (day) => day.getTime() === startOfDay(focusDay).getTime()
+  )
+  const normalizedFocusIndex = focusIndex >= 0 ? focusIndex : 0
+  const maxStartIndex = Math.max(0, weekDays.length - visibleDayCount)
+  const unclampedStartIndex =
+    normalizedFocusIndex - Math.floor(visibleDayCount / 2)
+  const startIndex = Math.min(Math.max(0, unclampedStartIndex), maxStartIndex)
+
+  return weekDays.slice(startIndex, startIndex + visibleDayCount)
 }
 
 export function getAgendaDays(

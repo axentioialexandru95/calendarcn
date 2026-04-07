@@ -43,6 +43,7 @@ type CalendarEventCardProps = {
   onResizeHandlePointerDown?: (
     occurrence: CalendarOccurrence,
     edge: "start" | "end",
+    variant: CalendarEventVariant,
     event: ReactPointerEvent<HTMLSpanElement>
   ) => void
   onOpenContextMenu?: (
@@ -87,6 +88,7 @@ type EventSurfaceProps = {
   onResizeHandlePointerDown?: (
     occurrence: CalendarOccurrence,
     edge: "start" | "end",
+    variant: CalendarEventVariant,
     event: ReactPointerEvent<HTMLSpanElement>
   ) => void
   onOpenContextMenu?: (
@@ -140,7 +142,11 @@ function CalendarEventCardComponent({
   const dragEnabled = interactive && canMoveOccurrence(event) && !preview
 
   return (
-    <div className={variant === "time-grid" ? "h-full" : undefined}>
+    <div
+      className={
+        variant === "time-grid" || variant === "timeline" ? "h-full" : undefined
+      }
+    >
       <EventSurface
         accentColor={accentColor}
         ariaLabel={`${event.title}. ${timeLabel}.`}
@@ -229,11 +235,23 @@ export function EventSurface({
   variant,
 }: EventSurfaceProps) {
   const isCompact = variant === "month" || variant === "all-day"
+  const durationMinutes = Math.max(
+    1,
+    Math.round((event.end.getTime() - event.start.getTime()) / 60_000)
+  )
+  const isShortTimeGridEvent =
+    variant === "time-grid" && !event.allDay && durationMinutes <= 30
   const [buttonElement, setButtonElement] =
     React.useState<HTMLButtonElement | null>(null)
   const pragmaticDragConfig = React.useMemo(() => {
+    // Selected time-grid cards expose resize handles, so keep desktop dragging
+    // on the pointer interaction path instead of stacking two drag systems.
+    if (showResizeHandles) {
+      return null
+    }
+
     return pragmaticDragConfigFactory?.(event, variant) ?? null
-  }, [event, pragmaticDragConfigFactory, variant])
+  }, [event, pragmaticDragConfigFactory, showResizeHandles, variant])
   usePragmaticDraggable(pragmaticDragConfig, buttonElement)
 
   function openContextMenu(position: CalendarEventMenuPosition) {
@@ -300,19 +318,25 @@ export function EventSurface({
   ) : (
     <div
       className={cn(
-        "min-w-0 space-y-0.5",
+        "min-w-0",
+        isShortTimeGridEvent ? "flex h-full items-center" : "space-y-0.5",
         variant === "time-grid" ? "relative z-10" : undefined
       )}
     >
-      {!isCompact ? (
+      {!isCompact && !isShortTimeGridEvent ? (
         <p className="truncate text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
           {timeLabel}
         </p>
       ) : null}
-      <p className="truncate leading-tight font-medium text-card-foreground">
+      <p
+        className={cn(
+          "truncate font-medium text-card-foreground",
+          isShortTimeGridEvent ? "text-[12px] leading-none" : "leading-tight"
+        )}
+      >
         {event.title}
       </p>
-      {!isCompact && event.location ? (
+      {!isCompact && !isShortTimeGridEvent && event.location ? (
         <p className="truncate text-[11px] text-muted-foreground">
           {event.location}
         </p>
@@ -329,7 +353,9 @@ export function EventSurface({
     <div
       className={cn(
         "group/event relative w-full min-w-0",
-        variant === "time-grid" ? "h-full" : undefined
+        variant === "time-grid" || variant === "timeline"
+          ? "h-full"
+          : undefined
       )}
       data-calendar-drag-overlay={overlay ? "true" : undefined}
       data-calendar-drag-surface="true"
@@ -344,7 +370,8 @@ export function EventSurface({
             variant,
             dragging,
             overlay,
-            preview
+            preview,
+            isShortTimeGridEvent
           ),
           className
         )}
@@ -394,6 +421,7 @@ export function EventSurface({
             event={event}
             interactive
             onPointerDown={onResizeHandlePointerDown}
+            variant={variant}
           />
           <ResizeHandle
             accentColor={accentColor}
@@ -401,6 +429,7 @@ export function EventSurface({
             event={event}
             interactive
             onPointerDown={onResizeHandlePointerDown}
+            variant={variant}
           />
         </>
       ) : null}
@@ -424,6 +453,7 @@ function ResizeHandle({
   event,
   interactive,
   onPointerDown,
+  variant,
 }: {
   accentColor: string
   edge: "start" | "end"
@@ -432,9 +462,13 @@ function ResizeHandle({
   onPointerDown?: (
     occurrence: CalendarOccurrence,
     edge: "start" | "end",
+    variant: CalendarEventVariant,
     event: ReactPointerEvent<HTMLSpanElement>
   ) => void
+  variant: CalendarEventVariant
 }) {
+  const isTimeline = variant === "timeline"
+
   return (
     <span
       data-calendar-event-id={event.sourceEventId}
@@ -442,10 +476,16 @@ function ResizeHandle({
       data-calendar-resize-handle={edge}
       data-testid={`calendar-resize-handle-${event.sourceEventId}-${edge}`}
       className={cn(
-        "absolute inset-x-0 z-20 h-6 touch-none select-none",
-        edge === "start"
-          ? "top-0 cursor-ns-resize"
-          : "bottom-0 cursor-ns-resize"
+        isTimeline
+          ? "absolute inset-y-0 z-20 w-4 touch-none select-none"
+          : "absolute inset-x-0 z-20 h-4 touch-none select-none",
+        isTimeline
+          ? edge === "start"
+            ? "left-0 cursor-ew-resize"
+            : "right-0 cursor-ew-resize"
+          : edge === "start"
+            ? "top-0 cursor-ns-resize"
+            : "bottom-0 cursor-ns-resize"
       )}
       onPointerDown={(pointerEvent) => {
         if (!interactive || pointerEvent.button !== 0) {
@@ -454,16 +494,26 @@ function ResizeHandle({
 
         pointerEvent.preventDefault()
         pointerEvent.stopPropagation()
-        onPointerDown?.(event, edge, pointerEvent)
+        onPointerDown?.(event, edge, variant, pointerEvent)
       }}
-      style={{
-        transform: edge === "start" ? "translateY(-50%)" : "translateY(50%)",
-      }}
+      style={
+        isTimeline
+          ? {
+              transform:
+                edge === "start" ? "translateX(-50%)" : "translateX(50%)",
+            }
+          : {
+              transform:
+                edge === "start" ? "translateY(-50%)" : "translateY(50%)",
+            }
+      }
     >
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
+          isTimeline
+            ? "pointer-events-none absolute top-1.5 bottom-1.5 left-1/2 w-px -translate-x-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100"
+            : "pointer-events-none absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 opacity-0 transition-opacity duration-150 group-hover/event:opacity-100 group-focus-visible/event:opacity-100",
           selectedHandleVisibilityClass()
         )}
         style={{
@@ -473,7 +523,9 @@ function ResizeHandle({
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
+          isTimeline
+            ? "pointer-events-none absolute top-1/2 left-1/2 h-8 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100"
+            : "pointer-events-none absolute top-1/2 left-1/2 h-1.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background/90 opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover/event:scale-100 group-hover/event:opacity-100 group-focus-visible/event:scale-100 group-focus-visible/event:opacity-100",
           selectedHandleVisibilityClass(),
           "scale-95"
         )}
@@ -494,6 +546,8 @@ function getEventSlotClassName(
       ? "monthEvent"
       : variant === "agenda"
         ? "agendaEvent"
+        : variant === "timeline"
+          ? "timelineEvent"
         : "timeGridEvent"
 
   return getCalendarSlotClassName(classNames, slot)
@@ -512,18 +566,23 @@ function getEventSurfaceClassName(
   variant: EventVariant,
   isDragging: boolean,
   overlay: boolean,
-  preview: boolean
+  preview: boolean,
+  isShortTimeGridEvent = false
 ) {
   return cn(
-    "relative w-full min-w-0 touch-none overflow-hidden rounded-[min(var(--radius-sm),4px)] border pr-[10px] pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
-    density === "compact" ? "px-2 py-1.5" : "px-2 py-2",
+    "relative w-full min-w-0 cursor-pointer touch-none overflow-hidden rounded-[min(var(--radius-sm),4px)] border pr-[10px] pl-3 text-left shadow-xs transition-[border-color,box-shadow,opacity] duration-150 outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+    variant === "time-grid" && isShortTimeGridEvent
+      ? "px-2 py-1"
+      : density === "compact"
+        ? "px-2 py-1.5"
+        : "px-2 py-2",
     variant === "month" || variant === "all-day"
       ? density === "compact"
         ? "px-2 py-1 pl-3 text-[11px]"
         : "px-2 py-1.5 pl-3 text-xs"
       : "text-sm",
     variant === "agenda" ? "min-h-20" : "",
-    variant === "time-grid" ? "h-full" : "",
+    variant === "time-grid" || variant === "timeline" ? "h-full" : "",
     preview ? "shadow-sm" : "",
     overlay
       ? "pointer-events-none shadow-sm"

@@ -5,6 +5,7 @@ import { addDays, addMinutes, startOfDay } from "date-fns"
 import type {
   CalendarDragData,
   CalendarDropTarget,
+  CalendarEventVariant,
   CalendarMoveOperation,
   CalendarOccurrence,
   CalendarResizeOperation,
@@ -54,6 +55,7 @@ export type ActiveResizeState = {
   occurrence: CalendarOccurrence
   pointerId: number
   pointerType: string
+  variant: CalendarEventVariant
 }
 
 export function getCalendarSurfaceShadowClassName(
@@ -80,7 +82,8 @@ export function getPreviewOccurrence(
     const operation = getMoveOperation(
       activeDrag.occurrence,
       target,
-      activeDrag.variant === "time-grid" ? dragOffsetMinutes : 0
+      activeDrag.variant === "time-grid" ? dragOffsetMinutes : 0,
+      slotDuration
     )
 
     return {
@@ -88,6 +91,7 @@ export function getPreviewOccurrence(
       start: operation.nextStart,
       end: operation.nextEnd,
       allDay: operation.allDay ?? activeDrag.occurrence.allDay,
+      resourceId: operation.nextResourceId ?? activeDrag.occurrence.resourceId,
     }
   }
 
@@ -108,7 +112,8 @@ export function getPreviewOccurrence(
 export function getMoveOperation(
   occurrence: CalendarOccurrence,
   target: CalendarDropTarget,
-  dragOffsetMinutes = 0
+  dragOffsetMinutes = 0,
+  slotDuration = 30
 ): CalendarMoveOperation {
   const durationMs = occurrence.end.getTime() - occurrence.start.getTime()
   let nextStart: Date
@@ -121,9 +126,13 @@ export function getMoveOperation(
       0,
       1_440 - Math.min(durationMinutes, 1_440)
     )
-    const nextStartMinute = Math.min(
+    const rawStartMinute = Math.min(
       latestStartMinute,
       Math.max(0, target.minuteOfDay - dragOffsetMinutes)
+    )
+    const nextStartMinute = Math.min(
+      latestStartMinute,
+      Math.max(0, snapMinuteToGrid(rawStartMinute, slotDuration))
     )
 
     nextStart = setMinuteOfDay(startOfDay(target.day), nextStartMinute)
@@ -145,10 +154,19 @@ export function getMoveOperation(
     occurrence,
     nextStart,
     nextEnd,
+    nextResourceId: target.resourceId,
     previousStart: occurrence.start,
     previousEnd: occurrence.end,
     allDay,
   }
+}
+
+function snapMinuteToGrid(minuteOfDay: number, slotDuration: number) {
+  if (slotDuration <= 1) {
+    return minuteOfDay
+  }
+
+  return Math.round(minuteOfDay / slotDuration) * slotDuration
 }
 
 export function getDragOffsetMinutes(
@@ -235,6 +253,10 @@ export function areDropTargetsEqual(
   }
 
   if (left.day.getTime() !== right.day.getTime()) {
+    return false
+  }
+
+  if (left.resourceId !== right.resourceId) {
     return false
   }
 
@@ -422,6 +444,8 @@ function parseCalendarDropTargetElement(
 ): CalendarDropTarget | null {
   const kind = match.dataset.calendarDropTargetKind
   const dayValue = match.dataset.calendarDropTargetDay
+  const resourceId =
+    match.dataset.calendarDropTargetResourceId?.trim() || undefined
 
   if (!kind || !dayValue) {
     return null
@@ -445,6 +469,7 @@ function parseCalendarDropTargetElement(
       kind,
       day,
       minuteOfDay,
+      resourceId,
     }
   }
 
@@ -452,6 +477,7 @@ function parseCalendarDropTargetElement(
     return {
       kind,
       day,
+      resourceId,
     }
   }
 
@@ -465,4 +491,18 @@ export function getTimeGridDropTargetFromPoint(
   const target = getCalendarDropTargetFromPoint(clientX, clientY)
 
   return target?.kind === "slot" ? target : null
+}
+
+export function getResizeDropTargetFromPoint(
+  variant: CalendarEventVariant,
+  clientX: number,
+  clientY: number
+): CalendarDropTarget | null {
+  if (variant === "timeline") {
+    const target = getCalendarDropTargetFromPoint(clientX, clientY)
+
+    return target && target.kind !== "slot" ? target : null
+  }
+
+  return getTimeGridDropTargetFromPoint(clientX, clientY)
 }

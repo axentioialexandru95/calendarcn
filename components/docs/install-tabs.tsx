@@ -13,7 +13,7 @@ import {
 } from "@/lib/docs/registry"
 import { cn } from "@/lib/utils"
 
-const fallbackOrigin = "https://calendarcn.phantomtechind.com"
+const publicOrigin = "https://calendarcn.phantomtechind.com"
 
 const installBundles = {
   primitive: {
@@ -100,11 +100,7 @@ export function InstallTabs() {
   const [activeBundle, setActiveBundle] =
     React.useState<InstallBundleId>("primitive")
   const [activeTab, setActiveTab] = React.useState<"cli" | "manual">("cli")
-  const [origin, setOrigin] = React.useState(fallbackOrigin)
-
-  React.useEffect(() => {
-    setOrigin(window.location.origin)
-  }, [])
+  const origin = publicOrigin
 
   const bundle = installBundles[activeBundle]
   const bundleItems = React.useMemo(

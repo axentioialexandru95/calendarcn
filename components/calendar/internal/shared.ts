@@ -119,6 +119,8 @@ export type CalendarToolbarProps = {
 }
 
 export type SharedViewProps = {
+  availableViews?: CalendarView[]
+  activeResourceIds: string[]
   anchorDate: Date
   blockedRanges?: CalendarBlockedRange[]
   activeDropTarget?: CalendarDropTarget | null
@@ -133,6 +135,7 @@ export type SharedViewProps = {
   interactive: boolean
   locale?: string
   occurrences: CalendarOccurrence[]
+  onDateChange?: (date: Date) => void
   previewOccurrenceId?: string
   secondaryTimeZone?: string
   showCreatePreviewMeta?: boolean
@@ -151,6 +154,7 @@ export type SharedViewProps = {
   onResizeHandlePointerDown?: (
     occurrence: CalendarOccurrence,
     edge: "start" | "end",
+    variant: CalendarEventVariant,
     event: ReactPointerEvent<HTMLSpanElement>
   ) => void
   onOpenContextMenu?: (
@@ -158,8 +162,10 @@ export type SharedViewProps = {
     position: CalendarEventMenuPosition
   ) => void
   onSelectEvent: (occurrence: CalendarOccurrence) => void
+  onViewChange?: (view: CalendarView) => void
   shouldSuppressEventClick?: (occurrenceId: string) => boolean
   renderEvent?: CalendarEventRenderer
+  resources?: CalendarResource[]
   scrollToTime?: "now" | string
   selectedEventId?: string
   slotDuration: number

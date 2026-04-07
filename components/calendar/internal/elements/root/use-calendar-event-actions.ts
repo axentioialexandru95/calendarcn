@@ -360,6 +360,7 @@ export function useCalendarEventActions({
       const operation = {
         allDay: context.allDay,
         nextEnd: context.nextEnd,
+        nextResourceId: context.nextResourceId,
         nextStart: context.nextStart,
         occurrence: context.occurrence,
         previousEnd: context.previousEnd,
@@ -496,7 +497,12 @@ export function useCalendarEventActions({
       return
     }
 
-    const operation = getMoveOperation(occurrence, target, dragOffsetMinutes)
+    const operation = getMoveOperation(
+      occurrence,
+      target,
+      dragOffsetMinutes,
+      slotDuration
+    )
     requestEventChange({
       action: "move",
       ...operation,

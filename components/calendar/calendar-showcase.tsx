@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import {
   buildDemoBlockedRanges,
   buildDemoBusinessHours,
+  buildDemoDenseOverlapEvents,
   buildDemoEvents,
   buildDemoResources,
   CALENDAR_DEMO_SEED_VERSION,
@@ -38,12 +39,16 @@ type DemoConfigState = {
   twentyFourHour: boolean
 }
 
-type DemoPresetId = "starter" | "workweek" | "operations"
+type DemoEventSetId = "default" | "denseOverlap"
+
+type DemoPresetId = "starter" | "workweek" | "operations" | "denseOverlap"
 
 const demoPresets: Record<
   DemoPresetId,
   {
     description: string
+    eventSet: DemoEventSetId
+    initialView: CalendarView
     label: string
     state: DemoConfigState
   }
@@ -51,6 +56,8 @@ const demoPresets: Record<
   starter: {
     description:
       "A broad default setup with all views, roomy spacing, and no scheduling rules.",
+    eventSet: "default",
+    initialView: "week",
     label: "Starter",
     state: {
       compact: false,
@@ -64,6 +71,8 @@ const demoPresets: Record<
   workweek: {
     description:
       "A focused weekday planner with compact spacing, working hours, and blocked lunch time.",
+    eventSet: "default",
+    initialView: "week",
     label: "Workweek",
     state: {
       compact: true,
@@ -77,12 +86,29 @@ const demoPresets: Record<
   operations: {
     description:
       "A seven-day schedule with 24-hour time and blocked maintenance windows.",
+    eventSet: "default",
+    initialView: "week",
     label: "Operations",
     state: {
       compact: false,
       focusedViews: true,
       hideWeekends: false,
       showBlockedRanges: true,
+      showBusinessHours: false,
+      twentyFourHour: true,
+    },
+  },
+  denseOverlap: {
+    description:
+      "Ten overlapping timed events in one midday cluster, useful for checking crowded columns, click targets, and resize affordances.",
+    eventSet: "denseOverlap",
+    initialView: "day",
+    label: "Dense overlap",
+    state: {
+      compact: false,
+      focusedViews: true,
+      hideWeekends: false,
+      showBlockedRanges: false,
       showBusinessHours: false,
       twentyFourHour: true,
     },
@@ -157,9 +183,17 @@ function CalendarShowcaseSurface({
   initialDateIso: string
   variant?: CalendarShowcaseVariant
 }) {
+  const initialPresetId: DemoPresetId =
+    variant === "hero" ? "starter" : "workweek"
+  const initialPreset = demoPresets[initialPresetId]
   const [initialDate] = React.useState(() => new Date(initialDateIso))
-  const [demoConfig, setDemoConfig] = React.useState<DemoConfigState>(() =>
-    variant === "hero" ? demoPresets.starter.state : demoPresets.workweek.state
+  const [demoConfig, setDemoConfig] = React.useState<DemoConfigState>(
+    () => initialPreset.state
+  )
+  const [selectedPresetId, setSelectedPresetId] =
+    React.useState<DemoPresetId | null>(initialPresetId)
+  const [activeEventSet, setActiveEventSet] = React.useState<DemoEventSetId>(
+    initialPreset.eventSet
   )
   const resources = React.useState(() => buildDemoResources())[0]
   const blockedRanges = React.useMemo(
@@ -167,13 +201,6 @@ function CalendarShowcaseSurface({
     [initialDate]
   )
   const businessHours = React.useMemo(() => buildDemoBusinessHours(), [])
-  const selectedPresetId = React.useMemo<DemoPresetId | null>(() => {
-    const matchedEntry = Object.entries(demoPresets).find(([, preset]) =>
-      isSameDemoConfigState(preset.state, demoConfig)
-    )
-
-    return (matchedEntry?.[0] as DemoPresetId | undefined) ?? null
-  }, [demoConfig])
   const calendarConfig = React.useMemo<{
     availableViews: CalendarView[]
     blockedRanges: CalendarSchedulerComponentProps["blockedRanges"]
@@ -185,8 +212,8 @@ function CalendarShowcaseSurface({
     scrollToTime: NonNullable<CalendarSchedulerComponentProps["scrollToTime"]>
   }>(() => {
     const availableViews = demoConfig.focusedViews
-      ? (["week", "day", "agenda"] as CalendarView[])
-      : (["month", "week", "day", "agenda"] as CalendarView[])
+      ? (["week", "day", "timeline", "agenda"] as CalendarView[])
+      : (["month", "week", "day", "timeline", "agenda"] as CalendarView[])
 
     return {
       availableViews,
@@ -207,8 +234,8 @@ function CalendarShowcaseSurface({
       `scrollToTime="${calendarConfig.scrollToTime}"`,
     ]
 
-    if (calendarConfig.availableViews.length < 4) {
-      tokens.push('availableViews={["week", "day", "agenda"]}')
+    if (calendarConfig.availableViews.length < 5) {
+      tokens.push('availableViews={["week", "day", "timeline", "agenda"]}')
     }
 
     if (calendarConfig.hiddenDays.length > 0) {
@@ -223,13 +250,21 @@ function CalendarShowcaseSurface({
       tokens.push("blockedRanges={demoBlockedRanges}")
     }
 
+    if (activeEventSet === "denseOverlap") {
+      tokens.push("events={demoDenseOverlapEvents}")
+      tokens.push('initialView="day"')
+    }
+
     return tokens
-  }, [calendarConfig])
+  }, [activeEventSet, calendarConfig])
   const currentSetupTokens = React.useMemo(() => {
     const tokens = [
       selectedPresetId
         ? `${demoPresets[selectedPresetId].label} preset`
         : "Custom setup",
+      activeEventSet === "denseOverlap"
+        ? "10 overlapping midday events"
+        : "Mixed reference schedule",
       calendarConfig.density === "compact"
         ? "Compact spacing"
         : "Comfortable spacing",
@@ -247,19 +282,19 @@ function CalendarShowcaseSurface({
     ]
 
     return tokens
-  }, [calendarConfig, selectedPresetId])
+  }, [activeEventSet, calendarConfig, selectedPresetId])
   const currentSetupSummary = React.useMemo(() => {
     const presetLabel = selectedPresetId
       ? demoPresets[selectedPresetId].label
       : "Custom"
 
-    return `${presetLabel} setup with ${calendarConfig.density} spacing, ${calendarConfig.hourCycle}-hour time, ${calendarConfig.hiddenDays.length > 0 ? "weekday-only planning" : "a full seven-day schedule"}, and ${calendarConfig.blockedRanges ? "unavailable time blocks enabled." : "no blocked time enabled."}`
-  }, [calendarConfig, selectedPresetId])
+    return `${presetLabel} setup with ${calendarConfig.density} spacing, ${calendarConfig.hourCycle}-hour time, ${calendarConfig.hiddenDays.length > 0 ? "weekday-only planning" : "a full seven-day schedule"}, ${calendarConfig.blockedRanges ? "unavailable time blocks enabled" : "no blocked time enabled"}, and ${activeEventSet === "denseOverlap" ? "a dense overlap dataset that squeezes ten events into one midday cluster." : "the mixed reference dataset used across the demo."}`
+  }, [activeEventSet, calendarConfig, selectedPresetId])
   const controller = useCalendarController({
     availableViews: calendarConfig.availableViews,
     initialDate,
-    initialEvents: buildDemoEvents(initialDate),
-    initialView: "week",
+    initialEvents: buildShowcaseEvents(initialDate, initialPreset.eventSet),
+    initialView: initialPreset.initialView,
     createDefaults: {
       calendarId: "product",
       calendarLabel: "Product",
@@ -267,6 +302,21 @@ function CalendarShowcaseSurface({
       resourceId: "product",
     },
   })
+
+  const applyPreset = React.useCallback(
+    (presetId: DemoPresetId) => {
+      const preset = demoPresets[presetId]
+
+      setDemoConfig(preset.state)
+      setSelectedPresetId(presetId)
+      setActiveEventSet(preset.eventSet)
+      controller.setSelectedEventId(undefined)
+      controller.setEvents(buildShowcaseEvents(initialDate, preset.eventSet))
+      controller.setDate(initialDate)
+      controller.setView(preset.initialView)
+    },
+    [controller, initialDate]
+  )
 
   const calendar = (
     <CalendarScheduler
@@ -309,9 +359,7 @@ function CalendarShowcaseSurface({
       )}
       resources={resources}
       scrollToTime={calendarConfig.scrollToTime}
-      secondaryTimeZone="America/New_York"
       selectedEventId={controller.selectedEventId}
-      showSecondaryTimeZone
       surfaceShadow="md"
       surfaceVariant={variant === "hero" ? "flush" : "card"}
       timeZone="Europe/Bucharest"
@@ -327,10 +375,9 @@ function CalendarShowcaseSurface({
           config={demoConfig}
           currentSetupSummary={currentSetupSummary}
           currentSetupTokens={currentSetupTokens}
-          onPresetSelect={(presetId) => {
-            setDemoConfig(demoPresets[presetId].state)
-          }}
+          onPresetSelect={applyPreset}
           onToggle={(key) => {
+            setSelectedPresetId(null)
             setDemoConfig((currentConfig) => ({
               ...currentConfig,
               [key]: !currentConfig[key],
@@ -434,10 +481,9 @@ function CalendarShowcaseSurface({
             config={demoConfig}
             currentSetupSummary={currentSetupSummary}
             currentSetupTokens={currentSetupTokens}
-            onPresetSelect={(presetId) => {
-              setDemoConfig(demoPresets[presetId].state)
-            }}
+            onPresetSelect={applyPreset}
             onToggle={(key) => {
+              setSelectedPresetId(null)
               setDemoConfig((currentConfig) => ({
                 ...currentConfig,
                 [key]: !currentConfig[key],
@@ -635,15 +681,10 @@ function FeatureRow({
   )
 }
 
-function isSameDemoConfigState(left: DemoConfigState, right: DemoConfigState) {
-  return (
-    left.compact === right.compact &&
-    left.focusedViews === right.focusedViews &&
-    left.hideWeekends === right.hideWeekends &&
-    left.showBlockedRanges === right.showBlockedRanges &&
-    left.showBusinessHours === right.showBusinessHours &&
-    left.twentyFourHour === right.twentyFourHour
-  )
+function buildShowcaseEvents(baseDate: Date, eventSet: DemoEventSetId) {
+  return eventSet === "denseOverlap"
+    ? buildDemoDenseOverlapEvents(baseDate)
+    : buildDemoEvents(baseDate)
 }
 type CalendarSchedulerComponentProps = React.ComponentProps<
   typeof CalendarScheduler

@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { cn } from "../lib/utils"
 
+import type { CalendarOccurrence } from "../../types"
 import {
   formatDayNumber,
   formatMonthDayLabel,
@@ -83,20 +84,24 @@ type MonthDayCellProps = SharedViewProps & {
 
 function MonthDayCell({
   activeDropTarget,
+  availableViews,
   anchorDate,
   classNames,
   columnHeaderId,
   day,
   density,
+  dragPreviewOccurrence,
   draggingOccurrenceId,
   getEventColor,
   interactive,
   locale,
   occurrences,
+  onDateChange,
   onEventDragPointerDown,
   onEventKeyCommand,
   onOpenContextMenu,
   onSelectEvent,
+  onViewChange,
   previewOccurrenceId,
   renderEvent,
   selectedEventId,
@@ -104,11 +109,43 @@ function MonthDayCell({
   timeZone,
 }: MonthDayCellProps) {
   const events = getDayEvents(occurrences, day)
-  const visibleEvents = events.slice(0, maxMonthEvents)
-  const remainingEvents = events.length - visibleEvents.length
+  const dragPreviewEvent = getPreviewEventForDay(dragPreviewOccurrence, day)
+  const mergedEvents = mergePreviewEvent(events, dragPreviewEvent)
+  let visibleEvents = mergedEvents.slice(0, maxMonthEvents)
+
+  if (
+    dragPreviewEvent &&
+    !visibleEvents.some(
+      (event) => event.occurrenceId === dragPreviewEvent.occurrenceId
+    )
+  ) {
+    visibleEvents = [
+      ...visibleEvents.slice(0, Math.max(0, maxMonthEvents - 1)),
+      dragPreviewEvent,
+    ]
+  }
+
+  const remainingEvents = Math.max(
+    0,
+    mergedEvents.length - visibleEvents.length
+  )
   const isDragTarget =
-    activeDropTarget?.kind === "day" &&
-    activeDropTarget.day.getTime() === day.getTime()
+    !!dragPreviewEvent ||
+    (activeDropTarget?.kind === "day" &&
+      activeDropTarget.day.getTime() === day.getTime())
+  const canDrillIntoDayView = Boolean(
+    availableViews?.includes("day") && onDateChange && onViewChange
+  )
+  const dayAriaLabel = getMonthDayAriaLabel(day, locale, timeZone)
+
+  const handleDrillIntoDayView = React.useCallback(() => {
+    if (!canDrillIntoDayView || !onDateChange || !onViewChange) {
+      return
+    }
+
+    onDateChange(new Date(day))
+    onViewChange("day")
+  }, [canDrillIntoDayView, day, onDateChange, onViewChange])
 
   return (
     <section
@@ -119,7 +156,7 @@ function MonthDayCell({
       })} ${formatMonthDayLabel(day, {
         locale,
         timeZone,
-      })}. ${events.length} ${events.length === 1 ? "event" : "events"}.`}
+      })}. ${mergedEvents.length} ${mergedEvents.length === 1 ? "event" : "events"}.`}
       className={getCalendarSlotClassName(
         classNames,
         isOutsideMonth(day, anchorDate) ? "monthCellMuted" : "monthCell",
@@ -128,8 +165,11 @@ function MonthDayCell({
           density === "compact"
             ? "min-h-[9rem] gap-1.5"
             : "min-h-[10.5rem] gap-2",
-          isDragTarget ? "bg-muted/50" : "",
-          isOutsideMonth(day, anchorDate) ? "bg-muted/25" : "bg-background"
+          isDragTarget
+            ? "bg-muted/50"
+            : isOutsideMonth(day, anchorDate)
+              ? "bg-muted/25"
+              : "bg-background"
         )
       )}
       data-calendar-drop-target-day={day.toISOString()}
@@ -143,54 +183,104 @@ function MonthDayCell({
             timeZone,
           })}
         </span>
-        <span
-          aria-current={isToday(day) ? "date" : undefined}
-          className={cn(
-            "inline-flex size-8 items-center justify-center rounded-full text-sm font-medium",
-            isToday(day)
-              ? "bg-primary text-primary-foreground"
-              : "text-foreground"
-          )}
-        >
-          {formatDayNumber(day, {
-            locale,
-            timeZone,
-          })}
-        </span>
-      </div>
-      <div className="space-y-1">
-        {visibleEvents.map((occurrence, index) => (
-          <CalendarEventCard
-            key={occurrence.occurrenceId}
-            accentColor={getResolvedAccentColor(
-              occurrence,
-              getEventColor,
-              index
+        {canDrillIntoDayView ? (
+          <button
+            aria-current={isToday(day) ? "date" : undefined}
+            aria-label={`Open ${dayAriaLabel} in day view`}
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-full text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
+              isToday(day)
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                : "text-foreground"
             )}
-            classNames={classNames}
-            density={density}
-            dragging={draggingOccurrenceId === occurrence.occurrenceId}
-            event={occurrence}
-            interactive={interactive}
-            onDragPointerDown={onEventDragPointerDown}
-            onEventKeyCommand={onEventKeyCommand}
-            onOpenContextMenu={onOpenContextMenu}
-            onSelect={onSelectEvent}
-            preview={previewOccurrenceId === occurrence.occurrenceId}
-            renderEvent={renderEvent}
-            selected={selectedEventId === occurrence.occurrenceId}
-            shouldSuppressClick={shouldSuppressEventClick}
-            timeLabel={getEventMetaLabel(occurrence, {
+            onClick={handleDrillIntoDayView}
+            type="button"
+          >
+            {formatDayNumber(day, {
               locale,
               timeZone,
             })}
-            variant="month"
-          />
-        ))}
+          </button>
+        ) : (
+          <span
+            aria-current={isToday(day) ? "date" : undefined}
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-full text-sm font-medium",
+              isToday(day)
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground"
+            )}
+          >
+            {formatDayNumber(day, {
+              locale,
+              timeZone,
+            })}
+          </span>
+        )}
+      </div>
+      <div className="space-y-1">
+        {visibleEvents.map((occurrence, index) => {
+          const isDragPreview =
+            dragPreviewEvent?.occurrenceId === occurrence.occurrenceId
+
+          return (
+            <CalendarEventCard
+              key={occurrence.occurrenceId}
+              accentColor={getResolvedAccentColor(
+                occurrence,
+                getEventColor,
+                index
+              )}
+              classNames={classNames}
+              density={density}
+              dragging={
+                isDragPreview
+                  ? false
+                  : draggingOccurrenceId === occurrence.occurrenceId
+              }
+              event={occurrence}
+              interactive={interactive}
+              onDragPointerDown={onEventDragPointerDown}
+              onEventKeyCommand={onEventKeyCommand}
+              onOpenContextMenu={onOpenContextMenu}
+              onSelect={onSelectEvent}
+              preview={
+                isDragPreview || previewOccurrenceId === occurrence.occurrenceId
+              }
+              previewMetaLabel={
+                isDragPreview
+                  ? getEventMetaLabel(occurrence, {
+                      locale,
+                      timeZone,
+                    })
+                  : undefined
+              }
+              renderEvent={renderEvent}
+              selected={selectedEventId === occurrence.occurrenceId}
+              shouldSuppressClick={shouldSuppressEventClick}
+              timeLabel={getEventMetaLabel(occurrence, {
+                locale,
+                timeZone,
+              })}
+              variant="month"
+            />
+          )
+        })}
         {remainingEvents > 0 ? (
-          <p className="px-1 text-xs text-muted-foreground">
-            +{remainingEvents} more
-          </p>
+          canDrillIntoDayView ? (
+            <button
+              aria-label={`Show all ${mergedEvents.length} events on ${dayAriaLabel} in day view`}
+              className="px-1 text-left text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+              onClick={handleDrillIntoDayView}
+              type="button"
+            >
+              +{remainingEvents} more
+            </button>
+          ) : (
+            <p className="px-1 text-xs text-muted-foreground">
+              +{remainingEvents} more
+            </p>
+          )
         ) : null}
       </div>
     </section>
@@ -199,4 +289,49 @@ function MonthDayCell({
 
 function getMonthHeaderId(index: number) {
   return `calendar-month-header-${index}`
+}
+
+function getPreviewEventForDay(
+  previewOccurrence: CalendarOccurrence | undefined,
+  day: Date
+) {
+  return previewOccurrence
+    ? getDayEvents([previewOccurrence], day)[0]
+    : undefined
+}
+
+function mergePreviewEvent(
+  events: CalendarOccurrence[],
+  previewEvent: CalendarOccurrence | undefined
+) {
+  if (!previewEvent) {
+    return events
+  }
+
+  const mergedEvents = events.filter(
+    (event) => event.occurrenceId !== previewEvent.occurrenceId
+  )
+
+  mergedEvents.push(previewEvent)
+  mergedEvents.sort((left, right) => {
+    const startDifference = left.start.getTime() - right.start.getTime()
+
+    if (startDifference !== 0) {
+      return startDifference
+    }
+
+    return left.title.localeCompare(right.title)
+  })
+
+  return mergedEvents
+}
+
+function getMonthDayAriaLabel(day: Date, locale?: string, timeZone?: string) {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    weekday: "long",
+    year: "numeric",
+    ...(timeZone ? { timeZone } : {}),
+  }).format(day)
 }

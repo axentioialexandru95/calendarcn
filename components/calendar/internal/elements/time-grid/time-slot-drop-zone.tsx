@@ -61,6 +61,9 @@ export function TimeSlotDropZone({
         timeZone,
       })}
       aria-selected={active}
+      data-calendar-grid-active={
+        active && focusVisible ? "true" : undefined
+      }
       data-calendar-drop-target-day={day.toISOString()}
       data-calendar-drop-target-kind="slot"
       data-calendar-drop-target-minute={minuteOfDay}
@@ -71,9 +74,6 @@ export function TimeSlotDropZone({
         cn(
           "h-full border-b border-border/50 text-left transition-colors",
           isDragTarget ? "bg-muted/70" : "",
-          active && focusVisible
-            ? "bg-primary/8 ring-2 ring-primary/35 ring-inset"
-            : "",
           blocked ? "cursor-not-allowed" : "",
           isDraftDay ? "cursor-crosshair" : ""
         )

@@ -12,7 +12,7 @@ CalendarCN is released under the [MIT License](./LICENSE).
 
 If CalendarCN helped you, you can support it here:
 
-- [Buy me a coffee](https://buymeacoffee.com/phantomtechind)
+- [Buy me a coffee](https://buymeacoffee.com/axentioialexandru)
 
 ## Install From a Hosted Registry
 

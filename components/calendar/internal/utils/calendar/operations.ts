@@ -25,6 +25,7 @@ export function applyMoveOperation(
       start: operation.nextStart,
       end: operation.nextEnd,
       allDay: operation.allDay ?? event.allDay,
+      resourceId: operation.nextResourceId ?? event.resourceId,
     }
   })
 }

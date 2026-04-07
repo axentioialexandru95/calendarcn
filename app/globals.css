@@ -175,3 +175,12 @@
 .rb-star-movement-top {
   animation: rb-star-movement-top linear infinite alternate;
 }
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}

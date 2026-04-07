@@ -1,6 +1,7 @@
 import type { ComponentProps, ComponentType } from "react"
 
 import {
+  ArrowsOutCardinalIcon,
   CaretLeftIcon,
   CaretRightIcon,
   CommandIcon,
@@ -21,6 +22,7 @@ const viewLabels: Record<CalendarView, string> = {
   month: "Month",
   week: "Week",
   day: "Day",
+  timeline: "Timeline",
   agenda: "Agenda",
 }
 
@@ -28,6 +30,7 @@ const viewIcons: Record<CalendarView, ComponentType<{ className?: string }>> = {
   month: SquaresFourIcon,
   week: ColumnsIcon,
   day: RowsIcon,
+  timeline: ArrowsOutCardinalIcon,
   agenda: ListBulletsIcon,
 }
 
@@ -80,9 +83,6 @@ export function CalendarToolbar({
   onViewChange,
   renderToolbarExtras,
   resources,
-  secondaryTimeZone,
-  showSecondaryTimeZone,
-  timeZone,
   view,
 }: CalendarToolbarProps) {
   const visibleResourceCount =
@@ -102,6 +102,9 @@ export function CalendarToolbar({
     view,
   })
   const showViewSwitcher = availableViews.length > 1
+  const toolbarMetaLabel = resources?.length
+    ? `${visibleResourceCount}/${resources.length} calendars`
+    : null
 
   return (
     <div
@@ -155,15 +158,11 @@ export function CalendarToolbar({
             >
               {currentLabel}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {timeZone ? `${timeZone} timezone` : "Local timezone"}
-              {showSecondaryTimeZone && secondaryTimeZone
-                ? ` · Secondary ${secondaryTimeZone}`
-                : ""}
-              {resources?.length
-                ? ` · ${visibleResourceCount}/${resources.length} calendars`
-                : ""}
-            </p>
+            {toolbarMetaLabel ? (
+              <p className="truncate text-xs text-muted-foreground">
+                {toolbarMetaLabel}
+              </p>
+            ) : null}
           </div>
         </div>
         <div

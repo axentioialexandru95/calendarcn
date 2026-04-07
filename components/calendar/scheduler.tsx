@@ -10,6 +10,8 @@ const starterSelectedEventClassNames = {
     "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
   monthEvent:
     "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
+  timelineEvent:
+    "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
   timeGridEvent:
     "data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/60",
 } satisfies CalendarClassNames

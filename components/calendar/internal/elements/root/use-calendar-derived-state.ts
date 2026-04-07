@@ -12,10 +12,7 @@ import {
   getRangeLabel,
   getVisibleRange,
 } from "../../../utils"
-import type {
-  CalendarRootProps,
-  SharedViewProps,
-} from "../../shared"
+import type { CalendarRootProps, SharedViewProps } from "../../shared"
 
 import {
   getPreviewOccurrence,
@@ -30,6 +27,7 @@ type UseCalendarDerivedStateOptions = {
   activeResize: ActiveResizeState | null
   activeResizeTarget: CalendarDropTarget | null
   agendaDays: number
+  availableViews?: CalendarRootProps["availableViews"]
   blockedRanges: CalendarRootProps["blockedRanges"]
   businessHours: CalendarRootProps["businessHours"]
   classNames: CalendarRootProps["classNames"]
@@ -48,12 +46,18 @@ type UseCalendarDerivedStateOptions = {
   isPointerDragging: boolean
   locale?: string
   optimisticEvents: CalendarEvent[]
+  onDateChange?: CalendarRootProps["onDateChange"]
+  onViewChange?: CalendarRootProps["onViewChange"]
   renderEmptyState: CalendarRootProps["renderEmptyState"]
   renderEvent: CalendarRootProps["renderEvent"]
   resolvedHiddenDays: CalendarWeekday[]
   resolvedResourceFilter: string[]
   resolvedSlotHeight: number
   resolvedView: CalendarRootProps["view"]
+  rangeOverride?: {
+    start: Date
+    end: Date
+  }
   resources?: CalendarRootProps["resources"]
   scrollToTime?: CalendarRootProps["scrollToTime"]
   secondaryTimeZone?: CalendarRootProps["secondaryTimeZone"]
@@ -70,6 +74,7 @@ type UseCalendarDerivedStateOptions = {
   slotDuration: number
   timeZone?: string
   weekStartsOn: CalendarWeekday
+  currentLabelOverride?: string
 }
 
 export function useCalendarDerivedState({
@@ -79,6 +84,7 @@ export function useCalendarDerivedState({
   activeResize,
   activeResizeTarget,
   agendaDays,
+  availableViews,
   blockedRanges,
   businessHours,
   classNames,
@@ -97,12 +103,15 @@ export function useCalendarDerivedState({
   isPointerDragging,
   locale,
   optimisticEvents,
+  onDateChange,
+  onViewChange,
   renderEmptyState,
   renderEvent,
   resolvedHiddenDays,
   resolvedResourceFilter,
   resolvedSlotHeight,
   resolvedView,
+  rangeOverride,
   resources,
   scrollToTime,
   secondaryTimeZone,
@@ -115,9 +124,11 @@ export function useCalendarDerivedState({
   slotDuration,
   timeZone,
   weekStartsOn,
+  currentLabelOverride,
 }: UseCalendarDerivedStateOptions) {
   const range = React.useMemo(
     () =>
+      rangeOverride ??
       getVisibleRange(date, resolvedView, {
         agendaDays,
         hiddenDays: resolvedHiddenDays,
@@ -131,6 +142,7 @@ export function useCalendarDerivedState({
       date,
       hourCycle,
       locale,
+      rangeOverride,
       resolvedHiddenDays,
       resolvedView,
       timeZone,
@@ -221,6 +233,7 @@ export function useCalendarDerivedState({
 
   const currentLabel = React.useMemo(
     () =>
+      currentLabelOverride ??
       getRangeLabel(date, resolvedView, {
         agendaDays,
         hiddenDays: resolvedHiddenDays,
@@ -231,6 +244,7 @@ export function useCalendarDerivedState({
       }),
     [
       agendaDays,
+      currentLabelOverride,
       date,
       hourCycle,
       locale,
@@ -244,13 +258,17 @@ export function useCalendarDerivedState({
   const sharedViewProps = React.useMemo<SharedViewProps>(() => {
     return {
       activeDropTarget: isPointerDragging ? activeDropTarget : null,
+      activeResourceIds: resolvedResourceFilter,
+      availableViews,
       anchorDate: date,
       blockedRanges,
       businessHours,
       classNames,
       density,
       dragPreviewOccurrence:
-        activeDrag?.kind === "event" ? previewOccurrence ?? undefined : undefined,
+        activeDrag?.kind === "event"
+          ? (previewOccurrence ?? undefined)
+          : undefined,
       draggingOccurrenceId:
         isPointerDragging && activeDrag?.kind === "event"
           ? activeDrag.occurrence.occurrenceId
@@ -261,14 +279,19 @@ export function useCalendarDerivedState({
       interactive: isHydrated,
       locale,
       occurrences,
+      onDateChange,
       onEventCreate: handleEventCreateRequest,
       onEventDragPointerDown: handleEventDragPointerDown,
       onEventKeyCommand: handleEventKeyCommand,
       onOpenContextMenu: handleOpenContextMenu,
       onResizeHandlePointerDown: handleResizeHandlePointerDown,
       onSelectEvent: handleSelectEvent,
-      previewOccurrenceId: activeResize ? previewOccurrence?.occurrenceId : undefined,
+      onViewChange,
+      previewOccurrenceId: activeResize
+        ? previewOccurrence?.occurrenceId
+        : undefined,
       renderEvent,
+      resources,
       scrollToTime,
       secondaryTimeZone,
       selectedEventId,
@@ -285,6 +308,7 @@ export function useCalendarDerivedState({
     activeDrag,
     activeDropTarget,
     activeResize,
+    availableViews,
     blockedRanges,
     businessHours,
     classNames,
@@ -302,10 +326,14 @@ export function useCalendarDerivedState({
     isPointerDragging,
     locale,
     occurrences,
+    onDateChange,
+    onViewChange,
     previewOccurrence,
     renderEvent,
     resolvedHiddenDays,
+    resolvedResourceFilter,
     resolvedSlotHeight,
+    resources,
     scrollToTime,
     secondaryTimeZone,
     selectedEventId,

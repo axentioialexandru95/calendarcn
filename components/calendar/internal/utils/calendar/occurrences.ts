@@ -546,12 +546,14 @@ function createOccurrence(
 }
 
 export function getDayEvents(occurrences: CalendarOccurrence[], day: Date) {
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+
   return occurrences.filter((occurrence) =>
-    intersectsRange(
+    intervalsOverlap(
       occurrence.start,
       occurrence.end,
-      new Date(day.getFullYear(), day.getMonth(), day.getDate()),
-      endOfDay(day)
+      dayStart,
+      addDays(dayStart, 1)
     )
   )
 }

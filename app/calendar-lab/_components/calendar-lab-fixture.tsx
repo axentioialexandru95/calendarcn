@@ -13,12 +13,18 @@ import {
   CALENDAR_DEMO_TIME_ZONE,
   buildDemoBlockedRanges,
   buildDemoBusinessHours,
+  buildDemoDenseOverlapEvents,
   buildDemoEvents,
   buildDemoResources,
 } from "@/lib/calendar-demo-data"
 import { setDateInTimeZone } from "@/lib/timezone-date"
 
-type CalendarLabScenario = "confirm" | "default" | "details" | "recurrence"
+type CalendarLabScenario =
+  | "confirm"
+  | "default"
+  | "details"
+  | "overlap"
+  | "recurrence"
 
 type CalendarLabFixtureProps = {
   initialDateIso: string
@@ -39,7 +45,13 @@ const createDefaults = {
   resourceId: "product",
 } as const
 
-const fullViewSet: CalendarView[] = ["month", "week", "day", "agenda"]
+const fullViewSet: CalendarView[] = [
+  "month",
+  "week",
+  "day",
+  "timeline",
+  "agenda",
+]
 
 export function CalendarLabFixture({
   initialDateIso,
@@ -64,7 +76,7 @@ export function CalendarLabFixture({
     createDefaults,
     initialDate,
     initialEvents,
-    initialView: "week",
+    initialView: scenario === "overlap" ? "day" : "week",
   })
   const eventChangeConfirmation: CalendarEventChangeConfirmation | undefined =
     scenario === "confirm" ? true : undefined
@@ -86,10 +98,16 @@ export function CalendarLabFixture({
           createEventSheet={createSheetConfig}
           date={controller.date}
           eventChangeConfirmation={eventChangeConfirmation}
-          eventDetails={scenario === "details" ? true : undefined}
+          eventDetails={
+            scenario === "details" || scenario === "overlap" ? true : undefined
+          }
           events={controller.events}
           hourCycle={24}
-          keyboardShortcuts={scenario === "details" ? true : undefined}
+          keyboardShortcuts={
+            scenario === "details" || scenario === "overlap"
+              ? true
+              : undefined
+          }
           locale="en-GB"
           onDateChange={controller.setDate}
           onEventArchive={controller.handleEventArchive}
@@ -105,15 +123,11 @@ export function CalendarLabFixture({
           onSelectedEventChange={controller.setSelectedEventId}
           onToday={controller.goToToday}
           onViewChange={controller.setView}
-          secondaryTimeZone={
-            scenario === "details" ? "America/New_York" : undefined
-          }
           resources={resources}
-          showSecondaryTimeZone={scenario === "details"}
           defaultResourceFilter={
             scenario === "details" ? ["product", "operations"] : undefined
           }
-          scrollToTime="08:00"
+          scrollToTime={scenario === "overlap" ? "10:45" : "08:00"}
           selectedEventId={controller.selectedEventId}
           timeZone={CALENDAR_DEMO_TIME_ZONE}
           view={controller.view}
@@ -127,35 +141,39 @@ function buildScenarioEvents(
   initialDate: Date,
   scenario: CalendarLabScenario
 ): CalendarEvent[] {
-  const events = buildDemoEvents(initialDate)
-
-  if (scenario !== "recurrence") {
-    return events
+  if (scenario === "overlap") {
+    return buildDemoDenseOverlapEvents(initialDate)
   }
 
-  return [
-    ...events,
-    {
-      id: "daily-sync",
-      title: "Daily sync",
-      start: setDateInTimeZone(initialDate, CALENDAR_DEMO_TIME_ZONE, {
-        hours: 8,
-        minutes: 0,
-        seconds: 0,
-      }),
-      end: setDateInTimeZone(initialDate, CALENDAR_DEMO_TIME_ZONE, {
-        hours: 8,
-        minutes: 30,
-        seconds: 0,
-      }),
-      color: "#2563eb",
-      calendarId: "product",
-      calendarLabel: "Product",
-      recurrence: {
-        count: 3,
-        frequency: "daily",
+  const events = buildDemoEvents(initialDate)
+
+  if (scenario === "recurrence") {
+    return [
+      ...events,
+      {
+        id: "daily-sync",
+        title: "Daily sync",
+        start: setDateInTimeZone(initialDate, CALENDAR_DEMO_TIME_ZONE, {
+          hours: 8,
+          minutes: 0,
+          seconds: 0,
+        }),
+        end: setDateInTimeZone(initialDate, CALENDAR_DEMO_TIME_ZONE, {
+          hours: 8,
+          minutes: 30,
+          seconds: 0,
+        }),
+        color: "#2563eb",
+        calendarId: "product",
+        calendarLabel: "Product",
+        recurrence: {
+          count: 3,
+          frequency: "daily",
+        },
+        resourceId: "product",
       },
-      resourceId: "product",
-    },
-  ]
+    ]
+  }
+
+  return events
 }

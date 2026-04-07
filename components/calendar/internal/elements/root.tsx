@@ -1,8 +1,15 @@
 import * as React from "react"
+import { endOfDay, isSameMonth, isSameYear, startOfDay } from "date-fns"
 
 import type { CalendarEvent } from "../../types"
 import {
+  formatDayNumber,
+  formatMonthDayLabel,
   getCalendarSlotClassName,
+  getNextVisibleDay,
+  getWeekDays,
+  getWeekZoomDayCounts,
+  getZoomedWeekDays,
   intervalOverlapsBlockedRanges,
   normalizeAvailableViews,
   normalizeHiddenDays,
@@ -10,6 +17,7 @@ import {
 } from "../../utils"
 import { CalendarAgendaView } from "./agenda-view"
 import { CalendarMonthView } from "./month-view"
+import { CalendarTimelineView } from "./timeline-view"
 import { CalendarToolbar } from "./toolbar"
 import { CalendarDayView, CalendarWeekView } from "./time-grid-view"
 import {
@@ -26,6 +34,53 @@ import { useCalendarDerivedState } from "./root/use-calendar-derived-state"
 import { useCalendarEventActions } from "./root/use-calendar-event-actions"
 import { useCalendarPragmaticEventDrag } from "./root/use-calendar-pragmatic-event-drag"
 import { useCalendarPointerInteractions } from "./root/use-calendar-pointer-interactions"
+
+type ZoomDirection = "in" | "out"
+
+function getTouchDistance(firstTouch: Touch, secondTouch: Touch) {
+  return Math.hypot(
+    secondTouch.clientX - firstTouch.clientX,
+    secondTouch.clientY - firstTouch.clientY
+  )
+}
+
+function formatZoomedWeekLabel(
+  days: Date[],
+  options: {
+    locale?: string
+    timeZone?: string
+  }
+) {
+  const firstDay = days[0]
+  const lastDay = days[days.length - 1]
+
+  if (!firstDay || !lastDay) {
+    return ""
+  }
+
+  const yearFormatter = new Intl.DateTimeFormat(options.locale, {
+    year: "numeric",
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+  })
+
+  if (isSameYear(firstDay, lastDay)) {
+    if (isSameMonth(firstDay, lastDay)) {
+      return `${formatMonthDayLabel(firstDay, options)} - ${formatDayNumber(lastDay, options)}, ${yearFormatter.format(lastDay)}`
+    }
+
+    return `${formatMonthDayLabel(firstDay, options)} - ${formatMonthDayLabel(lastDay, options)}, ${yearFormatter.format(lastDay)}`
+  }
+
+  return `${formatMonthDayLabel(firstDay, options)} - ${new Intl.DateTimeFormat(
+    options.locale,
+    {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+    }
+  ).format(lastDay)}`
+}
 
 export function CalendarRoot({
   agendaDays = 14,
@@ -131,12 +186,337 @@ export function CalendarRoot({
       ? (keyboardShortcuts.buttonLabel ?? "Shortcuts")
       : "Shortcuts"
   const showKeyboardShortcutsButton =
-    keyboardShortcutsTrigger === "both" ||
-    keyboardShortcutsTrigger === "button"
+    keyboardShortcutsTrigger === "both" || keyboardShortcutsTrigger === "button"
+  const [weekZoomIndex, setWeekZoomIndex] = React.useState(0)
+  const shellRef = React.useRef<HTMLDivElement | null>(null)
+  const pinchGestureRef = React.useRef<{
+    distance: number
+  } | null>(null)
+  const wheelGestureRef = React.useRef<{
+    accumulatedDelta: number
+    lastTimestamp: number
+  }>({
+    accumulatedDelta: 0,
+    lastTimestamp: 0,
+  })
+  const fullWeekDays = React.useMemo(
+    () => getWeekDays(date, weekStartsOn, resolvedHiddenDays),
+    [date, resolvedHiddenDays, weekStartsOn]
+  )
+  const weekZoomDayCounts = React.useMemo(
+    () => getWeekZoomDayCounts(fullWeekDays.length),
+    [fullWeekDays.length]
+  )
+  const resolvedWeekZoomIndex = Math.min(
+    weekZoomIndex,
+    Math.max(0, weekZoomDayCounts.length - 1)
+  )
+  const activeWeekZoomDayCount = weekZoomDayCounts[resolvedWeekZoomIndex] ?? 1
+  const zoomedWeekDays = React.useMemo(
+    () =>
+      resolvedView === "week"
+        ? getZoomedWeekDays(
+            date,
+            weekStartsOn,
+            activeWeekZoomDayCount,
+            resolvedHiddenDays
+          )
+        : null,
+    [
+      activeWeekZoomDayCount,
+      date,
+      resolvedHiddenDays,
+      resolvedView,
+      weekStartsOn,
+    ]
+  )
+  const zoomedWeekRange = React.useMemo(() => {
+    if (
+      resolvedView !== "week" ||
+      !zoomedWeekDays ||
+      zoomedWeekDays.length === 0 ||
+      activeWeekZoomDayCount >= fullWeekDays.length
+    ) {
+      return undefined
+    }
+
+    return {
+      start: startOfDay(zoomedWeekDays[0]),
+      end: endOfDay(zoomedWeekDays[zoomedWeekDays.length - 1]),
+    }
+  }, [
+    activeWeekZoomDayCount,
+    fullWeekDays.length,
+    resolvedView,
+    zoomedWeekDays,
+  ])
+  const zoomedWeekLabel = React.useMemo(() => {
+    if (!zoomedWeekRange || !zoomedWeekDays || zoomedWeekDays.length === 0) {
+      return undefined
+    }
+
+    return formatZoomedWeekLabel(zoomedWeekDays, {
+      locale,
+      timeZone,
+    })
+  }, [locale, timeZone, zoomedWeekDays, zoomedWeekRange])
+  const canZoomFromWeekToDay =
+    resolvedAvailableViews.includes("day") &&
+    resolvedAvailableViews.includes("week")
+  const canZoomOutFromDayToWeek =
+    resolvedAvailableViews.includes("week") &&
+    resolvedAvailableViews.includes("day")
+
+  const getFallbackFocusDay = React.useCallback(
+    () => startOfDay(getNextVisibleDay(date, resolvedHiddenDays)),
+    [date, resolvedHiddenDays]
+  )
+
+  const getZoomFocusDayFromElement = React.useCallback(
+    (element: Element | null) => {
+      const zoomDay = element?.closest<HTMLElement>("[data-calendar-zoom-day]")
+        ?.dataset.calendarZoomDay
+
+      if (!zoomDay) {
+        return getFallbackFocusDay()
+      }
+
+      const parsedDay = new Date(zoomDay)
+
+      return Number.isNaN(parsedDay.getTime())
+        ? getFallbackFocusDay()
+        : startOfDay(parsedDay)
+    },
+    [getFallbackFocusDay]
+  )
+
+  const applyRangeZoom = React.useEffectEvent(
+    (direction: ZoomDirection, focusDate?: Date | null) => {
+      if (resolvedView !== "week" && resolvedView !== "day") {
+        return
+      }
+
+      const nextFocusDay = startOfDay(
+        focusDate ?? getNextVisibleDay(date, resolvedHiddenDays)
+      )
+
+      if (resolvedView === "week") {
+        if (direction === "in") {
+          if (resolvedWeekZoomIndex < weekZoomDayCounts.length - 1) {
+            setWeekZoomIndex(resolvedWeekZoomIndex + 1)
+
+            if (nextFocusDay.getTime() !== startOfDay(date).getTime()) {
+              onDateChange(nextFocusDay)
+            }
+
+            return
+          }
+
+          if (canZoomFromWeekToDay) {
+            if (nextFocusDay.getTime() !== startOfDay(date).getTime()) {
+              onDateChange(nextFocusDay)
+            }
+
+            onViewChange("day")
+          }
+
+          return
+        }
+
+        if (resolvedWeekZoomIndex > 0) {
+          setWeekZoomIndex(resolvedWeekZoomIndex - 1)
+
+          if (nextFocusDay.getTime() !== startOfDay(date).getTime()) {
+            onDateChange(nextFocusDay)
+          }
+        }
+
+        return
+      }
+
+      if (direction === "out" && canZoomOutFromDayToWeek) {
+        setWeekZoomIndex(Math.max(0, weekZoomDayCounts.length - 1))
+
+        if (nextFocusDay.getTime() !== startOfDay(date).getTime()) {
+          onDateChange(nextFocusDay)
+        }
+
+        onViewChange("week")
+      }
+    }
+  )
+
+  const handleToolbarViewChange = React.useCallback(
+    (nextView: "month" | "week" | "day" | "timeline" | "agenda") => {
+      if (nextView === "week") {
+        setWeekZoomIndex(0)
+      }
+
+      onViewChange(nextView)
+    },
+    [onViewChange]
+  )
 
   React.useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  React.useEffect(() => {
+    if (resolvedView === "week" || resolvedView === "day") {
+      return
+    }
+
+    setWeekZoomIndex(0)
+  }, [resolvedView])
+
+  React.useEffect(() => {
+    if (weekZoomIndex === resolvedWeekZoomIndex) {
+      return
+    }
+
+    setWeekZoomIndex(resolvedWeekZoomIndex)
+  }, [resolvedWeekZoomIndex, weekZoomIndex])
+
+  React.useEffect(() => {
+    const shellElement = shellRef.current
+
+    if (!shellElement) {
+      return
+    }
+
+    function handleWheel(event: WheelEvent) {
+      if (
+        !event.ctrlKey ||
+        (resolvedView !== "week" && resolvedView !== "day")
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const now = event.timeStamp
+
+      if (now - wheelGestureRef.current.lastTimestamp > 220) {
+        wheelGestureRef.current.accumulatedDelta = 0
+      }
+
+      wheelGestureRef.current.lastTimestamp = now
+      wheelGestureRef.current.accumulatedDelta += event.deltaY
+
+      if (Math.abs(wheelGestureRef.current.accumulatedDelta) < 60) {
+        return
+      }
+
+      const zoomDirection =
+        wheelGestureRef.current.accumulatedDelta < 0 ? "in" : "out"
+
+      wheelGestureRef.current.accumulatedDelta = 0
+      applyRangeZoom(
+        zoomDirection,
+        getZoomFocusDayFromElement(event.target as Element)
+      )
+    }
+
+    function handleTouchStart(event: TouchEvent) {
+      if (
+        (resolvedView !== "week" && resolvedView !== "day") ||
+        event.touches.length !== 2
+      ) {
+        pinchGestureRef.current = null
+        return
+      }
+
+      pinchGestureRef.current = {
+        distance: getTouchDistance(event.touches[0], event.touches[1]),
+      }
+    }
+
+    function handleTouchMove(event: TouchEvent) {
+      if (
+        (resolvedView !== "week" && resolvedView !== "day") ||
+        event.touches.length !== 2
+      ) {
+        return
+      }
+
+      const pinchGesture = pinchGestureRef.current
+
+      if (!pinchGesture) {
+        pinchGestureRef.current = {
+          distance: getTouchDistance(event.touches[0], event.touches[1]),
+        }
+        return
+      }
+
+      const nextDistance = getTouchDistance(event.touches[0], event.touches[1])
+      const distanceDelta = nextDistance - pinchGesture.distance
+
+      if (Math.abs(distanceDelta) < 24) {
+        return
+      }
+
+      event.preventDefault()
+      pinchGestureRef.current = {
+        distance: nextDistance,
+      }
+
+      const midpointX =
+        (event.touches[0].clientX + event.touches[1].clientX) / 2
+      const midpointY =
+        (event.touches[0].clientY + event.touches[1].clientY) / 2
+      const focusElement = document.elementFromPoint(midpointX, midpointY)
+
+      applyRangeZoom(
+        distanceDelta > 0 ? "in" : "out",
+        getZoomFocusDayFromElement(focusElement)
+      )
+    }
+
+    function clearTouchZoom() {
+      pinchGestureRef.current = null
+    }
+
+    function preventBrowserGestureZoom(event: Event) {
+      if (resolvedView !== "week" && resolvedView !== "day") {
+        return
+      }
+
+      event.preventDefault()
+    }
+
+    shellElement.addEventListener("wheel", handleWheel, {
+      passive: false,
+    })
+    shellElement.addEventListener("touchstart", handleTouchStart, {
+      passive: true,
+    })
+    shellElement.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    })
+    shellElement.addEventListener("touchend", clearTouchZoom)
+    shellElement.addEventListener("touchcancel", clearTouchZoom)
+    shellElement.addEventListener("gesturestart", preventBrowserGestureZoom)
+    shellElement.addEventListener("gesturechange", preventBrowserGestureZoom)
+    shellElement.addEventListener("gestureend", clearTouchZoom)
+
+    return () => {
+      shellElement.removeEventListener("wheel", handleWheel)
+      shellElement.removeEventListener("touchstart", handleTouchStart)
+      shellElement.removeEventListener("touchmove", handleTouchMove)
+      shellElement.removeEventListener("touchend", clearTouchZoom)
+      shellElement.removeEventListener("touchcancel", clearTouchZoom)
+      shellElement.removeEventListener(
+        "gesturestart",
+        preventBrowserGestureZoom
+      )
+      shellElement.removeEventListener(
+        "gesturechange",
+        preventBrowserGestureZoom
+      )
+      shellElement.removeEventListener("gestureend", clearTouchZoom)
+    }
+  }, [applyRangeZoom, getZoomFocusDayFromElement, resolvedView])
 
   React.useLayoutEffect(() => {
     setOptimisticEvents(events)
@@ -151,7 +531,7 @@ export function CalendarRoot({
       const nextFilter =
         currentFilter.length > 0
           ? currentFilter.filter((id) => allResourceIds.includes(id))
-          : defaultResourceFilter ?? allResourceIds
+          : (defaultResourceFilter ?? allResourceIds)
 
       return nextFilter.length > 0 || allResourceIds.length === 0
         ? nextFilter
@@ -161,8 +541,8 @@ export function CalendarRoot({
 
   const setActiveResourceIds = React.useCallback(
     (nextResourceIds: string[]) => {
-      const dedupedResourceIds = Array.from(new Set(nextResourceIds)).filter((id) =>
-        allResourceIds.includes(id)
+      const dedupedResourceIds = Array.from(new Set(nextResourceIds)).filter(
+        (id) => allResourceIds.includes(id)
       )
 
       if (!resourceFilter) {
@@ -179,6 +559,7 @@ export function CalendarRoot({
       if (
         allDay ||
         resolvedView === "month" ||
+        resolvedView === "timeline" ||
         resolvedView === "agenda" ||
         !blockedRanges?.length
       ) {
@@ -248,6 +629,7 @@ export function CalendarRoot({
     activeResize: pointer.activeResize,
     activeResizeTarget: pointer.activeResizeTarget,
     agendaDays,
+    availableViews: resolvedAvailableViews,
     blockedRanges,
     businessHours,
     classNames,
@@ -270,12 +652,15 @@ export function CalendarRoot({
     isPointerDragging: pointer.isPointerDragging,
     locale,
     optimisticEvents,
+    onDateChange,
+    onViewChange,
     renderEmptyState,
     renderEvent,
     resolvedHiddenDays,
     resolvedResourceFilter,
     resolvedSlotHeight,
     resolvedView,
+    rangeOverride: zoomedWeekRange,
     resources,
     scrollToTime,
     secondaryTimeZone,
@@ -288,6 +673,7 @@ export function CalendarRoot({
     slotDuration,
     timeZone,
     weekStartsOn,
+    currentLabelOverride: zoomedWeekLabel,
   })
   const detailsOccurrence = actions.detailsOccurrence
   const setDetailsOccurrence = actions.setDetailsOccurrence
@@ -305,7 +691,8 @@ export function CalendarRoot({
     if (
       detailsOccurrence &&
       !derived.occurrences.some(
-        (occurrence) => occurrence.occurrenceId === detailsOccurrence.occurrenceId
+        (occurrence) =>
+          occurrence.occurrenceId === detailsOccurrence.occurrenceId
       )
     ) {
       setDetailsOccurrence(null)
@@ -347,10 +734,12 @@ export function CalendarRoot({
         }
         onQuickCreate={onEventCreate ? actions.handleQuickCreate : undefined}
         onResourceFilterChange={
-          resources?.length && resources.length > 1 ? setActiveResourceIds : undefined
+          resources?.length && resources.length > 1
+            ? setActiveResourceIds
+            : undefined
         }
         onToday={actions.handleToday}
-        onViewChange={onViewChange}
+        onViewChange={handleToolbarViewChange}
         renderToolbarExtras={renderToolbarExtras}
         resources={resources}
         secondaryTimeZone={secondaryTimeZone}
@@ -364,6 +753,24 @@ export function CalendarRoot({
           "shell",
           "relative flex min-h-0 flex-1 flex-col bg-background"
         )}
+        data-calendar-zoom-days={
+          resolvedView === "week"
+            ? activeWeekZoomDayCount
+            : resolvedView === "day"
+              ? 1
+              : undefined
+        }
+        ref={shellRef}
+        style={{
+          overscrollBehavior:
+            resolvedView === "week" || resolvedView === "day"
+              ? "contain"
+              : undefined,
+          touchAction:
+            resolvedView === "week" || resolvedView === "day"
+              ? "pan-x pan-y"
+              : undefined,
+        }}
       >
         {resolvedView === "month" ? (
           <CalendarMonthView {...derived.sharedViewProps} />
@@ -378,6 +785,7 @@ export function CalendarRoot({
             isPointerDragging={pragmaticEventDrag.isDragging}
             maxHour={maxHour}
             minHour={minHour}
+            visibleDayCount={activeWeekZoomDayCount}
           />
         ) : null}
         {resolvedView === "day" ? (
@@ -391,6 +799,9 @@ export function CalendarRoot({
             maxHour={maxHour}
             minHour={minHour}
           />
+        ) : null}
+        {resolvedView === "timeline" ? (
+          <CalendarTimelineView {...derived.sharedViewProps} />
         ) : null}
         {resolvedView === "agenda" ? (
           <CalendarAgendaView
@@ -436,7 +847,9 @@ export function CalendarRoot({
         eventDetailsEnabled={actions.eventDetailsEnabled}
         getEventColor={getEventColor}
         handleArchiveEvent={actions.handleArchiveEvent}
-        handleConfirmPendingEventChange={actions.handleConfirmPendingEventChange}
+        handleConfirmPendingEventChange={
+          actions.handleConfirmPendingEventChange
+        }
         handleDeleteEvent={actions.handleDeleteEvent}
         handleDuplicateEvent={actions.handleDuplicateEvent}
         hourCycle={hourCycle}

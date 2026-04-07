@@ -243,7 +243,9 @@ export function useCalendarCoreActions({
       return
     }
 
-    requestMoveEvent(getMoveOperation(occurrence, target, dragOffsetMinutes))
+    requestMoveEvent(
+      getMoveOperation(occurrence, target, dragOffsetMinutes, slotDuration)
+    )
   }
 
   function resizeOccurrenceWithTarget(

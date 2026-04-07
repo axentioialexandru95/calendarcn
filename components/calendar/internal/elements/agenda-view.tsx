@@ -44,6 +44,7 @@ export const CalendarAgendaView = React.memo(function CalendarAgendaView(
             classNames={props.classNames}
             day={day}
             density={props.density}
+            dragPreviewOccurrence={props.dragPreviewOccurrence}
             draggingOccurrenceId={props.draggingOccurrenceId}
             events={getDayEvents(props.occurrences, day)}
             getEventColor={props.getEventColor}
@@ -71,6 +72,7 @@ type AgendaDayGroupProps = {
   classNames?: CalendarClassNames
   day: Date
   density: "comfortable" | "compact"
+  dragPreviewOccurrence?: CalendarOccurrence
   draggingOccurrenceId?: string
   events: CalendarOccurrence[]
   getEventColor?: (occurrence: CalendarOccurrence) => string
@@ -99,6 +101,7 @@ function AgendaDayGroup({
   classNames,
   day,
   density,
+  dragPreviewOccurrence,
   draggingOccurrenceId,
   events,
   getEventColor,
@@ -116,9 +119,12 @@ function AgendaDayGroup({
   timeZone,
 }: AgendaDayGroupProps) {
   const headingId = `calendar-agenda-heading-${day.getTime()}`
+  const dragPreviewEvent = getPreviewEventForDay(dragPreviewOccurrence, day)
+  const displayEvents = mergePreviewEvent(events, dragPreviewEvent)
   const isDragTarget =
-    activeDropTarget?.kind === "day" &&
-    activeDropTarget.day.getTime() === day.getTime()
+    !!dragPreviewEvent ||
+    (activeDropTarget?.kind === "day" &&
+      activeDropTarget.day.getTime() === day.getTime())
 
   return (
     <section
@@ -157,39 +163,98 @@ function AgendaDayGroup({
         className={density === "compact" ? "space-y-1.5" : "space-y-2"}
         role="list"
       >
-        {events.length === 0 ? (
+        {displayEvents.length === 0 ? (
           <p className="py-3 text-sm text-muted-foreground">
             No events scheduled.
           </p>
         ) : (
-          events.map((occurrence) => (
-            <div key={occurrence.occurrenceId} role="listitem">
-              <CalendarEventCard
-                accentColor={getResolvedAccentColor(occurrence, getEventColor)}
-                classNames={classNames}
-                density={density}
-                dragging={draggingOccurrenceId === occurrence.occurrenceId}
-                event={occurrence}
-                interactive={interactive}
-                onDragPointerDown={onEventDragPointerDown}
-                onEventKeyCommand={onEventKeyCommand}
-                onOpenContextMenu={onOpenContextMenu}
-                onSelect={onSelect}
-                preview={previewOccurrenceId === occurrence.occurrenceId}
-                renderEvent={renderEvent}
-                selected={selectedEventId === occurrence.occurrenceId}
-                shouldSuppressClick={shouldSuppressEventClick}
-                timeLabel={getEventMetaLabel(occurrence, {
-                  hourCycle,
-                  locale,
-                  timeZone,
-                })}
-                variant="agenda"
-              />
-            </div>
-          ))
+          displayEvents.map((occurrence) => {
+            const isDragPreview =
+              dragPreviewEvent?.occurrenceId === occurrence.occurrenceId
+
+            return (
+              <div key={occurrence.occurrenceId} role="listitem">
+                <CalendarEventCard
+                  accentColor={getResolvedAccentColor(
+                    occurrence,
+                    getEventColor
+                  )}
+                  classNames={classNames}
+                  density={density}
+                  dragging={
+                    isDragPreview
+                      ? false
+                      : draggingOccurrenceId === occurrence.occurrenceId
+                  }
+                  event={occurrence}
+                  interactive={interactive}
+                  onDragPointerDown={onEventDragPointerDown}
+                  onEventKeyCommand={onEventKeyCommand}
+                  onOpenContextMenu={onOpenContextMenu}
+                  onSelect={onSelect}
+                  preview={
+                    isDragPreview ||
+                    previewOccurrenceId === occurrence.occurrenceId
+                  }
+                  previewMetaLabel={
+                    isDragPreview
+                      ? getEventMetaLabel(occurrence, {
+                          hourCycle,
+                          locale,
+                          timeZone,
+                        })
+                      : undefined
+                  }
+                  renderEvent={renderEvent}
+                  selected={selectedEventId === occurrence.occurrenceId}
+                  shouldSuppressClick={shouldSuppressEventClick}
+                  timeLabel={getEventMetaLabel(occurrence, {
+                    hourCycle,
+                    locale,
+                    timeZone,
+                  })}
+                  variant="agenda"
+                />
+              </div>
+            )
+          })
         )}
       </div>
     </section>
   )
+}
+
+function getPreviewEventForDay(
+  previewOccurrence: CalendarOccurrence | undefined,
+  day: Date
+) {
+  return previewOccurrence
+    ? getDayEvents([previewOccurrence], day)[0]
+    : undefined
+}
+
+function mergePreviewEvent(
+  events: CalendarOccurrence[],
+  previewEvent: CalendarOccurrence | undefined
+) {
+  if (!previewEvent) {
+    return events
+  }
+
+  const mergedEvents = events.filter(
+    (event) => event.occurrenceId !== previewEvent.occurrenceId
+  )
+
+  mergedEvents.push(previewEvent)
+  mergedEvents.sort((left, right) => {
+    const startDifference = left.start.getTime() - right.start.getTime()
+
+    if (startDifference !== 0) {
+      return startDifference
+    }
+
+    return left.title.localeCompare(right.title)
+  })
+
+  return mergedEvents
 }

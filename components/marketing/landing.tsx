@@ -5,6 +5,7 @@ import {
   CalendarCnFooterSection,
   CalendarCnHeroSection,
   CalendarCnIntegrationSection,
+  CalendarCnThemesSection,
 } from "@/components/marketing/sections"
 import landingContent from "@/content/calendarcn-landing.json"
 
@@ -23,6 +24,10 @@ export function CalendarCnLanding({
       <CalendarCnComponentsSection content={landingContent.components} />
       <CalendarCnCapabilitiesSection content={landingContent.capabilities} />
       <CalendarCnIntegrationSection content={landingContent.integration} />
+      <CalendarCnThemesSection
+        content={landingContent.demo}
+        initialDateIso={initialDateIso}
+      />
       <CalendarCnFooterSection content={landingContent.footer} />
     </main>
   )

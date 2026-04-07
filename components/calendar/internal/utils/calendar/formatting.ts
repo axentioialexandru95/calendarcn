@@ -136,7 +136,7 @@ function getVisibleDaysInRange(
 
 export function getRangeLabel(
   anchorDate: Date,
-  view: "month" | "week" | "day" | "agenda",
+  view: "month" | "week" | "day" | "timeline" | "agenda",
   options: VisibleRangeOptions = {}
 ) {
   const range = getVisibleRange(anchorDate, view, options)

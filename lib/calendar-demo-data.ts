@@ -7,7 +7,7 @@ import type {
   CalendarResource,
 } from "@/components/calendar/types"
 
-export const CALENDAR_DEMO_SEED_VERSION = "2026-03-30-timezone-stable-v1"
+export const CALENDAR_DEMO_SEED_VERSION = "2026-04-07-snapped-grid-v1"
 export const CALENDAR_DEMO_TIME_ZONE = "Europe/Bucharest"
 
 export function buildDemoBusinessHours(): CalendarBusinessHoursWindow[] {
@@ -127,12 +127,12 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
       title: "Support handoff",
       start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
         hours: 10,
-        minutes: 45,
+        minutes: 30,
         seconds: 0,
       }),
       end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
         hours: 11,
-        minutes: 45,
+        minutes: 30,
         seconds: 0,
       }),
       color: "#0f766e",
@@ -242,4 +242,125 @@ export function buildDemoEvents(baseDate = new Date()): CalendarEvent[] {
       resourceId: "design",
     },
   ]
+}
+
+export function buildDemoDenseOverlapEvents(
+  baseDate = new Date()
+): CalendarEvent[] {
+  const overlapBlueprints: Array<{
+    calendarId: "design" | "ops" | "product"
+    color: string
+    end: [number, number]
+    id: string
+    location?: string
+    start: [number, number]
+    title: string
+  }> = [
+    {
+      id: "overlap-01",
+      title: "Product review",
+      start: [11, 0],
+      end: [11, 30],
+      color: "#2563eb",
+      calendarId: "product",
+    },
+    {
+      id: "overlap-02",
+      title: "Incident triage",
+      start: [11, 0],
+      end: [12, 0],
+      color: "#0f766e",
+      calendarId: "ops",
+    },
+    {
+      id: "overlap-03",
+      title: "Launch prep",
+      start: [11, 0],
+      end: [12, 30],
+      color: "#ea580c",
+      calendarId: "product",
+    },
+    {
+      id: "overlap-04",
+      title: "Design QA",
+      start: [11, 30],
+      end: [12, 0],
+      color: "#db2777",
+      calendarId: "design",
+    },
+    {
+      id: "overlap-05",
+      title: "Client callback",
+      start: [11, 30],
+      end: [12, 30],
+      color: "#0891b2",
+      calendarId: "ops",
+      location: "Zoom",
+    },
+    {
+      id: "overlap-06",
+      title: "API pairing",
+      start: [11, 30],
+      end: [13, 0],
+      color: "#7c3aed",
+      calendarId: "product",
+    },
+    {
+      id: "overlap-07",
+      title: "Support sweep",
+      start: [12, 0],
+      end: [12, 30],
+      color: "#16a34a",
+      calendarId: "ops",
+    },
+    {
+      id: "overlap-08",
+      title: "Copy pass",
+      start: [12, 0],
+      end: [13, 0],
+      color: "#f59e0b",
+      calendarId: "design",
+    },
+    {
+      id: "overlap-09",
+      title: "Sprint checkpoint",
+      start: [12, 0],
+      end: [13, 30],
+      color: "#ef4444",
+      calendarId: "product",
+    },
+    {
+      id: "overlap-10",
+      title: "Ops handoff",
+      start: [12, 30],
+      end: [13, 30],
+      color: "#14b8a6",
+      calendarId: "ops",
+    },
+  ]
+
+  return overlapBlueprints.map((event) => ({
+    id: event.id,
+    title: event.title,
+    start: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+      hours: event.start[0],
+      minutes: event.start[1],
+      seconds: 0,
+    }),
+    end: setDateInTimeZone(baseDate, CALENDAR_DEMO_TIME_ZONE, {
+      hours: event.end[0],
+      minutes: event.end[1],
+      seconds: 0,
+    }),
+    color: event.color,
+    calendarId: event.calendarId,
+    calendarLabel:
+      event.calendarId === "product"
+        ? "Product"
+        : event.calendarId === "design"
+          ? "Design"
+          : "Operations",
+    location: event.location,
+    resourceId: event.calendarId,
+  }))
 }

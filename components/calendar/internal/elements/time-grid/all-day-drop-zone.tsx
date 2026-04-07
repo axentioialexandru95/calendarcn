@@ -82,14 +82,40 @@ export function AllDayDropZone({
   shouldSuppressEventClick,
   timeZone,
 }: AllDayDropZoneProps) {
-  const previewEvents = dragPreviewOccurrence
-    ? getAllDayEvents([dragPreviewOccurrence], day)
-    : []
+  const previewEvents = React.useMemo(
+    () =>
+      dragPreviewOccurrence
+        ? getAllDayEvents([dragPreviewOccurrence], day)
+        : [],
+    [day, dragPreviewOccurrence]
+  )
+  const displayEvents = React.useMemo(() => {
+    const visibleEvents = events.filter(
+      (occurrence) => occurrence.occurrenceId !== draggingOccurrenceId
+    )
+
+    if (previewEvents.length === 0) {
+      return visibleEvents
+    }
+
+    const previewEventIds = new Set(
+      previewEvents.map((occurrence) => occurrence.occurrenceId)
+    )
+
+    return [
+      ...visibleEvents.filter(
+        (occurrence) => !previewEventIds.has(occurrence.occurrenceId)
+      ),
+      ...previewEvents,
+    ]
+  }, [draggingOccurrenceId, events, previewEvents])
 
   return (
     <div
       data-calendar-drop-target-day={day.toISOString()}
       data-calendar-drop-target-kind="all-day"
+      data-calendar-zoom-day={day.toISOString()}
+      data-calendar-zoom-surface="all-day"
       className={getCalendarSlotClassName(
         classNames,
         "allDayLane",
@@ -102,55 +128,60 @@ export function AllDayDropZone({
       )}
     >
       <div className="space-y-1">
-        {events.map((occurrence, index) => (
-          <CalendarEventCard
-            key={occurrence.occurrenceId}
-            accentColor={getResolvedAccentColor(
-              occurrence,
-              getEventColor,
-              index
-            )}
-            classNames={classNames}
-            density={density}
-            dragging={draggingOccurrenceId === occurrence.occurrenceId}
-            event={occurrence}
-            interactive={interactive}
-            onDragPointerDown={onEventDragPointerDown}
-            onEventKeyCommand={onEventKeyCommand}
-            onOpenContextMenu={onOpenContextMenu}
-            onSelect={onSelect}
-            pragmaticDragConfigFactory={pragmaticDragConfigFactory}
-            preview={previewOccurrenceId === occurrence.occurrenceId}
-            previewMetaLabel={
-              density === "compact" &&
-              previewOccurrenceId === occurrence.occurrenceId
-                ? formatDurationLabel(
-                    occurrence.start,
-                    occurrence.end,
-                    occurrence.allDay
-                  )
-                : undefined
-            }
-            renderEvent={renderEvent}
-            selected={selectedEventId === occurrence.occurrenceId}
-            shouldSuppressClick={shouldSuppressEventClick}
-            timeLabel={getEventMetaLabel(occurrence, {
-              hourCycle,
-              locale,
-              timeZone,
-            })}
-            variant="all-day"
-          />
-        ))}
-        {previewEvents.map((occurrence) => (
-          <div
-            key={`preview-${occurrence.occurrenceId}`}
-            className={cn(
-              "pointer-events-none rounded-[min(var(--radius-sm),4px)] border border-dashed border-foreground/18 bg-foreground/8 shadow-sm dark:border-white/12 dark:bg-white/8",
-              density === "compact" ? "h-6" : "h-7"
-            )}
-          />
-        ))}
+        {displayEvents.map((occurrence, index) => {
+          const isDragPreview = previewEvents.some(
+            (previewEvent) =>
+              previewEvent.occurrenceId === occurrence.occurrenceId
+          )
+
+          return (
+            <CalendarEventCard
+              key={occurrence.occurrenceId}
+              accentColor={getResolvedAccentColor(
+                occurrence,
+                getEventColor,
+                index
+              )}
+              classNames={classNames}
+              density={density}
+              dragging={
+                isDragPreview
+                  ? false
+                  : draggingOccurrenceId === occurrence.occurrenceId
+              }
+              event={occurrence}
+              interactive={interactive}
+              onDragPointerDown={onEventDragPointerDown}
+              onEventKeyCommand={onEventKeyCommand}
+              onOpenContextMenu={onOpenContextMenu}
+              onSelect={onSelect}
+              pragmaticDragConfigFactory={pragmaticDragConfigFactory}
+              preview={
+                isDragPreview || previewOccurrenceId === occurrence.occurrenceId
+              }
+              previewMetaLabel={
+                density === "compact" &&
+                (isDragPreview ||
+                  previewOccurrenceId === occurrence.occurrenceId)
+                  ? formatDurationLabel(
+                      occurrence.start,
+                      occurrence.end,
+                      occurrence.allDay
+                    )
+                  : undefined
+              }
+              renderEvent={renderEvent}
+              selected={selectedEventId === occurrence.occurrenceId}
+              shouldSuppressClick={shouldSuppressEventClick}
+              timeLabel={getEventMetaLabel(occurrence, {
+                hourCycle,
+                locale,
+                timeZone,
+              })}
+              variant="all-day"
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -171,7 +202,8 @@ export const MemoizedAllDayDropZone = React.memo(
       previousProps.isDragTarget === nextProps.isDragTarget &&
       previousProps.interactive === nextProps.interactive &&
       previousProps.locale === nextProps.locale &&
-      previousProps.onEventDragPointerDown === nextProps.onEventDragPointerDown &&
+      previousProps.onEventDragPointerDown ===
+        nextProps.onEventDragPointerDown &&
       previousProps.onEventKeyCommand === nextProps.onEventKeyCommand &&
       previousProps.onOpenContextMenu === nextProps.onOpenContextMenu &&
       previousProps.onSelect === nextProps.onSelect &&

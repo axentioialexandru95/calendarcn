@@ -25,7 +25,7 @@ type CalendarCnHeroSnippetProps = {
   initialDateIso: string
 }
 
-const fallbackOrigin = "https://calendarcn.phantomtechind.com"
+const publicOrigin = "https://calendarcn.phantomtechind.com"
 const shellTokenPattern =
   /(https?:\/\/[^\s]+)|(\b(?:npx|pnpm|npm|bun)\b)|(\b(?:add|install)\b)|(\b(?:shadcn@latest|calendarcn\.json)\b)|([/.@_-][A-Za-z0-9/_:-]*)/g
 
@@ -34,11 +34,7 @@ export function CalendarCnHeroSnippet({
   initialDateIso,
 }: CalendarCnHeroSnippetProps) {
   const [copied, setCopied] = React.useState(false)
-  const [origin, setOrigin] = React.useState(fallbackOrigin)
-
-  React.useEffect(() => {
-    setOrigin(window.location.origin)
-  }, [])
+  const origin = publicOrigin
 
   const commands = React.useMemo(
     () => content.commands.map((line) => line.replaceAll("{origin}", origin)),
@@ -59,9 +55,12 @@ export function CalendarCnHeroSnippet({
 
       <div className="mx-auto mb-12 w-full max-w-xl text-left">
         <div className="relative rounded-[calc(var(--radius)*1.05)] border border-border/70 bg-background/75 px-3 py-2.5 pr-12 shadow-xs">
-          <code className="block break-all font-mono text-[12px] leading-5 text-foreground sm:text-[13px]">
-            {highlightCommandLine(commands[0])}
-          </code>
+          <div className="scrollbar-hidden overflow-x-auto">
+            <code className="block w-max min-w-full whitespace-nowrap pr-2 font-mono text-[12px] leading-5 text-foreground sm:text-[13px]">
+              {highlightCommandLine(commands[0])}
+            </code>
+          </div>
+          <div className="pointer-events-none absolute inset-y-2 right-10 w-10 bg-gradient-to-l from-background/90 via-background/55 to-transparent" />
           <Button
             aria-label={copied ? content.copiedLabel : content.copyLabel}
             className="absolute top-1/2 right-2 -translate-y-1/2 active:translate-y-[-50%]"

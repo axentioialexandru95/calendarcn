@@ -64,16 +64,6 @@ export function CalendarCnHeroSection({
               {content.body}
             </p>
 
-            <div className="flex flex-wrap justify-center gap-2.5 pt-1">
-              {content.points.map((point) => (
-                <div
-                  key={point}
-                  className="rounded-full border border-border/70 bg-background/75 px-3.5 py-1.5 text-sm text-muted-foreground shadow-xs backdrop-blur"
-                >
-                  {point}
-                </div>
-              ))}
-            </div>
           </div>
 
           <CalendarCnHeroSnippet

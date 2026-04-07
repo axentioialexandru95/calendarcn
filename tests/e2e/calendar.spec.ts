@@ -1,6 +1,36 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
 
 test.describe("calendar interactions", () => {
+  test("homepage showcase can switch to the dense overlap preset", async ({
+    page,
+  }) => {
+    await page.goto("/")
+
+    const denseOverlapPreset = page.getByRole("button", {
+      name: /Dense overlap/i,
+    })
+    await denseOverlapPreset.scrollIntoViewIfNeeded()
+    await denseOverlapPreset.click()
+
+    await expect(
+      page.getByTestId("calendar-event-overlap-01-time-grid")
+    ).toBeVisible()
+  })
+
+  test("returns docs search results from the site search endpoint", async ({
+    page,
+  }) => {
+    const response = await page.request.get("/api/search?query=calendar")
+    expect(response.ok()).toBe(true)
+
+    const results = (await response.json()) as Array<{
+      url: string
+    }>
+
+    expect(results.length).toBeGreaterThan(0)
+    expect(results.some((result) => result.url.startsWith("/docs"))).toBe(true)
+  })
+
   test("switches views and navigates on the dedicated lab fixture", async ({
     page,
   }) => {
@@ -20,6 +50,11 @@ test.describe("calendar interactions", () => {
       page.getByTestId("calendar-event-focus-time-grid")
     ).toBeVisible()
 
+    await page.getByTestId("calendar-view-timeline").click()
+    await expect(
+      page.getByTestId("calendar-event-focus-timeline")
+    ).toBeVisible()
+
     await page.getByTestId("calendar-view-agenda").click()
     await expect(
       page.getByTestId("calendar-event-planning-agenda")
@@ -29,6 +64,74 @@ test.describe("calendar interactions", () => {
     await expect(
       page.getByTestId("calendar-event-planning-month")
     ).toBeVisible()
+  })
+
+  test("zooms the week range into day view with Ctrl+wheel", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page)
+
+    const headerDays = page.locator('[data-calendar-zoom-surface="header"]')
+    const focusHeader = headerDays.nth(2)
+
+    await expect(headerDays).toHaveCount(7)
+
+    await focusHeader.dispatchEvent("wheel", {
+      ctrlKey: true,
+      deltaY: -120,
+    })
+    await expect(headerDays).toHaveCount(5)
+    await expect(page.locator('[data-calendar-zoom-days="5"]')).toHaveCount(1)
+
+    await focusHeader.dispatchEvent("wheel", {
+      ctrlKey: true,
+      deltaY: -120,
+    })
+    await expect(headerDays).toHaveCount(3)
+    await expect(page.locator('[data-calendar-zoom-days="3"]')).toHaveCount(1)
+
+    await focusHeader.dispatchEvent("wheel", {
+      ctrlKey: true,
+      deltaY: -120,
+    })
+    await expect(headerDays).toHaveCount(1)
+    await expect(page.locator('[data-calendar-zoom-days="1"]')).toHaveCount(1)
+
+    const dayLabel = await page
+      .getByTestId("calendar-current-label")
+      .textContent()
+
+    expect(dayLabel).not.toContain(" - ")
+
+    await headerDays.first().dispatchEvent("wheel", {
+      ctrlKey: true,
+      deltaY: 120,
+    })
+    await expect(
+      page.locator('[data-calendar-zoom-surface="header"]')
+    ).toHaveCount(3)
+
+    await page
+      .locator('[data-calendar-zoom-surface="header"]')
+      .first()
+      .dispatchEvent("wheel", {
+        ctrlKey: true,
+        deltaY: 120,
+      })
+    await expect(
+      page.locator('[data-calendar-zoom-surface="header"]')
+    ).toHaveCount(5)
+
+    await page
+      .locator('[data-calendar-zoom-surface="header"]')
+      .first()
+      .dispatchEvent("wheel", {
+        ctrlKey: true,
+        deltaY: 120,
+      })
+    await expect(
+      page.locator('[data-calendar-zoom-surface="header"]')
+    ).toHaveCount(7)
   })
 
   test("opens the create sheet and creates an appointment", async ({
@@ -45,8 +148,14 @@ test.describe("calendar interactions", () => {
     await sheet.getByLabel("Location").fill("Remote")
     await sheet.getByTestId("calendar-create-sheet-submit").click()
 
+    await expect(sheet).toHaveCount(0)
+    await expect(page.getByTestId("calendar-live-announcement")).toHaveText(
+      /Created Playwright planning for 09:00 - 10:00\./i
+    )
     await expect(
-      page.getByRole("button", { name: /Playwright planning\./i })
+      page.locator('[data-calendar-variant="time-grid"]', {
+        hasText: "Playwright planning",
+      })
     ).toBeVisible()
   })
 
@@ -65,7 +174,7 @@ test.describe("calendar interactions", () => {
     ).toHaveCount(2)
   })
 
-  test("shows only the event-shaped timed drop preview while dragging", async ({
+  test("keeps the timed preview but hides keyboard slot focus while dragging", async ({
     page,
   }) => {
     await gotoCalendarLab(page)
@@ -105,9 +214,6 @@ test.describe("calendar interactions", () => {
       { steps: 12 }
     )
     await expect(
-      page.locator('[data-calendar-drag-overlay="true"]')
-    ).toHaveCount(1)
-    await expect(
       page.locator('[data-calendar-drop-preview="time-grid"]')
     ).toHaveCount(1)
     await expect(
@@ -121,12 +227,17 @@ test.describe("calendar interactions", () => {
       const timedPreviewCount = document.querySelectorAll(
         '[data-calendar-drop-preview="time-grid"]'
       ).length
-      const dragOverlayCount = document.querySelectorAll(
-        '[data-calendar-drag-overlay="true"]'
-      ).length
       const highlightedTimedSlots = Array.from(
         document.querySelectorAll('[data-calendar-drop-target-kind="slot"]')
       ).filter((element) => element.className.includes("bg-muted/70")).length
+      const focusedTimedSlots = Array.from(
+        document.querySelectorAll('[data-calendar-drop-target-kind="slot"]')
+      ).filter((element) => {
+        return (
+          element.getAttribute("aria-selected") === "true" &&
+          element.className.includes("ring-2")
+        )
+      }).length
       const sourceEventStates = Array.from(
         document.querySelectorAll('[data-calendar-event-id="focus"]')
       )
@@ -141,7 +252,7 @@ test.describe("calendar interactions", () => {
         }))
 
       return {
-        dragOverlayCount,
+        focusedTimedSlots,
         highlightedTimedSlots,
         sourceEventStates,
         timedPreviewCount,
@@ -150,8 +261,8 @@ test.describe("calendar interactions", () => {
 
     await page.mouse.up()
 
-    expect(previewState.dragOverlayCount).toBe(1)
     expect(previewState.timedPreviewCount).toBe(1)
+    expect(previewState.focusedTimedSlots).toBe(0)
     expect(previewState.highlightedTimedSlots).toBe(0)
     expect(previewState.sourceEventStates).toEqual([
       expect.objectContaining({
@@ -159,6 +270,167 @@ test.describe("calendar interactions", () => {
         selected: "true",
       }),
     ])
+  })
+
+  test("shows an inline month preview while dragging between day cells", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page)
+
+    await page.getByTestId("calendar-view-month").click()
+
+    const planningEvent = page
+      .getByTestId("calendar-event-planning-month")
+      .first()
+    const sourceCell = planningEvent.locator(
+      'xpath=ancestor::*[@data-calendar-drop-target-kind="day"][1]'
+    )
+    const targetCell = sourceCell.locator(
+      'xpath=following-sibling::*[@data-calendar-drop-target-kind="day"][1]'
+    )
+
+    const sourcePoint = await getLocatorPoint(planningEvent)
+    const targetPoint = await getLocatorPoint(targetCell)
+
+    await page.mouse.move(sourcePoint.x, sourcePoint.y)
+    await page.mouse.down()
+    await page.mouse.move(targetPoint.x, targetPoint.y, {
+      steps: 20,
+    })
+    await page.waitForTimeout(150)
+
+    const previewState = await page.evaluate(() => {
+      const monthPreviewCount = Array.from(
+        document.querySelectorAll(
+          '[data-testid="calendar-event-planning-month"]'
+        )
+      ).filter((element) => {
+        return (
+          !element.closest('[data-calendar-drag-overlay="true"]') &&
+          element.querySelector("span.absolute.inset-0") !== null
+        )
+      }).length
+      const highlightedMonthDays = Array.from(
+        document.querySelectorAll('[data-calendar-drop-target-kind="day"]')
+      ).filter((element) => element.className.includes("bg-muted/50")).length
+      const sourceEventStates = Array.from(
+        document.querySelectorAll('[data-calendar-event-id="planning"]')
+      )
+        .filter(
+          (element) =>
+            !element.closest('[data-calendar-drag-overlay="true"]') &&
+            element instanceof HTMLButtonElement
+        )
+        .map((element) => element.className)
+
+      return {
+        highlightedMonthDays,
+        monthPreviewCount,
+        sourceEventStates,
+      }
+    })
+
+    await page.mouse.up()
+
+    expect(previewState.monthPreviewCount).toBe(1)
+    expect(previewState.highlightedMonthDays).toBe(1)
+    expect(previewState.sourceEventStates).toContainEqual(
+      expect.stringContaining("opacity-0")
+    )
+  })
+
+  test("moves and resizes events inside the timeline view", async ({ page }) => {
+    await gotoCalendarLab(page)
+
+    await page.getByTestId("calendar-view-timeline").click()
+
+    const focusEvent = page.getByTestId("calendar-event-focus-timeline")
+    await expect(focusEvent).toBeVisible()
+    await focusEvent.click()
+    await expect(focusEvent).toHaveAttribute("data-selected", "true")
+
+    const focusStartPoint = await getLocatorPoint(focusEvent)
+    const opsTargetCell = page
+      .getByTestId("calendar-timeline-row-ops")
+      .locator('[data-calendar-drop-target-kind="day"]')
+      .nth(2)
+    const opsTargetPoint = await getLocatorPoint(opsTargetCell, {
+      x: "center",
+      y: "center",
+    })
+
+    await page.mouse.move(focusStartPoint.x, focusStartPoint.y)
+    await page.mouse.down()
+    await page.waitForTimeout(100)
+    await page.mouse.move(opsTargetPoint.x, opsTargetPoint.y, {
+      steps: 18,
+    })
+    await expect
+      .poll(async () => await opsTargetCell.getAttribute("class"))
+      .toContain("bg-muted/60")
+    await page.mouse.up()
+
+    await expect
+      .poll(async () => {
+        const productCount = await page
+          .getByTestId("calendar-timeline-row-product")
+          .locator('[data-testid="calendar-event-focus-timeline"]')
+          .count()
+        const opsCount = await page
+          .getByTestId("calendar-timeline-row-ops")
+          .locator('[data-testid="calendar-event-focus-timeline"]')
+          .count()
+
+        return {
+          opsCount,
+          productCount,
+        }
+      })
+      .toEqual({
+        opsCount: 1,
+        productCount: 0,
+      })
+    await expect(
+      page
+        .getByTestId("calendar-timeline-row-ops")
+        .locator('[data-testid="calendar-event-focus-timeline"]')
+    ).toBeVisible()
+
+    const travelEvent = page.getByTestId("calendar-event-travel-timeline")
+    await expect(travelEvent).toBeVisible()
+
+    const beforeResizeBox = await travelEvent.boundingBox()
+
+    if (!beforeResizeBox) {
+      throw new Error("Unable to determine the initial timeline event bounds.")
+    }
+
+    await travelEvent.click()
+
+    const resizeHandle = page.getByTestId("calendar-resize-handle-travel-end")
+    const resizeStartPoint = await getLocatorPoint(resizeHandle)
+    const resizeTargetCell = page
+      .getByTestId("calendar-timeline-row-design")
+      .locator('[data-calendar-drop-target-kind="day"]')
+      .last()
+    const resizeTargetPoint = await getLocatorPoint(resizeTargetCell, {
+      x: "right",
+    })
+
+    await page.mouse.move(resizeStartPoint.x, resizeStartPoint.y)
+    await page.mouse.down()
+    await page.mouse.move(resizeTargetPoint.x, resizeTargetPoint.y, {
+      steps: 18,
+    })
+    await page.mouse.up()
+
+    const afterResizeBox = await travelEvent.boundingBox()
+
+    if (!afterResizeBox) {
+      throw new Error("Unable to determine the resized timeline event bounds.")
+    }
+
+    expect(afterResizeBox.width).toBeGreaterThan(beforeResizeBox.width)
   })
 
   test("starter wrapper injects the default selected event styling", async ({
@@ -214,6 +486,30 @@ test.describe("calendar interactions", () => {
     )
   })
 
+  test("snaps desktop drag moves to 30-minute increments", async ({ page }) => {
+    await gotoCalendarLab(page)
+
+    const standupEvent = page.getByTestId("calendar-event-standup-time-grid")
+    await expect(standupEvent).toBeVisible()
+    await standupEvent.click()
+    await expect(standupEvent).toHaveAttribute("data-selected", "true")
+
+    const startPoint = await getLocatorPoint(standupEvent)
+    const targetSlot = getDayGrid(page, 1)
+      .locator('[data-calendar-drop-target-minute="480"]')
+      .first()
+    const targetPoint = await getLocatorPoint(targetSlot)
+
+    await page.mouse.move(startPoint.x, startPoint.y)
+    await page.mouse.down()
+    await page.mouse.move(targetPoint.x, targetPoint.y, {
+      steps: 12,
+    })
+    await page.mouse.up()
+
+    await expect(standupEvent).toHaveAttribute("aria-label", /08:00 - 08:30/i)
+  })
+
   test("deletes an event from the context menu", async ({ page }) => {
     await gotoCalendarLab(page)
 
@@ -242,6 +538,86 @@ test.describe("calendar interactions", () => {
     await focusEvent.press("Shift+ArrowDown")
 
     await expect(focusEvent).toHaveAttribute("aria-label", /13:00 - 15:30/i)
+  })
+
+  test("resizes a timed event through the mouse handle path", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page)
+
+    const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
+    await expect(focusEvent).toBeVisible()
+    await focusEvent.click()
+
+    const resizeHandle = page.getByTestId("calendar-resize-handle-focus-end")
+    await expect(resizeHandle).toBeVisible()
+
+    const startPoint = await getLocatorPoint(resizeHandle)
+    const targetPoint = await getTimeGridSlotPoint(page, focusEvent, 930)
+
+    await page.mouse.move(startPoint.x, startPoint.y)
+    await page.mouse.down()
+    await page.mouse.move(targetPoint.x, targetPoint.y, {
+      steps: 12,
+    })
+    await page.mouse.up()
+
+    await expect(focusEvent).toHaveAttribute("aria-label", /13:00 - 16:00/i)
+  })
+
+  test("opens details for a short timed event without fighting the resize handles", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page, "/calendar-lab/details")
+
+    const standupEvent = page.getByTestId("calendar-event-standup-time-grid")
+    await expect(standupEvent).toBeVisible()
+
+    await standupEvent.click()
+
+    const detailsSheet = page.getByTestId("calendar-event-details-sheet")
+    await expect(detailsSheet).toBeVisible()
+    await expect(detailsSheet).toContainText("Studio standup")
+  })
+
+  test("loads the dense overlap lab with ten overlapping timed events", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page, "/calendar-lab/overlap")
+
+    await expect(page.getByTestId("calendar-current-label")).toContainText(
+      "Tuesday 24 March"
+    )
+    await expect(
+      page.getByTestId("calendar-event-overlap-01-time-grid")
+    ).toBeVisible()
+    await expect(
+      page.locator('[data-calendar-variant="time-grid"]')
+    ).toHaveCount(10)
+  })
+
+  test("opens a dense month day in day view from the overflow control", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page, "/calendar-lab/overlap")
+
+    await page.getByTestId("calendar-view-month").click()
+    await expect(page.getByTestId("calendar-current-label")).toContainText(
+      "March 2026"
+    )
+
+    await page
+      .getByRole("button", {
+        name: /Show all 10 events on .*24 March 2026.*day view/i,
+      })
+      .click()
+
+    await expect(page.getByTestId("calendar-current-label")).toContainText(
+      "Tuesday 24 March"
+    )
+    await expect(
+      page.getByTestId("calendar-event-overlap-01-time-grid")
+    ).toBeVisible()
   })
 
   test("confirms keyboard-driven event moves when confirmation is enabled", async ({
@@ -291,6 +667,7 @@ test.describe("calendar interactions", () => {
 
     await expect(page.getByTestId("calendar-view-week")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-day")).toHaveCount(0)
+    await expect(page.getByTestId("calendar-view-timeline")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-month")).toHaveCount(0)
     await expect(page.getByTestId("calendar-view-agenda")).toHaveCount(0)
   })
@@ -355,4 +732,82 @@ async function gotoCalendarLab(page: Page, path = "/calendar-lab") {
   await expect(page.locator('[data-calendar-lab-ready="true"]')).toBeVisible({
     timeout: 15_000,
   })
+}
+
+function getDayGrid(page: Page, index: number) {
+  return page.locator('[role="grid"]').nth(index)
+}
+
+async function getLocatorPoint(
+  locator: Locator,
+  position: {
+    x?: "center" | "left" | "right"
+    y?: "center" | "top" | "bottom"
+  } = {}
+) {
+  await locator.scrollIntoViewIfNeeded()
+  const box = await locator.boundingBox()
+
+  if (!box) {
+    throw new Error("Unable to determine locator coordinates.")
+  }
+
+  return {
+    x:
+      position.x === "left"
+        ? box.x + 2
+        : position.x === "right"
+          ? box.x + box.width - 2
+          : box.x + box.width / 2,
+    y:
+      position.y === "top"
+        ? box.y + 2
+        : position.y === "bottom"
+          ? box.y + box.height - 2
+          : box.y + box.height / 2,
+  }
+}
+
+async function getTimeGridSlotPoint(
+  page: Page,
+  eventLocator: Locator,
+  minuteOfDay: number
+) {
+  const eventBox = await eventLocator.boundingBox()
+
+  if (!eventBox) {
+    throw new Error("Unable to determine event coordinates.")
+  }
+
+  const point = await page
+    .locator(
+      `[data-calendar-drop-target-kind="slot"][data-calendar-drop-target-minute="${minuteOfDay}"]`
+    )
+    .evaluateAll(
+      (elements, eventCenterX) => {
+        for (const element of elements) {
+          if (!(element instanceof HTMLElement)) {
+            continue
+          }
+
+          const rect = element.getBoundingClientRect()
+
+          if (eventCenterX >= rect.left && eventCenterX <= rect.right) {
+            return {
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2,
+            }
+          }
+        }
+
+        return null
+      },
+      eventBox.x + eventBox.width / 2
+    )
+
+  if (!point) {
+    throw new Error(`Unable to determine slot coordinates for ${minuteOfDay}.`)
+  }
+
+  return point
 }

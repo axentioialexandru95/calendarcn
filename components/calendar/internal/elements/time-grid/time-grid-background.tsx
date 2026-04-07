@@ -76,7 +76,7 @@ export function TimeGridBackground({
       {blockedSegments.map((segment) => (
         <div
           key={segment.id}
-          className="absolute inset-x-1 rounded-[calc(var(--radius)*0.7)] border"
+          className="absolute inset-x-1 overflow-hidden rounded-[min(var(--radius-sm),4px)] border shadow-xs"
           style={{
             backgroundColor: `${segment.color ?? "#be185d"}14`,
             borderColor: `${segment.color ?? "#be185d"}33`,
@@ -87,11 +87,17 @@ export function TimeGridBackground({
               ((segment.startMinute - minMinute) / slotDuration) * slotHeight,
           }}
         >
+          <span
+            aria-hidden
+            className="absolute top-1.5 bottom-1.5 left-1 w-0.5 rounded-full"
+            style={{
+              backgroundColor: `${segment.color ?? "#be185d"}80`,
+            }}
+          />
           {segment.label ? (
             <span
-              className="absolute left-2 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+              className="absolute top-1.5 left-3 right-2 truncate text-[11px] font-medium"
               style={{
-                backgroundColor: `${segment.color ?? "#be185d"}22`,
                 color: segment.color ?? "#be185d",
               }}
             >

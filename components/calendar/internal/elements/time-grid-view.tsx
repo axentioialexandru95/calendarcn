@@ -23,6 +23,7 @@ import {
   getEventMetaLabel,
   getNextVisibleDay,
   getWeekDays,
+  getZoomedWeekDays,
   isToday,
   parseTimeStringToMinuteOfDay,
   setMinuteOfDay,
@@ -80,41 +81,45 @@ type TimeGridLiveDragProps = {
 export const CalendarWeekView = React.memo(function CalendarWeekView(
   props: SharedViewProps &
     TimeGridLiveDragProps & {
-    minHour: number
-    maxHour: number
-  }
+      minHour: number
+      maxHour: number
+      visibleDayCount?: number
+    }
 ) {
   const days = React.useMemo(
-    () => getWeekDays(props.anchorDate, props.weekStartsOn, props.hiddenDays),
-    [props.anchorDate, props.hiddenDays, props.weekStartsOn]
+    () =>
+      props.visibleDayCount
+        ? getZoomedWeekDays(
+            props.anchorDate,
+            props.weekStartsOn,
+            props.visibleDayCount,
+            props.hiddenDays
+          )
+        : getWeekDays(props.anchorDate, props.weekStartsOn, props.hiddenDays),
+    [
+      props.anchorDate,
+      props.hiddenDays,
+      props.visibleDayCount,
+      props.weekStartsOn,
+    ]
   )
 
-  return (
-    <CalendarTimeGridView
-      {...props}
-      days={days}
-    />
-  )
+  return <CalendarTimeGridView {...props} days={days} />
 })
 
 export const CalendarDayView = React.memo(function CalendarDayView(
   props: SharedViewProps &
     TimeGridLiveDragProps & {
-    minHour: number
-    maxHour: number
-  }
+      minHour: number
+      maxHour: number
+    }
 ) {
   const days = React.useMemo(
     () => [startOfDay(getNextVisibleDay(props.anchorDate, props.hiddenDays))],
     [props.anchorDate, props.hiddenDays]
   )
 
-  return (
-    <CalendarTimeGridView
-      {...props}
-      days={days}
-    />
-  )
+  return <CalendarTimeGridView {...props} days={days} />
 })
 
 type DraftMode = "mouse" | "touch"
@@ -160,7 +165,9 @@ function getClosestTouchPoint(
   })
 }
 
-function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) {
+function CalendarTimeGridView(
+  props: TimeGridViewProps & TimeGridLiveDragProps
+) {
   const [draft, setDraft] = React.useState<CalendarCreateDraft | null>(null)
   const [draftMode, setDraftMode] = React.useState<DraftMode | null>(null)
   const [now, setNow] = React.useState(() => new Date())
@@ -189,12 +196,22 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
     onEventCreate: props.onEventCreate,
     slotDuration: props.slotDuration,
   })
+
+  React.useLayoutEffect(() => {
+    if (!props.selectedEventId && !props.isPointerDragging) {
+      return
+    }
+
+    setFocusedGridDayIndex(null)
+  }, [props.isPointerDragging, props.selectedEventId, setFocusedGridDayIndex])
+
   const pragmaticActiveDropTarget = React.useSyncExternalStore(
     (props.activeDropTargetStore ?? nullActiveDropTargetStore).subscribe,
     (props.activeDropTargetStore ?? nullActiveDropTargetStore).getSnapshot,
     (props.activeDropTargetStore ?? nullActiveDropTargetStore).getSnapshot
   )
-  const liveActiveDropTarget = pragmaticActiveDropTarget ?? props.activeDropTarget ?? null
+  const liveActiveDropTarget =
+    pragmaticActiveDropTarget ?? props.activeDropTarget ?? null
   const clearDraft = React.useEffectEvent(() => {
     setDraft(null)
     setDraftMode(null)
@@ -760,6 +777,8 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
                   props.density === "compact" ? "px-3 py-2.5" : "px-3 py-3"
                 )
               )}
+              data-calendar-zoom-day={day.toISOString()}
+              data-calendar-zoom-surface="header"
               id={getTimeGridHeaderId(day)}
             >
               <div className="flex items-center justify-between">
@@ -808,7 +827,7 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
               density={props.density}
               dragPreviewOccurrence={
                 liveDragPreviewOccurrence?.allDay &&
-                isSameDay(liveDragPreviewOccurrence.start, day)
+                getAllDayEvents([liveDragPreviewOccurrence], day).length > 0
                   ? liveDragPreviewOccurrence
                   : undefined
               }
@@ -869,7 +888,7 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
                   }}
                 >
                   {minute % 60 === 0 ? (
-                    <div className="space-y-0.5 pt-0.5">
+                    <div className="pt-0.5">
                       <p>
                         {formatHourLabel(labelDate, {
                           hourCycle: props.hourCycle,
@@ -877,16 +896,6 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
                           timeZone: props.timeZone,
                         })}
                       </p>
-                      {props.showSecondaryTimeZone &&
-                      props.secondaryTimeZone ? (
-                        <p className="text-[10px] text-muted-foreground/80">
-                          {formatHourLabel(labelDate, {
-                            hourCycle: props.hourCycle,
-                            locale: props.locale,
-                            timeZone: props.secondaryTimeZone,
-                          })}
-                        </p>
-                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -914,6 +923,7 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
                   ? liveDragPreviewOccurrence
                   : undefined
               }
+              draggingOccurrenceId={liveDraggingOccurrenceId}
               draft={draft && isSameDay(draft.day, day) ? draft : null}
               focusVisible={focusedGridDayIndex === dayIndex}
               focusedMinuteOfDay={
@@ -948,6 +958,9 @@ function CalendarTimeGridView(props: TimeGridViewProps & TimeGridLiveDragProps) 
               renderEvent={props.renderEvent}
               selectedEventId={props.selectedEventId}
               setDayGridRef={setDayGridRef}
+              suppressKeyboardGridFocus={Boolean(
+                props.isPointerDragging || props.selectedEventId
+              )}
               shouldSuppressEventClick={props.shouldSuppressEventClick}
               showCreatePreviewMeta={Boolean(props.showCreatePreviewMeta)}
               showDragPreviewMeta={Boolean(props.showDragPreviewMeta)}
@@ -973,6 +986,7 @@ type TimeGridDayColumnProps = {
   day: Date
   dayIndex: number
   dragPreviewOccurrence?: TimeGridViewProps["dragPreviewOccurrence"]
+  draggingOccurrenceId?: string
   draft: CalendarCreateDraft | null
   focusVisible: boolean
   focusedMinuteOfDay: number | null
@@ -1015,6 +1029,7 @@ type TimeGridDayColumnProps = {
   renderEvent?: TimeGridViewProps["renderEvent"]
   selectedEventId?: string
   setDayGridRef: (dayIndex: number, element: HTMLDivElement | null) => void
+  suppressKeyboardGridFocus: boolean
   shouldSuppressEventClick?: TimeGridViewProps["shouldSuppressEventClick"]
   showCreatePreviewMeta: boolean
   showDragPreviewMeta: boolean
@@ -1035,6 +1050,7 @@ const MemoizedTimeGridDayColumn = React.memo(
     day,
     dayIndex,
     dragPreviewOccurrence,
+    draggingOccurrenceId,
     draft,
     focusVisible,
     focusedMinuteOfDay,
@@ -1065,6 +1081,7 @@ const MemoizedTimeGridDayColumn = React.memo(
     renderEvent,
     selectedEventId,
     setDayGridRef,
+    suppressKeyboardGridFocus,
     shouldSuppressEventClick,
     showCreatePreviewMeta,
     showDragPreviewMeta,
@@ -1082,6 +1099,7 @@ const MemoizedTimeGridDayColumn = React.memo(
       minMinute,
       maxMinute
     )
+    const showFocusedGridCell = !suppressKeyboardGridFocus
     const showTimedSlotDropHighlight = !previewLayout
     const showNowIndicator =
       isTodayColumn &&
@@ -1145,9 +1163,11 @@ const MemoizedTimeGridDayColumn = React.memo(
           "timeGridDayColumn",
           "relative border-r border-border/70 last:border-r-0"
         )}
+        data-calendar-zoom-day={day.toISOString()}
+        data-calendar-zoom-surface="column"
       >
         <div
-          aria-activedescendant={activeSlotId}
+          aria-activedescendant={showFocusedGridCell ? activeSlotId : undefined}
           aria-colcount={1}
           aria-describedby={gridInstructionsId}
           aria-labelledby={headerId}
@@ -1171,7 +1191,7 @@ const MemoizedTimeGridDayColumn = React.memo(
           style={{
             height: gridHeight,
           }}
-          tabIndex={focusedMinuteOfDay != null ? 0 : -1}
+          tabIndex={showFocusedGridCell && focusedMinuteOfDay != null ? 0 : -1}
         >
           <TimeGridBackground
             blockedRanges={blockedRanges}
@@ -1193,12 +1213,16 @@ const MemoizedTimeGridDayColumn = React.memo(
               return (
                 <div key={`${day.toISOString()}-${minuteOfDay}`} role="row">
                   <MemoizedTimeSlotDropZone
-                    active={focusedMinuteOfDay === minuteOfDay && !draft}
+                    active={
+                      showFocusedGridCell &&
+                      focusedMinuteOfDay === minuteOfDay &&
+                      !draft
+                    }
                     blocked={blocked}
                     classNames={classNames}
                     day={day}
                     dayIndex={dayIndex}
-                    focusVisible={focusVisible}
+                    focusVisible={showFocusedGridCell && focusVisible}
                     hourCycle={hourCycle}
                     isDragTarget={
                       showTimedSlotDropHighlight &&
@@ -1302,7 +1326,7 @@ const MemoizedTimeGridDayColumn = React.memo(
                   dragging={
                     previewOccurrenceId === item.occurrence.occurrenceId
                       ? false
-                      : undefined
+                      : draggingOccurrenceId === item.occurrence.occurrenceId
                   }
                   event={item.occurrence}
                   interactive={interactive}
@@ -1351,6 +1375,7 @@ const MemoizedTimeGridDayColumn = React.memo(
       previousProps.day.getTime() === nextProps.day.getTime() &&
       previousProps.dayIndex === nextProps.dayIndex &&
       previousProps.dragPreviewOccurrence === nextProps.dragPreviewOccurrence &&
+      previousProps.draggingOccurrenceId === nextProps.draggingOccurrenceId &&
       previousProps.draft === nextProps.draft &&
       previousProps.focusVisible === nextProps.focusVisible &&
       previousProps.focusedMinuteOfDay === nextProps.focusedMinuteOfDay &&
@@ -1386,6 +1411,8 @@ const MemoizedTimeGridDayColumn = React.memo(
       previousProps.renderEvent === nextProps.renderEvent &&
       previousProps.selectedEventId === nextProps.selectedEventId &&
       previousProps.setDayGridRef === nextProps.setDayGridRef &&
+      previousProps.suppressKeyboardGridFocus ===
+        nextProps.suppressKeyboardGridFocus &&
       previousProps.shouldSuppressEventClick ===
         nextProps.shouldSuppressEventClick &&
       previousProps.showCreatePreviewMeta === nextProps.showCreatePreviewMeta &&
