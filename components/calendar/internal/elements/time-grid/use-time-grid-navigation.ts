@@ -54,6 +54,13 @@ export function useTimeGridNavigation({
     })
   }, [])
 
+  const setDayGridRef = React.useCallback(
+    (dayIndex: number, element: HTMLDivElement | null) => {
+      dayGridRefs.current[dayIndex] = element
+    },
+    []
+  )
+
   const handleGridKeyDown = React.useCallback(
     (
       dayIndex: number,
@@ -159,12 +166,12 @@ export function useTimeGridNavigation({
   )
 
   return {
-    dayGridRefs,
     focusDayGrid,
     focusedGridDayIndex,
     focusedSlot,
     gridInstructionsId,
     handleGridKeyDown,
+    setDayGridRef,
     setFocusedGridDayIndex,
     setFocusedSlot,
   }

@@ -24,6 +24,7 @@ import { CalendarRootPortals } from "./root/calendar/portals"
 import { getCalendarSurfaceShadowClassName } from "./root/root-utils"
 import { useCalendarDerivedState } from "./root/use-calendar-derived-state"
 import { useCalendarEventActions } from "./root/use-calendar-event-actions"
+import { useCalendarPragmaticEventDrag } from "./root/use-calendar-pragmatic-event-drag"
 import { useCalendarPointerInteractions } from "./root/use-calendar-pointer-interactions"
 
 export function CalendarRoot({
@@ -74,6 +75,7 @@ export function CalendarRoot({
   slotDuration = defaultSlotDuration,
   slotHeight: customSlotHeight,
   surfaceShadow = "none",
+  surfaceVariant = "card",
   defaultResourceFilter,
   timeZone,
   view,
@@ -104,6 +106,8 @@ export function CalendarRoot({
   const resolvedSlotHeight =
     customSlotHeight ??
     (density === "compact" ? compactSlotHeight : defaultSlotHeight)
+  const usesPragmaticEventMove =
+    resolvedView === "week" || resolvedView === "day"
   const resolvedResourceFilter = React.useMemo(() => {
     const nextFilter = resourceFilter ?? internalResourceFilter
     const dedupedFilter = Array.from(new Set(nextFilter)).filter((id) =>
@@ -226,10 +230,15 @@ export function CalendarRoot({
     enableEventMove: !!onEventMove,
     enableEventResize: !!onEventResize,
     moveOccurrenceWithTarget: actions.moveOccurrenceWithTarget,
+    preferPragmaticEventMove: usesPragmaticEventMove,
     resizeOccurrenceWithTarget: actions.resizeOccurrenceWithTarget,
     selectOccurrence: (occurrence) => {
       actions.handleSelectEvent(occurrence)
     },
+  })
+  const pragmaticEventDrag = useCalendarPragmaticEventDrag({
+    enabled: usesPragmaticEventMove && !!onEventMove,
+    moveOccurrenceWithTarget: actions.moveOccurrenceWithTarget,
   })
 
   const derived = useCalendarDerivedState({
@@ -314,8 +323,12 @@ export function CalendarRoot({
       className={getCalendarSlotClassName(
         classNames,
         "root",
-        "flex min-h-[42rem] flex-col overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-background",
-        getCalendarSurfaceShadowClassName(surfaceShadow)
+        surfaceVariant === "flush"
+          ? "flex h-full min-h-0 w-full flex-col overflow-hidden bg-background"
+          : "flex min-h-[42rem] flex-col overflow-hidden rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-background",
+        surfaceVariant === "card"
+          ? getCalendarSurfaceShadowClassName(surfaceShadow)
+          : undefined
       )}
       data-testid="calendar-root"
     >
@@ -358,6 +371,11 @@ export function CalendarRoot({
         {resolvedView === "week" ? (
           <CalendarWeekView
             {...derived.sharedViewProps}
+            activeDrag={pragmaticEventDrag.activeDrag}
+            activeDragOffsetMinutes={pragmaticEventDrag.activeDragOffsetMinutes}
+            activeDropTargetStore={pragmaticEventDrag.activeDropTargetStore}
+            getPragmaticDragConfig={pragmaticEventDrag.getDraggableConfig}
+            isPointerDragging={pragmaticEventDrag.isDragging}
             maxHour={maxHour}
             minHour={minHour}
           />
@@ -365,6 +383,11 @@ export function CalendarRoot({
         {resolvedView === "day" ? (
           <CalendarDayView
             {...derived.sharedViewProps}
+            activeDrag={pragmaticEventDrag.activeDrag}
+            activeDragOffsetMinutes={pragmaticEventDrag.activeDragOffsetMinutes}
+            activeDropTargetStore={pragmaticEventDrag.activeDropTargetStore}
+            getPragmaticDragConfig={pragmaticEventDrag.getDraggableConfig}
+            isPointerDragging={pragmaticEventDrag.isDragging}
             maxHour={maxHour}
             minHour={minHour}
           />
@@ -407,6 +430,7 @@ export function CalendarRoot({
         createSheetOperation={actions.createSheetOperation}
         density={density}
         detailsOccurrence={detailsOccurrence}
+        dragOverlayStore={pointer.dragOverlayStore}
         eventChangeConfirmation={eventChangeConfirmation}
         eventDetails={eventDetails}
         eventDetailsEnabled={actions.eventDetailsEnabled}

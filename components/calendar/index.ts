@@ -47,6 +47,7 @@ export type {
   CalendarResource,
   CalendarResizeOperation,
   CalendarSurfaceShadow,
+  CalendarSurfaceVariant,
   CalendarSlot,
   CalendarToolbarExtrasRenderProps,
   CalendarView,

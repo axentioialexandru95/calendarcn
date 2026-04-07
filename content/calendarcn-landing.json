@@ -167,27 +167,27 @@
     ],
     "flow": [
       {
-        "title": "Keep date, view, and events in your app",
-        "body": "`useCalendarController` in the demo is only an example. In production, those values can live in React state, a server cache, or whatever store already owns scheduling logic."
+        "title": "Keep the scheduling contract in your app",
+        "body": "`useCalendarController` in the demo is just one wiring example. In production, date, view, events, and persistence can stay in React state, a server cache, or whatever store already owns your scheduling rules."
       },
       {
-        "title": "CalendarRoot expands data into visible occurrences",
-        "body": "It computes the visible range, expands recurring events for that range, renders the active view, and coordinates drag overlays, selection, keyboard moves, and accessibility announcements."
+        "title": "CalendarRoot derives the visible schedule",
+        "body": "It computes the active range, expands recurring events for that window, renders the current view, and coordinates drag overlays, selection, keyboard moves, and accessibility announcements."
       },
       {
-        "title": "Views stay interchangeable because the model stays stable",
-        "body": "Switching from a month grid to a time grid or agenda feed does not require a second contract. The same events and resources keep working across every exported view."
+        "title": "One model works across every exported view",
+        "body": "Switching from a month grid to a time grid or agenda feed does not require a second contract. The same events, resources, and constraints keep working across each surface."
       },
       {
-        "title": "Mutations come back as typed operations",
-        "body": "Create, move, resize, duplicate, archive, and delete actions can flow back through handlers you control, so your app decides how changes are validated, persisted, and synchronized."
+        "title": "Every mutation comes back through your handlers",
+        "body": "Create, move, resize, duplicate, archive, and delete actions flow back as typed operations, so your app decides how changes are validated, persisted, synchronized, or rejected."
       }
     ]
   },
   "demo": {
-    "eyebrow": "Live demo",
-    "title": "Same calendar behavior, different theme treatment.",
-    "body": "Switch the site theme from the navbar and the calendar follows along. Layout, event behavior, and view logic stay the same while the tokens around them change.",
+    "eyebrow": "Interactive demo",
+    "title": "One calendar, multiple scheduling setups.",
+    "body": "Switch the site theme from the navbar, then try presets and options below. The same calendar keeps its drag, resize, and view behavior while layout, time labels, and scheduling rules adapt to each setup.",
     "backToTop": {
       "label": "Back to top",
       "href": "#top"

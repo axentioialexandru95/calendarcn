@@ -28,6 +28,7 @@ import type {
   CalendarResource,
   CalendarToolbarExtrasRenderProps,
   CalendarSurfaceShadow,
+  CalendarSurfaceVariant,
   CalendarView,
   CalendarWeekday,
 } from "../types"
@@ -75,6 +76,7 @@ export type CalendarRootProps = {
   businessHours?: CalendarBusinessHoursWindow[]
   density?: CalendarDensity
   surfaceShadow?: CalendarSurfaceShadow
+  surfaceVariant?: CalendarSurfaceVariant
   hiddenDays?: CalendarWeekday[]
   weekStartsOn?: CalendarWeekday
   agendaDays?: number

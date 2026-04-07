@@ -424,7 +424,16 @@ function CalendarDragOverlay({
         overlay
         renderEvent={renderEvent}
         shouldSuppressClick={shouldSuppressEventClick}
-        style={getDragOverlayStyle(activeDragRect, activeDragInteraction)}
+        style={getDragOverlayStyle(
+          activeDragRect,
+          activeDragInteraction,
+          activeDragInteraction
+            ? {
+                clientX: activeDragInteraction.currentClientX,
+                clientY: activeDragInteraction.currentClientY,
+              }
+            : null
+        )}
         previewMetaLabel={formatDurationLabel(
           activeDrag.occurrence.start,
           activeDrag.occurrence.end,

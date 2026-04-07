@@ -7,6 +7,7 @@ export type CalendarView = (typeof calendarViews)[number]
 export type CalendarDensity = "comfortable" | "compact"
 
 export type CalendarSurfaceShadow = "none" | "sm" | "md"
+export type CalendarSurfaceVariant = "card" | "flush"
 
 export type CalendarEventMenuPosition = {
   x: number

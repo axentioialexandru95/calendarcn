@@ -1,8 +1,11 @@
+import * as React from "react"
+
 import { cn } from "../../lib/utils"
 
 import type {
   CalendarClassNames,
   CalendarEventRenderer,
+  CalendarEventVariant,
   CalendarOccurrence,
 } from "../../../types"
 import {
@@ -18,7 +21,6 @@ import {
 import { CalendarEventCard, getResolvedAccentColor } from "../event-card"
 
 type AllDayDropZoneProps = {
-  activeDropTarget?: TimeGridViewProps["activeDropTarget"]
   classNames?: CalendarClassNames
   day: Date
   density: "comfortable" | "compact"
@@ -27,6 +29,7 @@ type AllDayDropZoneProps = {
   events: CalendarOccurrence[]
   getEventColor?: (occurrence: CalendarOccurrence) => string
   hourCycle?: 12 | 24
+  isDragTarget: boolean
   interactive: boolean
   locale?: string
   onEventDragPointerDown?: TimeGridViewProps["onEventDragPointerDown"]
@@ -39,6 +42,16 @@ type AllDayDropZoneProps = {
     position: CalendarEventMenuPosition
   ) => void
   onSelect: (occurrence: CalendarOccurrence) => void
+  pragmaticDragConfigFactory?: (
+    occurrence: CalendarOccurrence,
+    variant: CalendarEventVariant
+  ) => {
+    getInitialData: () => {
+      occurrence: CalendarOccurrence
+      type: "calendar-event"
+      variant: CalendarEventVariant
+    }
+  } | null
   previewOccurrenceId?: string
   renderEvent?: CalendarEventRenderer
   selectedEventId?: string
@@ -47,7 +60,6 @@ type AllDayDropZoneProps = {
 }
 
 export function AllDayDropZone({
-  activeDropTarget,
   classNames,
   day,
   density,
@@ -56,12 +68,14 @@ export function AllDayDropZone({
   events,
   getEventColor,
   hourCycle,
+  isDragTarget,
   interactive,
   locale,
   onEventDragPointerDown,
   onEventKeyCommand,
   onOpenContextMenu,
   onSelect,
+  pragmaticDragConfigFactory,
   previewOccurrenceId,
   renderEvent,
   selectedEventId,
@@ -71,9 +85,6 @@ export function AllDayDropZone({
   const previewEvents = dragPreviewOccurrence
     ? getAllDayEvents([dragPreviewOccurrence], day)
     : []
-  const isDragTarget =
-    activeDropTarget?.kind === "all-day" &&
-    activeDropTarget.day.getTime() === day.getTime()
 
   return (
     <div
@@ -108,6 +119,7 @@ export function AllDayDropZone({
             onEventKeyCommand={onEventKeyCommand}
             onOpenContextMenu={onOpenContextMenu}
             onSelect={onSelect}
+            pragmaticDragConfigFactory={pragmaticDragConfigFactory}
             preview={previewOccurrenceId === occurrence.occurrenceId}
             previewMetaLabel={
               density === "compact" &&
@@ -143,3 +155,34 @@ export function AllDayDropZone({
     </div>
   )
 }
+
+export const MemoizedAllDayDropZone = React.memo(
+  AllDayDropZone,
+  (previousProps, nextProps) => {
+    return (
+      previousProps.classNames === nextProps.classNames &&
+      previousProps.day.getTime() === nextProps.day.getTime() &&
+      previousProps.density === nextProps.density &&
+      previousProps.dragPreviewOccurrence === nextProps.dragPreviewOccurrence &&
+      previousProps.draggingOccurrenceId === nextProps.draggingOccurrenceId &&
+      previousProps.events === nextProps.events &&
+      previousProps.getEventColor === nextProps.getEventColor &&
+      previousProps.hourCycle === nextProps.hourCycle &&
+      previousProps.isDragTarget === nextProps.isDragTarget &&
+      previousProps.interactive === nextProps.interactive &&
+      previousProps.locale === nextProps.locale &&
+      previousProps.onEventDragPointerDown === nextProps.onEventDragPointerDown &&
+      previousProps.onEventKeyCommand === nextProps.onEventKeyCommand &&
+      previousProps.onOpenContextMenu === nextProps.onOpenContextMenu &&
+      previousProps.onSelect === nextProps.onSelect &&
+      previousProps.pragmaticDragConfigFactory ===
+        nextProps.pragmaticDragConfigFactory &&
+      previousProps.previewOccurrenceId === nextProps.previewOccurrenceId &&
+      previousProps.renderEvent === nextProps.renderEvent &&
+      previousProps.selectedEventId === nextProps.selectedEventId &&
+      previousProps.shouldSuppressEventClick ===
+        nextProps.shouldSuppressEventClick &&
+      previousProps.timeZone === nextProps.timeZone
+    )
+  }
+)

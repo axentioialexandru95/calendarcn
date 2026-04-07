@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 
 import type {
@@ -31,6 +32,7 @@ import { CalendarKeyboardShortcutsDialog } from "../../keyboard-shortcuts-dialog
 import {
   getDragOverlayStyle,
   type ActiveDragInteraction,
+  type DragOverlayPosition,
 } from "../root-utils"
 
 type CalendarRootPortalsProps = {
@@ -52,6 +54,10 @@ type CalendarRootPortalsProps = {
   createSheetOperation: CalendarCreateOperation | null
   density: CalendarRootProps["density"]
   detailsOccurrence: CalendarOccurrence | null
+  dragOverlayStore: {
+    getSnapshot: () => DragOverlayPosition | null
+    subscribe: (listener: () => void) => () => void
+  }
   eventChangeConfirmation: CalendarRootProps["eventChangeConfirmation"]
   eventDetails: CalendarRootProps["eventDetails"]
   eventDetailsEnabled: boolean
@@ -99,6 +105,7 @@ export function CalendarRootPortals({
   createSheetOperation,
   density,
   detailsOccurrence,
+  dragOverlayStore,
   eventChangeConfirmation,
   eventDetails,
   eventDetailsEnabled,
@@ -129,6 +136,12 @@ export function CalendarRootPortals({
   showSecondaryTimeZone,
   timeZone,
 }: CalendarRootPortalsProps) {
+  const dragOverlayPosition = useSyncExternalStore(
+    dragOverlayStore.subscribe,
+    dragOverlayStore.getSnapshot,
+    dragOverlayStore.getSnapshot
+  )
+
   if (!isHydrated) {
     return null
   }
@@ -153,7 +166,11 @@ export function CalendarRootPortals({
             overlay
             renderEvent={renderEvent}
             shouldSuppressClick={shouldSuppressEventClick}
-            style={getDragOverlayStyle(activeDragRect, activeDragInteraction)}
+            style={getDragOverlayStyle(
+              activeDragRect,
+              activeDragInteraction,
+              dragOverlayPosition
+            )}
             previewMetaLabel={
               showDragPreviewMeta
                 ? formatDurationLabel(

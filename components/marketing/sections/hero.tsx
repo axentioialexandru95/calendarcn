@@ -1,10 +1,10 @@
 import { CalendarCnHeroSnippet } from "@/components/marketing/hero/snippet"
-import DarkVeil from "@/components/dark-veil"
 
 type CalendarCnHeroSectionProps = {
   content: {
     badge: string
     body: string
+    points: string[]
     snippet: {
       body: string
       commands: string[]
@@ -15,9 +15,13 @@ type CalendarCnHeroSectionProps = {
     }
     title: string
   }
+  initialDateIso: string
 }
 
-export function CalendarCnHeroSection({ content }: CalendarCnHeroSectionProps) {
+export function CalendarCnHeroSection({
+  content,
+  initialDateIso,
+}: CalendarCnHeroSectionProps) {
   return (
     <section
       id="top"
@@ -26,40 +30,17 @@ export function CalendarCnHeroSection({ content }: CalendarCnHeroSectionProps) {
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-background" />
         <div
-          className="absolute inset-0 opacity-45 dark:opacity-95"
-          style={{
-            filter: "saturate(1.08) brightness(0.92) contrast(1.06)",
-          }}
-        >
-          <DarkVeil
-            hueShift={18}
-            noiseIntensity={0.02}
-            resolutionScale={1}
-            scanlineFrequency={1.8}
-            scanlineIntensity={0.05}
-            speed={0.34}
-            warpAmount={0.18}
-          />
-        </div>
-        <div
-          className="absolute inset-0 dark:hidden"
+          className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, color-mix(in oklab, white 66%, transparent) 0%, color-mix(in oklab, white 82%, transparent) 24%, color-mix(in oklab, white 92%, transparent) 54%, color-mix(in oklab, white 97%, transparent) 100%), radial-gradient(circle at 50% -8%, color-mix(in oklab, var(--color-primary) 16%, transparent), transparent 42%), radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--color-primary) 8%, transparent), transparent 28%), radial-gradient(circle at 88% 14%, color-mix(in oklab, var(--color-muted) 54%, transparent), transparent 24%)",
+              "linear-gradient(180deg, color-mix(in oklab, var(--color-background) 20%, transparent) 0%, color-mix(in oklab, var(--color-background) 80%, transparent) 26%, color-mix(in oklab, var(--color-background) 98%, transparent) 100%), radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--color-primary) 18%, transparent), transparent 34%), radial-gradient(circle at 16% 18%, color-mix(in oklab, var(--color-primary) 9%, transparent), transparent 22%), radial-gradient(circle at 84% 16%, color-mix(in oklab, var(--color-muted) 70%, transparent), transparent 24%)",
           }}
         />
-        <div
-          className="absolute inset-0 hidden dark:block"
-          style={{
-            background:
-              "linear-gradient(180deg, color-mix(in oklab, var(--color-background) 20%, transparent) 0%, color-mix(in oklab, var(--color-background) 46%, transparent) 20%, color-mix(in oklab, var(--color-background) 74%, transparent) 52%, color-mix(in oklab, var(--color-background) 96%, transparent) 100%), radial-gradient(circle at 50% -8%, color-mix(in oklab, var(--color-primary) 18%, transparent), transparent 40%), radial-gradient(circle at 14% 20%, color-mix(in oklab, var(--color-primary) 8%, transparent), transparent 26%), radial-gradient(circle at 86% 14%, color-mix(in oklab, var(--color-muted) 18%, transparent), transparent 24%)",
-          }}
-        />
-        <div className="absolute top-0 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/20" />
-        <div className="absolute top-28 left-[8%] h-40 w-40 rounded-full bg-primary/8 blur-3xl dark:bg-primary/12" />
-        <div className="absolute top-24 right-[10%] h-52 w-52 rounded-full bg-muted/90 blur-3xl dark:bg-muted/22" />
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background via-background/88 to-transparent dark:from-background dark:via-background/60" />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/70 to-transparent dark:via-background/42" />
+        <div className="absolute top-8 left-1/2 h-72 w-[44rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/14" />
+        <div className="absolute top-28 left-[8%] h-40 w-40 rounded-full bg-primary/8 blur-3xl dark:bg-primary/10" />
+        <div className="absolute top-20 right-[8%] h-52 w-52 rounded-full bg-muted/70 blur-3xl dark:bg-muted/20" />
+        <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-background via-background/86 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/72 to-transparent" />
         <div
           className="absolute inset-x-0 bottom-0 h-px"
           style={{
@@ -69,22 +50,36 @@ export function CalendarCnHeroSection({ content }: CalendarCnHeroSectionProps) {
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-[68svh] max-w-5xl items-center justify-center px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-        <div className="flex w-full max-w-3xl min-w-0 flex-col items-center gap-7 text-center sm:gap-8">
+      <div className="relative mx-auto max-w-7xl px-4 pt-24 pb-18 sm:px-6 sm:pt-28 sm:pb-20 lg:px-8 lg:pt-32 lg:pb-24">
+        <div className="mx-auto flex max-w-6xl min-w-0 flex-col items-center gap-10 text-center sm:gap-12">
           <div className="inline-flex items-center rounded-full border border-border/70 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             {content.badge}
           </div>
 
-          <div className="w-full space-y-6 sm:space-y-7">
-            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          <div className="w-full max-w-4xl space-y-6 sm:space-y-7">
+            <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-7xl">
               {content.title}
             </h1>
-            <p className="mx-auto max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
+            <p className="mx-auto max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
               {content.body}
             </p>
+
+            <div className="flex flex-wrap justify-center gap-2.5 pt-1">
+              {content.points.map((point) => (
+                <div
+                  key={point}
+                  className="rounded-full border border-border/70 bg-background/75 px-3.5 py-1.5 text-sm text-muted-foreground shadow-xs backdrop-blur"
+                >
+                  {point}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <CalendarCnHeroSnippet content={content.snippet} />
+          <CalendarCnHeroSnippet
+            content={content.snippet}
+            initialDateIso={initialDateIso}
+          />
         </div>
       </div>
     </section>

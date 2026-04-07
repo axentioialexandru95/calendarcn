@@ -42,6 +42,11 @@ export type ActiveDragInteraction = {
   pointerType: string
 }
 
+export type DragOverlayPosition = {
+  clientX: number
+  clientY: number
+}
+
 export type ActiveResizeState = {
   captureElement: HTMLElement | null
   edge: "start" | "end"
@@ -326,18 +331,18 @@ export function lockDocumentTouchScroll() {
 
 export function getDragOverlayStyle(
   dragRect: DOMRect | null,
-  interaction: ActiveDragInteraction | null
+  interaction: ActiveDragInteraction | null,
+  position: DragOverlayPosition | null
 ): CSSProperties | undefined {
-  if (!dragRect || !interaction) {
+  if (!dragRect || !interaction || !position) {
     return undefined
   }
 
   return {
     height: dragRect.height,
-    left:
-      dragRect.left + interaction.currentClientX - interaction.initialClientX,
+    left: dragRect.left + position.clientX - interaction.initialClientX,
     position: "fixed",
-    top: dragRect.top + interaction.currentClientY - interaction.initialClientY,
+    top: dragRect.top + position.clientY - interaction.initialClientY,
     width: dragRect.width,
   }
 }

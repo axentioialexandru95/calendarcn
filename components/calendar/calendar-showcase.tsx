@@ -27,7 +27,7 @@ import type {
   CalendarView,
 } from "@/components/calendar/types"
 
-type CalendarShowcaseVariant = "embed" | "standalone"
+type CalendarShowcaseVariant = "embed" | "hero" | "standalone"
 
 type DemoConfigState = {
   compact: boolean
@@ -49,7 +49,8 @@ const demoPresets: Record<
   }
 > = {
   starter: {
-    description: "All views, relaxed spacing, no scheduling constraints.",
+    description:
+      "A broad default setup with all views, roomy spacing, and no scheduling rules.",
     label: "Starter",
     state: {
       compact: false,
@@ -62,7 +63,7 @@ const demoPresets: Record<
   },
   workweek: {
     description:
-      "A focused product team setup with work hours and blocked lunch.",
+      "A focused weekday planner with compact spacing, working hours, and blocked lunch time.",
     label: "Workweek",
     state: {
       compact: true,
@@ -74,7 +75,8 @@ const demoPresets: Record<
     },
   },
   operations: {
-    description: "Seven-day scheduling with 24-hour time and release freezes.",
+    description:
+      "A seven-day schedule with 24-hour time and blocked maintenance windows.",
     label: "Operations",
     state: {
       compact: false,
@@ -93,38 +95,37 @@ const demoToggleDefinitions: Array<{
   label: string
 }> = [
   {
-    description: "Tighten slot height, event padding, and toolbar spacing.",
+    description:
+      "Tighten spacing across the calendar so more schedule fits at once.",
     key: "compact",
-    label: "Compact density",
+    label: "Compact layout",
   },
   {
     description:
-      "Focus the planner on weekdays instead of a full seven-day span.",
+      "Hide Saturday and Sunday to focus the planner on the workweek.",
     key: "hideWeekends",
-    label: "Hide weekends",
+    label: "Weekdays only",
   },
   {
-    description:
-      "Highlight the working window so real scheduling hours stand out.",
+    description: "Highlight the hours where work is expected to happen.",
     key: "showBusinessHours",
-    label: "Business hours",
+    label: "Working hours",
   },
   {
     description:
-      "Show unavailable time ranges and block edits that overlap them.",
+      "Show unavailable time blocks and prevent edits that overlap them.",
     key: "showBlockedRanges",
-    label: "Blocked ranges",
+    label: "Unavailable time",
   },
   {
-    description: "Switch the demo labels to a 24-hour scheduling format.",
+    description: "Show times in a 24-hour format instead of 12-hour labels.",
     key: "twentyFourHour",
-    label: "24h clock",
+    label: "24-hour time",
   },
   {
-    description:
-      "Limit the surface to week, day, and agenda instead of all views.",
+    description: "Limit the calendar to week, day, and agenda views.",
     key: "focusedViews",
-    label: "Work views only",
+    label: "Focused views",
   },
 ]
 
@@ -157,8 +158,8 @@ function CalendarShowcaseSurface({
   variant?: CalendarShowcaseVariant
 }) {
   const [initialDate] = React.useState(() => new Date(initialDateIso))
-  const [demoConfig, setDemoConfig] = React.useState<DemoConfigState>(
-    demoPresets.workweek.state
+  const [demoConfig, setDemoConfig] = React.useState<DemoConfigState>(() =>
+    variant === "hero" ? demoPresets.starter.state : demoPresets.workweek.state
   )
   const resources = React.useState(() => buildDemoResources())[0]
   const blockedRanges = React.useMemo(
@@ -224,6 +225,36 @@ function CalendarShowcaseSurface({
 
     return tokens
   }, [calendarConfig])
+  const currentSetupTokens = React.useMemo(() => {
+    const tokens = [
+      selectedPresetId
+        ? `${demoPresets[selectedPresetId].label} preset`
+        : "Custom setup",
+      calendarConfig.density === "compact"
+        ? "Compact spacing"
+        : "Comfortable spacing",
+      calendarConfig.hiddenDays.length > 0 ? "Weekdays only" : "Seven-day week",
+      calendarConfig.businessHours
+        ? "Working hours highlighted"
+        : "Full-day schedule",
+      calendarConfig.blockedRanges
+        ? "Unavailable time enforced"
+        : "No blocked time",
+      calendarConfig.hourCycle === 24 ? "24-hour labels" : "12-hour labels",
+      calendarConfig.availableViews.length < 4
+        ? "Week, day, and agenda views"
+        : "Month, week, day, and agenda views",
+    ]
+
+    return tokens
+  }, [calendarConfig, selectedPresetId])
+  const currentSetupSummary = React.useMemo(() => {
+    const presetLabel = selectedPresetId
+      ? demoPresets[selectedPresetId].label
+      : "Custom"
+
+    return `${presetLabel} setup with ${calendarConfig.density} spacing, ${calendarConfig.hourCycle}-hour time, ${calendarConfig.hiddenDays.length > 0 ? "weekday-only planning" : "a full seven-day schedule"}, and ${calendarConfig.blockedRanges ? "unavailable time blocks enabled." : "no blocked time enabled."}`
+  }, [calendarConfig, selectedPresetId])
   const controller = useCalendarController({
     availableViews: calendarConfig.availableViews,
     initialDate,
@@ -267,7 +298,7 @@ function CalendarShowcaseSurface({
       density={calendarConfig.density}
       hiddenDays={calendarConfig.hiddenDays}
       hourCycle={calendarConfig.hourCycle}
-      keyboardShortcuts
+      keyboardShortcuts={variant === "hero" ? false : true}
       locale={calendarConfig.locale}
       renderToolbarExtras={({ activeResourceIds, resources }) => (
         <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs text-muted-foreground">
@@ -282,6 +313,7 @@ function CalendarShowcaseSurface({
       selectedEventId={controller.selectedEventId}
       showSecondaryTimeZone
       surfaceShadow="md"
+      surfaceVariant={variant === "hero" ? "flush" : "card"}
       timeZone="Europe/Bucharest"
       view={controller.view}
     />
@@ -293,6 +325,8 @@ function CalendarShowcaseSurface({
         <CalendarShowcaseConfigPanel
           activeConfigTokens={activeConfigTokens}
           config={demoConfig}
+          currentSetupSummary={currentSetupSummary}
+          currentSetupTokens={currentSetupTokens}
           onPresetSelect={(presetId) => {
             setDemoConfig(demoPresets[presetId].state)
           }}
@@ -307,6 +341,10 @@ function CalendarShowcaseSurface({
         {calendar}
       </div>
     )
+  }
+
+  if (variant === "hero") {
+    return <div className="h-full min-w-0">{calendar}</div>
   }
 
   return (
@@ -394,6 +432,8 @@ function CalendarShowcaseSurface({
             activeConfigTokens={activeConfigTokens}
             compact
             config={demoConfig}
+            currentSetupSummary={currentSetupSummary}
+            currentSetupTokens={currentSetupTokens}
             onPresetSelect={(presetId) => {
               setDemoConfig(demoPresets[presetId].state)
             }}
@@ -414,6 +454,8 @@ function CalendarShowcaseSurface({
 
 function CalendarShowcaseConfigPanel({
   activeConfigTokens,
+  currentSetupSummary,
+  currentSetupTokens,
   compact = false,
   config,
   onPresetSelect,
@@ -421,6 +463,8 @@ function CalendarShowcaseConfigPanel({
   selectedPresetId,
 }: {
   activeConfigTokens: string[]
+  currentSetupSummary: string
+  currentSetupTokens: string[]
   compact?: boolean
   config: DemoConfigState
   onPresetSelect: (presetId: DemoPresetId) => void
@@ -437,15 +481,15 @@ function CalendarShowcaseConfigPanel({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <p className="text-[11px] tracking-[0.24em] text-muted-foreground uppercase">
-            Demo configuration
+            Interactive setup
           </p>
           <h2 className="text-lg font-semibold tracking-tight text-foreground">
-            Switch presets or toggle the props live.
+            Compare realistic scheduling setups.
           </h2>
           <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            The demo is no longer pinned to one hardcoded setup. Choose a preset
-            or flip individual options to see how the same `CalendarRoot`
-            surface behaves under different configuration shapes.
+            Start with a preset, then turn options on or off. The calendar below
+            updates immediately so you can compare the same interactions under
+            different layout, time, and scheduling rules.
           </p>
         </div>
 
@@ -532,7 +576,26 @@ function CalendarShowcaseConfigPanel({
 
         <div className="rounded-[calc(var(--radius)*1.05)] border border-border/70 bg-background/80 px-4 py-3">
           <p className="text-[11px] tracking-[0.22em] text-muted-foreground uppercase">
-            Active props
+            Current setup
+          </p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {currentSetupSummary}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {currentSetupTokens.map((token) => (
+              <span
+                key={token}
+                className="max-w-full rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-[11px] leading-5 whitespace-normal text-foreground"
+              >
+                {token}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[calc(var(--radius)*1.05)] border border-border/70 bg-background/80 px-4 py-3">
+          <p className="text-[11px] tracking-[0.22em] text-muted-foreground uppercase">
+            Implementation props
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {activeConfigTokens.map((token) => (

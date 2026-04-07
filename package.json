@@ -25,6 +25,7 @@
     "registry:check": "pnpm registry:build && node scripts/registry-check.mjs"
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^1.7.10",
     "@phosphor-icons/react": "^2.1.10",
     "@types/mdx": "^2.0.13",
     "class-variance-authority": "^0.7.1",

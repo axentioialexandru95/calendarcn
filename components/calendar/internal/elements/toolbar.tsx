@@ -206,6 +206,7 @@ export function CalendarToolbar({
           ) : null}
           {onQuickCreate ? (
             <ToolbarButton
+              className="rounded-full px-3.5"
               data-testid="calendar-toolbar-create"
               onClick={onQuickCreate}
               size="sm"

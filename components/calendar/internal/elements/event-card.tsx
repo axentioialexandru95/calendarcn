@@ -1,3 +1,4 @@
+import * as React from "react"
 import type {
   CSSProperties,
   KeyboardEvent,
@@ -11,6 +12,7 @@ import type {
   CalendarClassNames,
   CalendarDensity,
   CalendarEventRenderer,
+  CalendarEventVariant,
   CalendarOccurrence,
 } from "../../types"
 import {
@@ -20,6 +22,7 @@ import {
   getOccurrenceAccentColor,
 } from "../../utils"
 import type { CalendarEventMenuPosition, EventVariant } from "../shared"
+import { usePragmaticDraggable } from "./root/use-calendar-pragmatic-event-drag"
 
 type CalendarEventCardProps = {
   accentColor: string
@@ -49,6 +52,16 @@ type CalendarEventCardProps = {
   onSelect: (occurrence: CalendarOccurrence) => void
   preview?: boolean
   previewMetaLabel?: string
+  pragmaticDragConfigFactory?: (
+    occurrence: CalendarOccurrence,
+    variant: CalendarEventVariant
+  ) => {
+    getInitialData: () => {
+      occurrence: CalendarOccurrence
+      type: "calendar-event"
+      variant: CalendarEventVariant
+    }
+  } | null
   renderEvent?: CalendarEventRenderer
   selected?: boolean
   showResizeHandles?: boolean
@@ -83,6 +96,16 @@ type EventSurfaceProps = {
   onSelect?: () => void
   preview?: boolean
   previewMetaLabel?: string
+  pragmaticDragConfigFactory?: (
+    occurrence: CalendarOccurrence,
+    variant: CalendarEventVariant
+  ) => {
+    getInitialData: () => {
+      occurrence: CalendarOccurrence
+      type: "calendar-event"
+      variant: CalendarEventVariant
+    }
+  } | null
   renderEvent?: CalendarEventRenderer
   selected?: boolean
   showResizeHandles?: boolean
@@ -92,7 +115,7 @@ type EventSurfaceProps = {
   variant: EventVariant
 }
 
-export function CalendarEventCard({
+function CalendarEventCardComponent({
   accentColor,
   classNames,
   density = "comfortable",
@@ -106,6 +129,7 @@ export function CalendarEventCard({
   onSelect,
   preview = false,
   previewMetaLabel,
+  pragmaticDragConfigFactory,
   renderEvent,
   selected,
   showResizeHandles,
@@ -131,6 +155,9 @@ export function CalendarEventCard({
         onSelect={() => onSelect(event)}
         preview={preview}
         previewMetaLabel={previewMetaLabel}
+        pragmaticDragConfigFactory={
+          dragEnabled ? pragmaticDragConfigFactory : undefined
+        }
         renderEvent={renderEvent}
         selected={selected}
         showResizeHandles={
@@ -147,6 +174,36 @@ export function CalendarEventCard({
   )
 }
 
+export const CalendarEventCard = React.memo(
+  CalendarEventCardComponent,
+  (previousProps, nextProps) => {
+    return (
+      previousProps.accentColor === nextProps.accentColor &&
+      previousProps.classNames === nextProps.classNames &&
+      previousProps.density === nextProps.density &&
+      previousProps.dragging === nextProps.dragging &&
+      previousProps.event === nextProps.event &&
+      previousProps.interactive === nextProps.interactive &&
+      previousProps.onDragPointerDown === nextProps.onDragPointerDown &&
+      previousProps.onEventKeyCommand === nextProps.onEventKeyCommand &&
+      previousProps.onResizeHandlePointerDown ===
+        nextProps.onResizeHandlePointerDown &&
+      previousProps.onOpenContextMenu === nextProps.onOpenContextMenu &&
+      previousProps.onSelect === nextProps.onSelect &&
+      previousProps.preview === nextProps.preview &&
+      previousProps.previewMetaLabel === nextProps.previewMetaLabel &&
+      previousProps.pragmaticDragConfigFactory ===
+        nextProps.pragmaticDragConfigFactory &&
+      previousProps.renderEvent === nextProps.renderEvent &&
+      previousProps.selected === nextProps.selected &&
+      previousProps.showResizeHandles === nextProps.showResizeHandles &&
+      previousProps.shouldSuppressClick === nextProps.shouldSuppressClick &&
+      previousProps.timeLabel === nextProps.timeLabel &&
+      previousProps.variant === nextProps.variant
+    )
+  }
+)
+
 export function EventSurface({
   accentColor,
   ariaLabel,
@@ -162,6 +219,7 @@ export function EventSurface({
   onSelect,
   preview = false,
   previewMetaLabel,
+  pragmaticDragConfigFactory,
   renderEvent,
   selected,
   showResizeHandles,
@@ -171,6 +229,12 @@ export function EventSurface({
   variant,
 }: EventSurfaceProps) {
   const isCompact = variant === "month" || variant === "all-day"
+  const [buttonElement, setButtonElement] =
+    React.useState<HTMLButtonElement | null>(null)
+  const pragmaticDragConfig = React.useMemo(() => {
+    return pragmaticDragConfigFactory?.(event, variant) ?? null
+  }, [event, pragmaticDragConfigFactory, variant])
+  usePragmaticDraggable(pragmaticDragConfig, buttonElement)
 
   function openContextMenu(position: CalendarEventMenuPosition) {
     if (!onOpenContextMenu || overlay) {
@@ -289,6 +353,7 @@ export function EventSurface({
         data-calendar-variant={variant}
         data-selected={selected ? "true" : undefined}
         data-testid={`calendar-event-${event.sourceEventId}-${variant}`}
+        ref={setButtonElement}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}

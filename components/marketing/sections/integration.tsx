@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 
 import {
   CalendarCnSectionFrame,
@@ -23,62 +23,85 @@ export function CalendarCnIntegrationSection({
   content,
 }: CalendarCnIntegrationSectionProps) {
   return (
-    <CalendarCnSectionFrame>
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
-        <div className="min-w-0 space-y-6">
-          <CalendarCnSectionHeading
-            body={content.body}
-            eyebrow={content.eyebrow}
-            title={content.title}
-          />
+    <CalendarCnSectionFrame
+      className="bg-[linear-gradient(180deg,color-mix(in_oklab,var(--muted)_48%,transparent),transparent_44%)]"
+      id="integration"
+      containerClassName="max-w-7xl"
+    >
+      <div className="min-w-0 space-y-8">
+        <CalendarCnSectionHeading
+          body={content.body}
+          eyebrow={content.eyebrow}
+          title={content.title}
+        />
 
-          <article className="min-w-0 overflow-hidden rounded-[calc(var(--radius)*1.8)] border border-border/70 bg-card shadow-xs">
-            <div className="border-b border-border/70 px-5 py-3">
+        <article className="min-w-0 overflow-hidden rounded-[calc(var(--radius)*1.8)] border border-border/70 bg-card shadow-xs">
+          <div className="flex items-center justify-between gap-4 border-b border-border/70 bg-card px-5 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-rose-400/80" />
+                <span className="size-2.5 rounded-full bg-amber-400/80" />
+                <span className="size-2.5 rounded-full bg-emerald-400/80" />
+              </div>
               <p className="text-[11px] tracking-[0.28em] text-muted-foreground uppercase">
                 {content.codeTitle}
               </p>
             </div>
-            <pre className="overflow-x-auto bg-zinc-950 px-0 py-4 text-xs leading-6 sm:text-sm sm:leading-7">
-              <code>
-                {content.codeLines.map((line, index) => (
-                  <div
-                    key={`${index}-${line}`}
-                    className="grid grid-cols-[2.5rem_minmax(0,1fr)] px-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:px-5"
-                  >
-                    <span className="pr-4 text-right text-xs text-zinc-500 select-none">
-                      {index + 1}
-                    </span>
-                    <span className="block min-w-0 font-mono whitespace-pre text-zinc-100">
-                      {highlightCodeLine(line)}
-                    </span>
-                  </div>
-                ))}
-              </code>
-            </pre>
-          </article>
-        </div>
-
-        <div className="grid min-w-0 gap-4">
-          {content.flow.map((item, index) => (
-            <article
-              key={item.title}
-              className="min-w-0 rounded-[calc(var(--radius)*1.6)] border border-border/70 bg-card/90 p-5 shadow-xs"
-            >
-              <div className="flex min-w-0 gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-background text-sm font-semibold text-foreground">
-                  {index + 1}
+            <span className="hidden rounded-full border border-border/80 bg-muted/60 px-2.5 py-1 text-[10px] font-medium tracking-[0.24em] text-muted-foreground uppercase sm:inline-flex">
+              Controlled React surface
+            </span>
+          </div>
+          <pre className="overflow-x-auto bg-zinc-950 px-0 py-4 text-xs leading-6 sm:text-sm sm:leading-7">
+            <code>
+              {content.codeLines.map((line, index) => (
+                <div
+                  key={`${index}-${line}`}
+                  className="grid grid-cols-[2.5rem_minmax(0,1fr)] px-4 sm:grid-cols-[3rem_minmax(0,1fr)] sm:px-5"
+                >
+                  <span className="pr-4 text-right text-xs text-zinc-500 select-none">
+                    {index + 1}
+                  </span>
+                  <span className="block min-w-0 font-mono whitespace-pre text-zinc-100">
+                    {highlightCodeLine(line)}
+                  </span>
                 </div>
-                <div className="min-w-0 space-y-2">
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground">
+              ))}
+            </code>
+          </pre>
+        </article>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold tracking-[0.24em] text-primary uppercase">
+              Integration notes
+            </p>
+            <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+              What this controlled setup actually gives you
+            </h3>
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-[15px]">
+              Your app owns the scheduling truth. CalendarCN turns that state
+              into visible occurrences and returns user actions through handlers
+              you control.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {content.flow.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-[calc(var(--radius)*1.4)] border border-border/70 bg-card/92 p-5 shadow-xs"
+              >
+                <div className="min-w-0">
+                  <h4 className="text-lg font-semibold tracking-tight text-foreground">
                     {item.title}
-                  </h3>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    {item.body}
+                  </h4>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    {renderInlineCode(item.body)}
                   </p>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </CalendarCnSectionFrame>
@@ -149,4 +172,25 @@ function getTokenClassName(match: RegExpMatchArray) {
   }
 
   return "text-zinc-500"
+}
+
+function renderInlineCode(text: string) {
+  return text.split(/(`[^`]+`)/g).map((segment, index) => {
+    if (!segment) {
+      return null
+    }
+
+    if (segment.startsWith("`") && segment.endsWith("`")) {
+      return (
+        <code
+          key={`${segment}-${index}`}
+          className="rounded-md bg-foreground/6 px-1.5 py-0.5 font-mono text-[0.92em] text-foreground"
+        >
+          {segment.slice(1, -1)}
+        </code>
+      )
+    }
+
+    return <Fragment key={`${segment}-${index}`}>{segment}</Fragment>
+  })
 }
