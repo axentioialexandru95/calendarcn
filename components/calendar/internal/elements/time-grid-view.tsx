@@ -1350,7 +1350,10 @@ const MemoizedTimeGridDayColumn = React.memo(
                   renderEvent={renderEvent}
                   selected={selectedEventId === item.occurrence.occurrenceId}
                   shouldSuppressClick={shouldSuppressEventClick}
-                  showResizeHandles
+                  showResizeHandles={
+                    selectedEventId === item.occurrence.occurrenceId &&
+                    Boolean(onResizeHandlePointerDown)
+                  }
                   timeLabel={getEventMetaLabel(item.occurrence, {
                     hourCycle,
                     locale,

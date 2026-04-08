@@ -17,7 +17,7 @@ test.describe("calendar interactions", () => {
     ).toBeVisible()
   })
 
-  test("homepage showcase keeps single-click drag available in week/day views", async ({
+  test("homepage showcase allows direct desktop drag in week/day views", async ({
     page,
   }) => {
     await page.goto("/")
@@ -28,12 +28,6 @@ test.describe("calendar interactions", () => {
     )
 
     await standupEvent.scrollIntoViewIfNeeded()
-    await standupEvent.click()
-    await expect(standupEvent).toHaveAttribute("data-selected", "true")
-    await expect(page.getByTestId("calendar-event-details-sheet")).toHaveCount(
-      0
-    )
-
     const startPoint = await getLocatorPoint(standupEvent)
     const targetSlot = homepageCalendar
       .locator('[role="grid"]')
@@ -47,6 +41,9 @@ test.describe("calendar interactions", () => {
     await page.mouse.move(targetPoint.x, targetPoint.y, {
       steps: 12,
     })
+    await expect(
+      homepageCalendar.locator('[data-calendar-drop-preview="time-grid"]')
+    ).toHaveCount(1)
     await page.mouse.up()
 
     await expect(standupEvent).toHaveAttribute("aria-label", /8:00.*8:30/i)
@@ -208,13 +205,13 @@ test.describe("calendar interactions", () => {
     page,
   }) => {
     await gotoCalendarLab(page)
-    await expect(
-      page.getByTestId("calendar-resize-handle-focus-end")
-    ).toBeVisible()
 
     const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
     await focusEvent.click()
     await expect(focusEvent).toHaveAttribute("data-selected", "true")
+    await expect(
+      page.getByTestId("calendar-resize-handle-focus-end")
+    ).toBeVisible()
 
     const targetSlot = page
       .locator('[role="grid"]')
@@ -300,6 +297,36 @@ test.describe("calendar interactions", () => {
         selected: "true",
       }),
     ])
+  })
+
+  test("keeps move dragging available from the event edge outside the resize grip", async ({
+    page,
+  }) => {
+    await gotoCalendarLab(page)
+
+    const focusEvent = page.getByTestId("calendar-event-focus-time-grid")
+    await expect(focusEvent).toBeVisible()
+
+    await focusEvent.click()
+    await expect(focusEvent).toHaveAttribute("data-selected", "true")
+
+    const startPoint = await getLocatorPoint(focusEvent, {
+      x: "left",
+      y: "top",
+    })
+    const targetPoint = await getTimeGridSlotPoint(page, focusEvent, 900)
+
+    await page.mouse.move(startPoint.x, startPoint.y)
+    await page.mouse.down()
+    await page.mouse.move(targetPoint.x, targetPoint.y, {
+      steps: 12,
+    })
+    await expect(
+      page.locator('[data-calendar-drop-preview="time-grid"]')
+    ).toHaveCount(1)
+    await page.mouse.up()
+
+    await expect(focusEvent).toHaveAttribute("aria-label", /15:00 - 17:00/i)
   })
 
   test("shows an inline month preview while dragging between day cells", async ({
@@ -427,8 +454,6 @@ test.describe("calendar interactions", () => {
 
     const standupEvent = page.getByTestId("calendar-event-standup-time-grid")
     await expect(standupEvent).toBeVisible()
-    await standupEvent.click()
-    await expect(standupEvent).toHaveAttribute("data-selected", "true")
 
     const startPoint = await getLocatorPoint(standupEvent)
     const targetSlot = getDayGrid(page, 1)
@@ -441,6 +466,9 @@ test.describe("calendar interactions", () => {
     await page.mouse.move(targetPoint.x, targetPoint.y, {
       steps: 12,
     })
+    await expect(
+      page.locator('[data-calendar-drop-preview="time-grid"]')
+    ).toHaveCount(1)
     await page.mouse.up()
 
     await expect(standupEvent).toHaveAttribute("aria-label", /08:00 - 08:30/i)
