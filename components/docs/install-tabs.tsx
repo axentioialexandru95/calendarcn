@@ -4,16 +4,13 @@ import * as React from "react"
 
 import { CodePanel } from "@/components/docs/code-panel"
 import {
-  calendarRegistryNamespace,
   calendarCoreRegistryItem,
   calendarRegistryItem,
   calendarToolbarRegistryItem,
   getRegistryItem,
-  toCalendarRegistryReference,
+  toHostedRegistryUrl,
 } from "@/lib/docs/registry"
 import { cn } from "@/lib/utils"
-
-const publicOrigin = "https://calendarcn.phantomtechind.com"
 
 const installBundles = {
   primitive: {
@@ -76,42 +73,34 @@ function collectBundleItems(bundleId: InstallBundleId) {
   return Array.from(items.values())
 }
 
-function createRegistryConfigSnippet(origin: string) {
-  return JSON.stringify(
-    {
-      registries: {
-        [calendarRegistryNamespace]: `${origin}/r/{name}.json`,
-      },
-    },
-    null,
-    2
-  )
-}
-
 function formatCommand(command: string, entries: string[]) {
   if (entries.length <= 1) {
     return [command, ...entries].join(" ")
   }
 
-  return `${command} \\\n  ${entries.join(" \\\n  ")}`
+  return `${command} \\
+  ${entries.join(" \\
+  ")}`
+}
+
+function createInstallCommand(itemNames: string[]) {
+  return formatCommand(
+    "npx shadcn@latest add",
+    itemNames.map((itemName) => toHostedRegistryUrl(itemName))
+  )
 }
 
 export function InstallTabs() {
   const [activeBundle, setActiveBundle] =
     React.useState<InstallBundleId>("primitive")
   const [activeTab, setActiveTab] = React.useState<"cli" | "manual">("cli")
-  const origin = publicOrigin
 
   const bundle = installBundles[activeBundle]
   const bundleItems = React.useMemo(
     () => collectBundleItems(activeBundle),
     [activeBundle]
   )
-  const registryConfigSnippet = createRegistryConfigSnippet(origin)
-  const installCommand = formatCommand(
-    "npx shadcn@latest add",
-    bundle.items.map((item) => toCalendarRegistryReference(item.name))
-  )
+  const installCommand = createInstallCommand(bundle.items.map((item) => item.name))
   const dependencyCommand = formatCommand(
     "pnpm add",
     stripRegistryVersions(
@@ -184,24 +173,19 @@ export function InstallTabs() {
       {activeTab === "cli" ? (
         <div className="space-y-3">
           <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-            Add the CalendarCN registry alias once, then pull the selected items
-            into your app with the shadcn CLI. The primitive path installs
-            separate open-code files; the starter path keeps the current
-            composed scheduler.
+            Pull the selected CalendarCN bundle directly from the hosted item
+            URLs. The primitive path installs separate open-code files; the
+            starter path keeps the current composed scheduler.
           </p>
-          <CodePanel code={registryConfigSnippet} fileName="components.json" />
           <CodePanel code={installCommand} fileName="terminal" />
         </div>
       ) : (
         <div className="space-y-5">
           <div className="space-y-2">
             <h3 className="text-sm font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-              Registry Alias
+              Hosted Item URLs
             </h3>
-            <CodePanel
-              code={registryConfigSnippet}
-              fileName="components.json"
-            />
+            <CodePanel code={installCommand} fileName="terminal" />
           </div>
 
           <div className="space-y-2">

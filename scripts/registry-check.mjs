@@ -29,7 +29,7 @@ const builtItems = new Map(
     ),
   ])
 )
-const registryNamespace = "@calendarcn"
+const hostedRegistryOrigin = "https://calendarcn.phantomtechind.com/r"
 
 const userFacingItemNames = [
   "calendar-core",
@@ -124,7 +124,7 @@ function verifyRegistryItems(items) {
 }
 
 function collectInstalledFiles(itemName, items, visited = new Set()) {
-  const normalizedItemName = stripRegistryReference(itemName)
+  const normalizedItemName = normalizeRegistryDependency(itemName)
 
   if (visited.has(normalizedItemName)) {
     return new Map()
@@ -265,8 +265,8 @@ function smokeInstallRegistryItems(
   const tempDir = mkdtempSync(path.join(os.tmpdir(), `calendarcn-${name}-`))
 
   try {
-    writeBaseApp(tempDir, pageSource, registryBaseUrl)
-    installRegistryItems(tempDir, items)
+    writeBaseApp(tempDir, pageSource)
+    installRegistryItems(tempDir, items, registryBaseUrl)
 
     for (const relativePath of expectedFiles) {
       if (!existsSync(path.join(tempDir, relativePath))) {
@@ -336,7 +336,7 @@ function smokeInstallRegistryItems(
   }
 }
 
-function writeBaseApp(tempDir, pageSource, registryBaseUrl) {
+function writeBaseApp(tempDir, pageSource) {
   mkdirSync(path.join(tempDir, "app"), {
     recursive: true,
   })
@@ -389,9 +389,6 @@ function writeBaseApp(tempDir, pageSource, registryBaseUrl) {
           ui: "@/components/ui",
           lib: "@/lib",
           hooks: "@/hooks",
-        },
-        registries: {
-          [registryNamespace]: `${registryBaseUrl}/{name}.json`,
         },
       },
       null,
@@ -468,9 +465,9 @@ function writeBaseApp(tempDir, pageSource, registryBaseUrl) {
   writeFileSync(path.join(tempDir, "app", "page.tsx"), pageSource)
 }
 
-function installRegistryItems(tempDir, itemNames) {
-  const registryItems = itemNames.map(
-    (itemName) => `${registryNamespace}/${stripRegistryReference(itemName)}`
+function installRegistryItems(tempDir, itemNames, registryBaseUrl) {
+  const registryItems = itemNames.map((itemName) =>
+    `${registryBaseUrl}/${normalizeRegistryDependency(itemName)}.json`
   )
 
   runCheckedCommand(
@@ -506,6 +503,7 @@ async function startRegistryServer() {
     const path = require("node:path")
 
     const rootDir = path.resolve(process.argv[1])
+    const hostedRegistryOrigin = process.argv[2]
 
     function resolveRequestPath(requestUrl) {
       const url = new URL(requestUrl, "http://127.0.0.1")
@@ -539,9 +537,22 @@ async function startRegistryServer() {
           throw new Error("Not a file")
         }
 
+        const address = server.address()
+
+        if (!address || typeof address === "string") {
+          throw new Error("Server address unavailable")
+        }
+
+        const runtimeBaseUrl = "http://127.0.0.1:" + address.port
+        const fileContents = fs.readFileSync(filePath, "utf8")
+        const rewrittenContents = fileContents.replaceAll(
+          hostedRegistryOrigin,
+          runtimeBaseUrl
+        )
+
         response.statusCode = 200
         response.setHeader("Content-Type", "application/json; charset=utf-8")
-        response.end(fs.readFileSync(filePath))
+        response.end(rewrittenContents)
       } catch {
         response.statusCode = 404
         response.end("Not found")
@@ -568,7 +579,7 @@ async function startRegistryServer() {
 
   const serverProcess = spawn(
     process.execPath,
-    ["-e", serverScript, builtRegistryDir],
+    ["-e", serverScript, builtRegistryDir, hostedRegistryOrigin],
     {
       cwd: repoRoot,
       stdio: ["ignore", "pipe", "pipe"],
@@ -681,6 +692,21 @@ function normalizePath(value) {
 
 function stripRegistryReference(value) {
   return value.replace(/^@[^/]+\//, "")
+}
+
+function normalizeRegistryDependency(value) {
+  if (/^https?:\/\//.test(value)) {
+    const dependencyUrl = new URL(value)
+    const fileName = dependencyUrl.pathname.split("/").pop()
+
+    if (!fileName?.endsWith(".json")) {
+      throw new Error(`Registry dependency URL must end with .json: ${value}`)
+    }
+
+    return fileName.replace(/\.json$/, "")
+  }
+
+  return stripRegistryReference(value)
 }
 
 function createCorePageSource() {

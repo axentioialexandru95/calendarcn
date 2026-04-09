@@ -4,7 +4,7 @@
   "title": "Calendar Add-on UI",
   "description": "Internal button, input, label, and textarea primitives used by the optional calendar add-ons.",
   "registryDependencies": [
-    "@calendarcn/calendar-core"
+    "https://calendarcn.phantomtechind.com/r/calendar-core.json"
   ],
   "files": [
     {

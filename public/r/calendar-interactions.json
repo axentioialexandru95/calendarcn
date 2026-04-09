@@ -7,8 +7,8 @@
     "@phosphor-icons/react@^2.1.10"
   ],
   "registryDependencies": [
-    "@calendarcn/calendar-core",
-    "@calendarcn/calendar-addon-ui"
+    "https://calendarcn.phantomtechind.com/r/calendar-core.json",
+    "https://calendarcn.phantomtechind.com/r/calendar-addon-ui.json"
   ],
   "files": [
     {
@@ -32,6 +32,6 @@
       "type": "registry:component"
     }
   ],
-  "docs": "Install with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-interactions` and import the add-ons from `@/components/calendar/addons/interactions/*`.",
+  "docs": "Install with `npx shadcn@latest add https://calendarcn.phantomtechind.com/r/calendar-core.json https://calendarcn.phantomtechind.com/r/calendar-interactions.json` and import the add-ons from `@/components/calendar/addons/interactions/*`.",
   "type": "registry:block"
 }

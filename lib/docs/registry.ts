@@ -3,6 +3,8 @@ import registry from "@/registry.json"
 type RegistryItem = (typeof registry.items)[number]
 
 export const calendarRegistryNamespace = "@calendarcn"
+export const calendarRegistryOrigin =
+  "https://calendarcn.phantomtechind.com/r"
 
 export function stripRegistryReference(value: string) {
   return value.replace(/^@[^/]+\//, "")
@@ -10,6 +12,10 @@ export function stripRegistryReference(value: string) {
 
 export function toCalendarRegistryReference(value: string) {
   return `${calendarRegistryNamespace}/${stripRegistryReference(value)}`
+}
+
+export function toHostedRegistryUrl(value: string) {
+  return `${calendarRegistryOrigin}/${stripRegistryReference(value)}.json`
 }
 
 export function getRegistryItem(name: string): RegistryItem {

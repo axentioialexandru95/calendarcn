@@ -11,7 +11,8 @@
       "dependencies": [
         "clsx@^2.1.1",
         "date-fns@^4.1.0",
-        "tailwind-merge@^3.5.0"
+        "tailwind-merge@^3.5.0",
+        "@atlaskit/pragmatic-drag-and-drop@^1.7.10"
       ],
       "files": [
         {
@@ -72,6 +73,10 @@
         },
         {
           "path": "components/calendar/internal/elements/root/use-calendar-derived-state.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/use-calendar-pragmatic-event-drag.ts",
           "type": "registry:component"
         },
         {

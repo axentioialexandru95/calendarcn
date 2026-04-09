@@ -4,11 +4,11 @@
   "title": "CalendarCN Starter",
   "description": "Batteries-included CalendarCN starter that composes the primitive root, toolbar, event sheets, interactions, and keyboard shortcuts into one ready-to-wire scheduler.",
   "registryDependencies": [
-    "@calendarcn/calendar-core",
-    "@calendarcn/calendar-toolbar",
-    "@calendarcn/calendar-event-sheet",
-    "@calendarcn/calendar-interactions",
-    "@calendarcn/calendar-shortcuts"
+    "https://calendarcn.phantomtechind.com/r/calendar-core.json",
+    "https://calendarcn.phantomtechind.com/r/calendar-toolbar.json",
+    "https://calendarcn.phantomtechind.com/r/calendar-event-sheet.json",
+    "https://calendarcn.phantomtechind.com/r/calendar-interactions.json",
+    "https://calendarcn.phantomtechind.com/r/calendar-shortcuts.json"
   ],
   "files": [
     {
@@ -37,6 +37,6 @@
       "type": "registry:component"
     }
   ],
-  "docs": "Install the batteries-included starter with `npx shadcn@latest add @calendarcn/calendarcn`. Import `CalendarScheduler` from `@/components/calendar/scheduler`.",
+  "docs": "Install the batteries-included starter with `npx shadcn@latest add https://calendarcn.phantomtechind.com/r/calendarcn.json`. Import `CalendarScheduler` from `@/components/calendar/scheduler`.",
   "type": "registry:block"
 }

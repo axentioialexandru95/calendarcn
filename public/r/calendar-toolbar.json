@@ -7,7 +7,7 @@
     "@phosphor-icons/react@^2.1.10"
   ],
   "registryDependencies": [
-    "@calendarcn/calendar-core"
+    "https://calendarcn.phantomtechind.com/r/calendar-core.json"
   ],
   "files": [
     {
@@ -21,6 +21,6 @@
       "type": "registry:component"
     }
   ],
-  "docs": "Install alongside `calendar-core` with `npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-toolbar`. Import `CalendarToolbar` from `@/components/calendar/toolbar`.",
+  "docs": "Install alongside `calendar-core` with `npx shadcn@latest add https://calendarcn.phantomtechind.com/r/calendar-core.json https://calendarcn.phantomtechind.com/r/calendar-toolbar.json`. Import `CalendarToolbar` from `@/components/calendar/toolbar`.",
   "type": "registry:block"
 }

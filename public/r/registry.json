@@ -11,7 +11,8 @@
       "dependencies": [
         "clsx@^2.1.1",
         "date-fns@^4.1.0",
-        "tailwind-merge@^3.5.0"
+        "tailwind-merge@^3.5.0",
+        "@atlaskit/pragmatic-drag-and-drop@^1.7.10"
       ],
       "files": [
         {
@@ -72,6 +73,10 @@
         },
         {
           "path": "components/calendar/internal/elements/root/use-calendar-derived-state.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/use-calendar-pragmatic-event-drag.ts",
           "type": "registry:component"
         },
         {
@@ -142,8 +147,12 @@
       "type": "registry:block",
       "title": "Calendar Toolbar",
       "description": "Controlled navigation and view-switching toolbar for `CalendarRoot`.",
-      "dependencies": ["@phosphor-icons/react@^2.1.10"],
-      "registryDependencies": ["@calendarcn/calendar-core"],
+      "dependencies": [
+        "@phosphor-icons/react@^2.1.10"
+      ],
+      "registryDependencies": [
+        "@calendarcn/calendar-core"
+      ],
       "files": [
         {
           "path": "components/calendar/toolbar.tsx",
@@ -161,7 +170,9 @@
       "type": "registry:block",
       "title": "Calendar Add-on UI",
       "description": "Internal button, input, label, and textarea primitives used by the optional calendar add-ons.",
-      "registryDependencies": ["@calendarcn/calendar-core"],
+      "registryDependencies": [
+        "@calendarcn/calendar-core"
+      ],
       "files": [
         {
           "path": "components/calendar/addons/ui/button.tsx",
@@ -187,7 +198,9 @@
       "type": "registry:block",
       "title": "Calendar Event Sheets",
       "description": "Optional create and details sheets that you can wire to your own `CalendarRoot` selection and request state.",
-      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "dependencies": [
+        "@phosphor-icons/react@^2.1.10"
+      ],
       "registryDependencies": [
         "@calendarcn/calendar-core",
         "@calendarcn/calendar-addon-ui"
@@ -217,7 +230,9 @@
       "type": "registry:block",
       "title": "Calendar Interactions",
       "description": "Optional context menu and confirmation dialog primitives for event actions and guarded schedule changes.",
-      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "dependencies": [
+        "@phosphor-icons/react@^2.1.10"
+      ],
       "registryDependencies": [
         "@calendarcn/calendar-core",
         "@calendarcn/calendar-addon-ui"
@@ -247,7 +262,9 @@
       "type": "registry:block",
       "title": "Calendar Shortcuts",
       "description": "Optional keyboard shortcuts dialog for documenting the built-in grid and event key bindings.",
-      "dependencies": ["@phosphor-icons/react@^2.1.10"],
+      "dependencies": [
+        "@phosphor-icons/react@^2.1.10"
+      ],
       "registryDependencies": [
         "@calendarcn/calendar-core",
         "@calendarcn/calendar-addon-ui"

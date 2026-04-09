@@ -21,23 +21,15 @@ CalendarCN now ships in two paths:
 1. Primitive: `calendar-core` plus small optional add-ons
 2. Starter: `calendarcn`, the batteries-included composed scheduler
 
-Add the CalendarCN registry alias once in your app's `components.json`:
-
-```json
-{
-  "registries": {
-    "@calendarcn": "https://calendarcn.phantomtechind.com/r/{name}.json"
-  }
-}
-```
-
 ### Primitive install
 
 This is the default path. It keeps the calendar surface and toolbar as separate
 open-code files so you can modify them directly.
 
 ```bash
-npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-toolbar
+npx shadcn@latest add \
+  https://calendarcn.phantomtechind.com/r/calendar-core.json \
+  https://calendarcn.phantomtechind.com/r/calendar-toolbar.json
 ```
 
 Use it from a client component:
@@ -56,7 +48,7 @@ including the composed toolbar, event sheets, interaction dialogs, and
 shortcuts dialog.
 
 ```bash
-npx shadcn@latest add @calendarcn/calendarcn
+npx shadcn@latest add https://calendarcn.phantomtechind.com/r/calendarcn.json
 ```
 
 Use it from a client component:
@@ -90,16 +82,8 @@ aggregate `public/r/registry.json`.
 
 ## Install Locally with shadcn
 
-Build the registry, run the local docs app, and point `@calendarcn` at the
-served registry files:
-
-```json
-{
-  "registries": {
-    "@calendarcn": "http://localhost:3000/r/{name}.json"
-  }
-}
-```
+Build the registry, run the local docs app, and install directly from the local
+served item URLs:
 
 Start the local registry host:
 
@@ -110,17 +94,19 @@ pnpm dev
 Primitive:
 
 ```bash
-npx shadcn@latest add @calendarcn/calendar-core @calendarcn/calendar-toolbar
+npx shadcn@latest add \
+  http://localhost:3000/r/calendar-core.json \
+  http://localhost:3000/r/calendar-toolbar.json
 ```
 
 Starter:
 
 ```bash
-npx shadcn@latest add @calendarcn/calendarcn
+npx shadcn@latest add http://localhost:3000/r/calendarcn.json
 ```
 
-This mirrors the hosted install flow and keeps transitive registry dependencies
-working while you test the split primitive items locally.
+This mirrors the hosted install flow while keeping the registry output fully
+URL-driven for local smoke testing.
 
 ## Verify the Registry
 
