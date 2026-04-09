@@ -5,17 +5,21 @@ export type ExternalStore<T> = {
   subscribe: (listener: () => void) => () => void
 }
 
+type CreateExternalStoreOptions<T> = {
+  frameThrottle?: boolean
+  isEqual?: (left: T, right: T) => boolean
+}
+
 export function createExternalStore<T>(
   initialSnapshot: T,
-  options?: {
-    frameThrottle?: boolean
-  }
+  options?: CreateExternalStoreOptions<T>
 ): ExternalStore<T> {
   let snapshot = initialSnapshot
   let queuedSnapshot = initialSnapshot
   let frameId: number | null = null
   const listeners = new Set<() => void>()
   const frameThrottle = options?.frameThrottle ?? false
+  const isEqual = options?.isEqual ?? Object.is
 
   function emit() {
     for (const listener of listeners) {
@@ -38,7 +42,7 @@ export function createExternalStore<T>(
         frameId = null
       }
 
-      if (snapshot !== initialSnapshot) {
+      if (!isEqual(snapshot, initialSnapshot)) {
         snapshot = initialSnapshot
         emit()
       }
@@ -48,7 +52,7 @@ export function createExternalStore<T>(
     },
     setSnapshot(nextSnapshot) {
       if (!frameThrottle) {
-        if (snapshot === nextSnapshot) {
+        if (isEqual(snapshot, nextSnapshot)) {
           return
         }
 
@@ -59,7 +63,7 @@ export function createExternalStore<T>(
 
       queuedSnapshot = nextSnapshot
 
-      if (frameId != null) {
+      if (frameId != null || isEqual(snapshot, queuedSnapshot)) {
         return
       }
 

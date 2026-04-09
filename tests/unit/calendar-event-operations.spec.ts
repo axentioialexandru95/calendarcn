@@ -8,10 +8,16 @@ import type {
 } from "@/components/calendar/types"
 import {
   commitOptimisticMove,
+  createOccurrenceInteractionCallbacks,
   handleCalendarEventKeyCommand,
   withResolvedOccurrenceScope,
 } from "@/components/calendar/internal/elements/root/event-operations"
-import { parseCalendarDropTargetDataset } from "@/components/calendar/internal/elements/root/drop-target-registry"
+import {
+  getCalendarDropTargetFromElement,
+  parseCalendarDropTargetDataset,
+  registerCalendarDropTarget,
+} from "@/components/calendar/internal/elements/root/drop-target-registry"
+import { createCalendarDropTargetStore } from "@/components/calendar/internal/elements/root/root-utils"
 
 describe("calendar event operations", () => {
   it("resolves recurring scope consistently", () => {
@@ -84,6 +90,41 @@ describe("calendar event operations", () => {
     expect(announce).toHaveBeenCalledWith("Moved Focus to 10:00 - 11:00.")
   })
 
+  it("creates move operations from drop targets through shared callbacks", () => {
+    const occurrence = occurrenceFromEvent({
+      id: "planning",
+      title: "Planning",
+      start: at(0, 9, 0),
+      end: at(0, 10, 0),
+    })
+    const onMoveOperation = vi.fn<(operation: CalendarMoveOperation) => void>()
+    const callbacks = createOccurrenceInteractionCallbacks({
+      canMove: true,
+      canResize: true,
+      onMoveOperation,
+      onResizeOperation: vi.fn<(operation: CalendarResizeOperation) => void>(),
+      runEventKeyCommand: vi.fn(),
+      slotDuration: 30,
+    })
+
+    callbacks.moveOccurrenceWithTarget(
+      occurrence,
+      {
+        day: at(0, 0, 0),
+        kind: "slot",
+        minuteOfDay: 600,
+      },
+      30
+    )
+
+    expect(onMoveOperation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nextStart: at(0, 9, 30),
+        nextEnd: at(0, 10, 30),
+      })
+    )
+  })
+
   it("builds move operations from keyboard input without browser-only tests", () => {
     const occurrence = occurrenceFromEvent({
       id: "standup",
@@ -138,6 +179,63 @@ describe("calendar event operations", () => {
       resourceId: "room-a",
     })
   })
+
+  it("prefers registered drop targets before dataset fallback", () => {
+    const element = {
+      dataset: {
+        calendarDropTargetDay: at(1, 0, 0).toISOString(),
+        calendarDropTargetKind: "slot",
+        calendarDropTargetMinute: "630",
+      },
+    } as unknown as HTMLElement
+    const registeredTarget = {
+      day: at(0, 0, 0),
+      kind: "day" as const,
+      resourceId: "room-a",
+    }
+
+    const cleanup = registerCalendarDropTarget(element, registeredTarget)
+
+    expect(getCalendarDropTargetFromElement(element)).toEqual(registeredTarget)
+
+    cleanup()
+
+    expect(getCalendarDropTargetFromElement(element)).toEqual({
+      day: at(1, 0, 0),
+      kind: "slot",
+      minuteOfDay: 630,
+      resourceId: undefined,
+    })
+  })
+
+  it("deduplicates equal drop targets in the shared drop target store", () => {
+    const store = createCalendarDropTargetStore()
+    const listener = vi.fn()
+    const day = at(0, 0, 0)
+
+    const unsubscribe = store.subscribe(listener)
+
+    store.setSnapshot({
+      day,
+      kind: "day",
+      resourceId: "room-a",
+    })
+    store.setSnapshot({
+      day: new Date(day),
+      kind: "day",
+      resourceId: "room-a",
+    })
+    store.setSnapshot({
+      day,
+      kind: "slot",
+      minuteOfDay: 540,
+      resourceId: "room-a",
+    })
+
+    unsubscribe()
+
+    expect(listener).toHaveBeenCalledTimes(2)
+  })
 })
 
 function occurrenceFromEvent(event: CalendarEvent): CalendarOccurrence {
@@ -151,5 +249,5 @@ function occurrenceFromEvent(event: CalendarEvent): CalendarOccurrence {
 }
 
 function at(dayOffset: number, hour: number, minute: number) {
-  return new Date(Date.UTC(2026, 0, 5 + dayOffset, hour, minute))
+  return new Date(2026, 0, 5 + dayOffset, hour, minute)
 }

@@ -15,6 +15,10 @@ import {
   getEventMetaLabel,
 } from "../../../utils"
 import {
+  getCalendarDropTargetDataAttributes,
+  useCalendarDropTargetRegistration,
+} from "../root/drop-target-registry"
+import {
   type CalendarEventMenuPosition,
   type TimeGridViewProps,
 } from "../../shared"
@@ -82,6 +86,16 @@ export function AllDayDropZone({
   shouldSuppressEventClick,
   timeZone,
 }: AllDayDropZoneProps) {
+  const dropTarget = React.useMemo(
+    () => ({
+      day,
+      kind: "all-day" as const,
+    }),
+    [day]
+  )
+  const dropTargetRef = useCalendarDropTargetRegistration<HTMLDivElement>(
+    dropTarget
+  )
   const previewEvents = React.useMemo(
     () =>
       dragPreviewOccurrence
@@ -112,8 +126,7 @@ export function AllDayDropZone({
 
   return (
     <div
-      data-calendar-drop-target-day={day.toISOString()}
-      data-calendar-drop-target-kind="all-day"
+      {...getCalendarDropTargetDataAttributes(dropTarget)}
       data-calendar-zoom-day={day.toISOString()}
       data-calendar-zoom-surface="all-day"
       className={getCalendarSlotClassName(
@@ -126,6 +139,7 @@ export function AllDayDropZone({
           isDragTarget ? "bg-muted/50" : ""
         )
       )}
+      ref={dropTargetRef}
     >
       <div className="space-y-1">
         {displayEvents.map((occurrence, index) => {

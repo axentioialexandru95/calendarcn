@@ -13,9 +13,10 @@ import type {
 } from "../../../types"
 import {
   areDropTargetsEqual,
-  getCalendarDropTargetFromPoint,
+  createCalendarDropTargetStore,
   getDragOffsetMinutes,
   getDragSurfaceRect,
+  resolveCalendarDropTargetAtPoint,
 } from "./root-utils"
 
 type PragmaticEventMoveOptions = {
@@ -38,46 +39,6 @@ type CalendarPragmaticDragPayload = {
   variant: CalendarEventVariant
 }
 
-function createDropTargetStore() {
-  let snapshot: CalendarDropTarget | null = null
-  const listeners = new Set<() => void>()
-
-  function emit() {
-    for (const listener of listeners) {
-      listener()
-    }
-  }
-
-  return {
-    clear() {
-      if (snapshot === null) {
-        return
-      }
-
-      snapshot = null
-      emit()
-    },
-    getSnapshot() {
-      return snapshot
-    },
-    setSnapshot(nextSnapshot: CalendarDropTarget | null) {
-      if (areDropTargetsEqual(snapshot, nextSnapshot)) {
-        return
-      }
-
-      snapshot = nextSnapshot
-      emit()
-    },
-    subscribe(listener: () => void) {
-      listeners.add(listener)
-
-      return () => {
-        listeners.delete(listener)
-      }
-    },
-  }
-}
-
 function isCalendarPragmaticDragPayload(
   value: Record<string, unknown>
 ): value is CalendarPragmaticDragPayload {
@@ -98,7 +59,7 @@ export function useCalendarPragmaticEventDrag({
   const [activeDragOffsetMinutes, setActiveDragOffsetMinutes] =
     React.useState(0)
   const activeDragOffsetMinutesRef = React.useRef(0)
-  const activeDropTargetStore = React.useState(() => createDropTargetStore())[0]
+  const activeDropTargetStore = React.useState(createCalendarDropTargetStore)[0]
   const activeDropTargetRef = React.useRef<CalendarDropTarget | null>(null)
   const lastDropTargetRef = React.useRef<CalendarDropTarget | null>(null)
 
@@ -139,11 +100,13 @@ export function useCalendarPragmaticEventDrag({
         return isCalendarPragmaticDragPayload(source.data)
       },
       onDrag: ({ location }) => {
-        const nextTarget =
-          getCalendarDropTargetFromPoint(
-            location.current.input.clientX,
-            location.current.input.clientY
-          ) ?? lastDropTargetRef.current
+        const nextTarget = resolveCalendarDropTargetAtPoint(
+          location.current.input.clientX,
+          location.current.input.clientY,
+          {
+            fallbackTarget: lastDropTargetRef.current,
+          }
+        )
 
         updateDropTarget(nextTarget)
       },
@@ -168,10 +131,13 @@ export function useCalendarPragmaticEventDrag({
         activeDragOffsetMinutesRef.current = dragOffsetMinutes
         setActiveDragOffsetMinutes(dragOffsetMinutes)
         updateDropTarget(
-          getCalendarDropTargetFromPoint(
+          resolveCalendarDropTargetAtPoint(
             location.current.input.clientX,
-            location.current.input.clientY
-          ) ?? lastDropTargetRef.current
+            location.current.input.clientY,
+            {
+              fallbackTarget: lastDropTargetRef.current,
+            }
+          )
         )
       },
       onDrop: ({ location }) => {
@@ -182,13 +148,14 @@ export function useCalendarPragmaticEventDrag({
           return
         }
 
-        const target =
-          getCalendarDropTargetFromPoint(
-            location.current.input.clientX,
-            location.current.input.clientY
-          ) ??
-          activeDropTargetRef.current ??
-          lastDropTargetRef.current
+        const target = resolveCalendarDropTargetAtPoint(
+          location.current.input.clientX,
+          location.current.input.clientY,
+          {
+            fallbackTarget:
+              activeDropTargetRef.current ?? lastDropTargetRef.current,
+          }
+        )
 
         if (target) {
           moveOccurrenceWithTarget(

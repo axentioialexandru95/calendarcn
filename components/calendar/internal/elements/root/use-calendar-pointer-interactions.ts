@@ -9,18 +9,19 @@ import { canMoveOccurrence, canResizeOccurrence } from "../../../utils"
 
 import {
   areDropTargetsEqual,
+  createCalendarDropTargetStore,
   dragActivationDistance,
   type DragOverlayPosition,
-  getCalendarDropTargetFromPoint,
   getDragOffsetMinutes,
   getDragSurfaceRect,
-  getPointerDistance,
   getResizeDropTargetFromPoint,
   isTouchPointer,
   lockDocumentTouchScroll,
+  resolveCalendarDropTargetAtPoint,
   type ActiveDragInteraction,
   type ActiveResizeState,
 } from "./root-utils"
+import type { ExternalStore as ImportedExternalStore } from "./external-store"
 
 type UseCalendarPointerInteractionsOptions = {
   announce: (message: string) => void
@@ -42,80 +43,37 @@ type UseCalendarPointerInteractionsOptions = {
   selectOccurrence: (occurrence: CalendarOccurrence) => void
 }
 
-type ExternalStore<T> = {
-  clear: () => void
-  getSnapshot: () => T
-  setSnapshot: (snapshot: T) => void
-  subscribe: (listener: () => void) => () => void
+type ExternalStore<T> = ImportedExternalStore<T>
+
+type DragInteractionResolution = {
+  dragOffsetMinutes: number
+  target: CalendarDropTarget | null
 }
 
-function createExternalStore<T>(
-  initialSnapshot: T,
-  options?: {
-    frameThrottle?: boolean
-  }
-): ExternalStore<T> {
-  let snapshot = initialSnapshot
-  let queuedSnapshot = initialSnapshot
-  let frameId: number | null = null
-  const listeners = new Set<() => void>()
-  const frameThrottle = options?.frameThrottle ?? false
+function resolvePointerDragTarget(
+  event: PointerEvent,
+  fallbackTarget: CalendarDropTarget | null
+): CalendarDropTarget | null {
+  return resolveCalendarDropTargetAtPoint(event.clientX, event.clientY, {
+    fallbackTarget,
+  })
+}
 
-  function emit() {
-    for (const listener of listeners) {
-      listener()
-    }
-  }
+function createFrameThrottledDragOverlayStore() {
+  return createExternalStore<DragOverlayPosition | null>(null, {
+    frameThrottle: true,
+  })
+}
 
-  function flush() {
-    frameId = null
-    snapshot = queuedSnapshot
-    emit()
-  }
-
+function resolvePointerDragMove(
+  drag: Extract<CalendarDragData, { kind: "event" }>,
+  event: PointerEvent,
+  dragRect: DOMRect | null,
+  fallbackTarget: CalendarDropTarget | null
+): DragInteractionResolution {
   return {
-    clear() {
-      queuedSnapshot = initialSnapshot
-
-      if (frameThrottle && frameId != null) {
-        cancelAnimationFrame(frameId)
-        frameId = null
-      }
-
-      if (snapshot !== initialSnapshot) {
-        snapshot = initialSnapshot
-        emit()
-      }
-    },
-    getSnapshot() {
-      return snapshot
-    },
-    setSnapshot(nextSnapshot) {
-      if (!frameThrottle) {
-        if (snapshot === nextSnapshot) {
-          return
-        }
-
-        snapshot = nextSnapshot
-        emit()
-        return
-      }
-
-      queuedSnapshot = nextSnapshot
-
-      if (frameId != null) {
-        return
-      }
-
-      frameId = requestAnimationFrame(flush)
-    },
-    subscribe(listener) {
-      listeners.add(listener)
-
-      return () => {
-        listeners.delete(listener)
-      }
-    },
+    dragOffsetMinutes: getDragOffsetMinutes(drag, dragRect, event.clientY),
+    target: resolvePointerDragTarget(event, fallbackTarget),
   }
 }
 
@@ -157,14 +115,8 @@ export function useCalendarPointerInteractions({
     null
   )
   const activeDragRectRef = React.useRef<DOMRect | null>(null)
-  const dragOverlayStore = React.useState(() =>
-    createExternalStore<DragOverlayPosition | null>(null, {
-      frameThrottle: true,
-    })
-  )[0]
-  const activeDropTargetStore = React.useState(() =>
-    createExternalStore<CalendarDropTarget | null>(null)
-  )[0]
+  const dragOverlayStore = React.useState(createFrameThrottledDragOverlayStore)[0]
+  const activeDropTargetStore = React.useState(createCalendarDropTargetStore)[0]
   const suppressedPointerClickOccurrenceIdRef = React.useRef<string | null>(
     null
   )
@@ -471,7 +423,8 @@ export function useCalendarPointerInteractions({
         getResizeDropTargetFromPoint(
           resize.variant,
           event.clientX,
-          event.clientY
+          event.clientY,
+          activeResizeTargetRef.current ?? lastResizeTargetRef.current
         )
       )
     }
@@ -489,7 +442,8 @@ export function useCalendarPointerInteractions({
         getResizeDropTargetFromPoint(
           resize.variant,
           event.clientX,
-          event.clientY
+          event.clientY,
+          activeResizeTargetRef.current ?? lastResizeTargetRef.current
         ) ??
         activeResizeTargetRef.current ??
         lastResizeTargetRef.current
@@ -569,9 +523,12 @@ export function useCalendarPointerInteractions({
         return
       }
 
-      const nextTarget =
-        getCalendarDropTargetFromPoint(event.clientX, event.clientY) ??
+      const nextResolution = resolvePointerDragMove(
+        drag,
+        event,
+        activeDragRectRef.current,
         lastDropTargetRef.current
+      )
 
       if (!interaction.isDragging) {
         if (
@@ -597,10 +554,8 @@ export function useCalendarPointerInteractions({
           clientX: event.clientX,
           clientY: event.clientY,
         })
-        updateActiveDragOffsetMinutes(
-          getDragOffsetMinutes(drag, activeDragRectRef.current, event.clientY)
-        )
-        updateActiveDropTarget(nextTarget)
+        updateActiveDragOffsetMinutes(nextResolution.dragOffsetMinutes)
+        updateActiveDropTarget(nextResolution.target)
         return
       }
 
@@ -612,7 +567,7 @@ export function useCalendarPointerInteractions({
         clientX: event.clientX,
         clientY: event.clientY,
       })
-      updateActiveDropTarget(nextTarget)
+      updateActiveDropTarget(nextResolution.target)
     }
 
     function handlePointerUp(event: Event) {
@@ -633,7 +588,10 @@ export function useCalendarPointerInteractions({
       }
 
       const target =
-        getCalendarDropTargetFromPoint(event.clientX, event.clientY) ??
+        resolvePointerDragTarget(
+          event,
+          activeDropTargetRef.current ?? lastDropTargetRef.current
+        ) ??
         activeDropTargetRef.current ??
         lastDropTargetRef.current
       const dragOffsetMinutes = activeDragOffsetMinutesRef.current

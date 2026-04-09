@@ -2,7 +2,6 @@ import * as React from "react"
 
 import type {
   CalendarCreateOperation,
-  CalendarDropTarget,
   CalendarEvent,
   CalendarEventMenuPosition,
   CalendarMoveOperation,
@@ -11,19 +10,32 @@ import type {
 } from "../../../types"
 
 import {
+  createOccurrenceInteractionCallbacks,
   commitOptimisticMove,
   commitOptimisticResize,
   formatCalendarAnnouncementRange,
   handleCalendarEventKeyCommand,
-  moveOccurrenceWithDropTarget,
-  resizeOccurrenceWithDropTarget,
   selectCalendarOccurrence,
   withResolvedOccurrenceScope,
 } from "./event-operations"
 
-type UseCalendarCoreActionsOptions = {
+type UseCalendarActionHelpersOptions = {
   hourCycle?: 12 | 24
   locale?: string
+  onEventSelect?: (occurrence: CalendarOccurrence) => void
+  onSelectedEventChange?: (id?: string) => void
+  slotDuration: number
+  timeZone?: string
+}
+
+type CalendarKeyCommandHandlers = {
+  canMove: boolean
+  canResize: boolean
+  onMoveOperation: (operation: CalendarMoveOperation) => void
+  onResizeOperation: (operation: CalendarResizeOperation) => void
+}
+
+type UseCalendarCoreActionsOptions = UseCalendarActionHelpersOptions & {
   onEventContextMenu?: (
     occurrence: CalendarOccurrence,
     position: CalendarEventMenuPosition
@@ -34,16 +46,76 @@ type UseCalendarCoreActionsOptions = {
   onEventMoveRequest?: (operation: CalendarMoveOperation) => void
   onEventResize?: (operation: CalendarResizeOperation) => void
   onEventResizeRequest?: (operation: CalendarResizeOperation) => void
-  onEventSelect?: (occurrence: CalendarOccurrence) => void
-  onSelectedEventChange?: (id?: string) => void
   setOptimisticEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>
   shouldBlockTimedRange: (
     start: Date,
     end: Date,
     allDay: boolean | undefined
   ) => boolean
-  slotDuration: number
-  timeZone?: string
+}
+
+export function useCalendarActionHelpers({
+  hourCycle,
+  locale,
+  onEventSelect,
+  onSelectedEventChange,
+  slotDuration,
+  timeZone,
+}: UseCalendarActionHelpersOptions) {
+  const [liveAnnouncement, setLiveAnnouncement] = React.useState("")
+
+  const announce = React.useCallback((message: string) => {
+    setLiveAnnouncement(message)
+  }, [])
+
+  const formatAnnouncementRange = React.useCallback(
+    (start: Date, end: Date, allDay: boolean | undefined) => {
+      return formatCalendarAnnouncementRange(start, end, allDay, {
+        hourCycle,
+        locale,
+        timeZone,
+      })
+    },
+    [hourCycle, locale, timeZone]
+  )
+
+  const selectOccurrence = React.useCallback(
+    (occurrence: CalendarOccurrence) => {
+      selectCalendarOccurrence(occurrence, {
+        onEventSelect,
+        onSelectedEventChange,
+      })
+    },
+    [onEventSelect, onSelectedEventChange]
+  )
+
+  const runEventKeyCommand = React.useCallback(
+    (
+      occurrence: CalendarOccurrence,
+      event: React.KeyboardEvent<HTMLButtonElement>,
+      handlers: CalendarKeyCommandHandlers
+    ) => {
+      handleCalendarEventKeyCommand({
+        announce,
+        canMove: handlers.canMove,
+        canResize: handlers.canResize,
+        event,
+        occurrence,
+        onMoveOperation: handlers.onMoveOperation,
+        onResizeOperation: handlers.onResizeOperation,
+        slotDuration,
+      })
+    },
+    [announce, slotDuration]
+  )
+
+  return {
+    announce,
+    formatAnnouncementRange,
+    liveAnnouncement,
+    runEventKeyCommand,
+    selectOccurrence,
+  }
 }
 
 export function useCalendarCoreActions({
@@ -63,28 +135,23 @@ export function useCalendarCoreActions({
   slotDuration,
   timeZone,
 }: UseCalendarCoreActionsOptions) {
-  const [liveAnnouncement, setLiveAnnouncement] = React.useState("")
-
-  const announce = React.useCallback((message: string) => {
-    setLiveAnnouncement(message)
-  }, [])
-
-  const formatAnnouncementRange = React.useCallback(
-    (start: Date, end: Date, allDay: boolean | undefined) => {
-      return formatCalendarAnnouncementRange(start, end, allDay, {
-        hourCycle,
-        locale,
-        timeZone,
-      })
-    },
-    [hourCycle, locale, timeZone]
-  )
+  const {
+    announce,
+    formatAnnouncementRange,
+    liveAnnouncement,
+    runEventKeyCommand,
+    selectOccurrence,
+  } = useCalendarActionHelpers({
+    hourCycle,
+    locale,
+    onEventSelect,
+    onSelectedEventChange,
+    slotDuration,
+    timeZone,
+  })
 
   function handleSelectEvent(occurrence: CalendarOccurrence) {
-    selectCalendarOccurrence(occurrence, {
-      onEventSelect,
-      onSelectedEventChange,
-    })
+    selectOccurrence(occurrence)
   }
 
   function commitCreateEvent(operation: CalendarCreateOperation) {
@@ -189,29 +256,14 @@ export function useCalendarCoreActions({
     commitResizeEvent(nextOperation)
   }
 
-  function moveOccurrenceWithTarget(
-    occurrence: CalendarOccurrence,
-    target: CalendarDropTarget,
-    dragOffsetMinutes = 0
-  ) {
-    moveOccurrenceWithDropTarget(occurrence, target, dragOffsetMinutes, {
-      canMove: Boolean(onEventMove || onEventMoveRequest),
-      onMoveOperation: requestMoveEvent,
-      slotDuration,
-    })
-  }
-
-  function resizeOccurrenceWithTarget(
-    occurrence: CalendarOccurrence,
-    edge: "start" | "end",
-    target: CalendarDropTarget
-  ) {
-    resizeOccurrenceWithDropTarget(occurrence, edge, target, {
-      canResize: Boolean(onEventResize || onEventResizeRequest),
-      onResizeOperation: requestResizeEvent,
-      slotDuration,
-    })
-  }
+  const occurrenceInteractions = createOccurrenceInteractionCallbacks({
+    canMove: Boolean(onEventMove || onEventMoveRequest),
+    canResize: Boolean(onEventResize || onEventResizeRequest),
+    onMoveOperation: requestMoveEvent,
+    onResizeOperation: requestResizeEvent,
+    runEventKeyCommand,
+    slotDuration,
+  })
 
   function handleOpenContextMenu(
     occurrence: CalendarOccurrence,
@@ -229,16 +281,7 @@ export function useCalendarCoreActions({
     occurrence: CalendarOccurrence,
     event: React.KeyboardEvent<HTMLButtonElement>
   ) {
-    handleCalendarEventKeyCommand({
-      announce,
-      canMove: Boolean(onEventMove || onEventMoveRequest),
-      canResize: Boolean(onEventResize || onEventResizeRequest),
-      event,
-      occurrence,
-      onMoveOperation: requestMoveEvent,
-      onResizeOperation: requestResizeEvent,
-      slotDuration,
-    })
+    occurrenceInteractions.handleEventKeyCommand(occurrence, event)
   }
 
   return {
@@ -247,8 +290,9 @@ export function useCalendarCoreActions({
     handleOpenContextMenu,
     handleSelectEvent,
     liveAnnouncement,
-    moveOccurrenceWithTarget,
+    moveOccurrenceWithTarget: occurrenceInteractions.moveOccurrenceWithTarget,
     requestEventCreate,
-    resizeOccurrenceWithTarget,
+    resizeOccurrenceWithTarget:
+      occurrenceInteractions.resizeOccurrenceWithTarget,
   }
 }

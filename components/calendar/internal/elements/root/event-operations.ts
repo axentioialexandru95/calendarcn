@@ -71,6 +71,26 @@ type ResizeWithTargetOptions = {
   slotDuration: number
 }
 
+type CalendarKeyCommandHandlers = {
+  canMove: boolean
+  canResize: boolean
+  onMoveOperation: (operation: CalendarMoveOperation) => void
+  onResizeOperation: (operation: CalendarResizeOperation) => void
+}
+
+type CreateOccurrenceInteractionCallbacksOptions = {
+  canMove: boolean
+  canResize: boolean
+  onMoveOperation: (operation: CalendarMoveOperation) => void
+  onResizeOperation: (operation: CalendarResizeOperation) => void
+  runEventKeyCommand: (
+    occurrence: CalendarOccurrence,
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    handlers: CalendarKeyCommandHandlers
+  ) => void
+  slotDuration: number
+}
+
 type HandleKeyCommandOptions = AnnouncementFormattingOptions & {
   announce: (message: string) => void
   canMove: boolean
@@ -194,6 +214,51 @@ export function resizeOccurrenceWithDropTarget(
   options.onResizeOperation(
     getResizeOperation(occurrence, edge, target, options.slotDuration)
   )
+}
+
+export function createOccurrenceInteractionCallbacks({
+  canMove,
+  canResize,
+  onMoveOperation,
+  onResizeOperation,
+  runEventKeyCommand,
+  slotDuration,
+}: CreateOccurrenceInteractionCallbacksOptions) {
+  return {
+    handleEventKeyCommand(
+      occurrence: CalendarOccurrence,
+      event: ReactKeyboardEvent<HTMLButtonElement>
+    ) {
+      runEventKeyCommand(occurrence, event, {
+        canMove,
+        canResize,
+        onMoveOperation,
+        onResizeOperation,
+      })
+    },
+    moveOccurrenceWithTarget(
+      occurrence: CalendarOccurrence,
+      target: CalendarDropTarget,
+      dragOffsetMinutes = 0
+    ) {
+      moveOccurrenceWithDropTarget(occurrence, target, dragOffsetMinutes, {
+        canMove,
+        onMoveOperation,
+        slotDuration,
+      })
+    },
+    resizeOccurrenceWithTarget(
+      occurrence: CalendarOccurrence,
+      edge: "start" | "end",
+      target: CalendarDropTarget
+    ) {
+      resizeOccurrenceWithDropTarget(occurrence, edge, target, {
+        canResize,
+        onResizeOperation,
+        slotDuration,
+      })
+    },
+  }
 }
 
 export function handleCalendarEventKeyCommand({

@@ -12,7 +12,6 @@ import type {
   CalendarEvent,
   CalendarEventMenuPosition,
   CalendarEventRenderer,
-  CalendarEventUpdateOperation,
   CalendarEmptyStateRenderProps,
   CalendarMoveOperation,
   CalendarOccurrence,
@@ -30,16 +29,14 @@ import {
   normalizeHiddenDays,
   resolveCalendarView,
 } from "./utils"
-import { CalendarAgendaView } from "./internal/elements/agenda-view"
+import { CalendarAgendaView } from "./views/agenda"
+import { CalendarDayView } from "./views/day"
+import { CalendarMonthView } from "./views/month"
+import { CalendarWeekView } from "./views/week"
 import {
   EventSurface,
   getResolvedAccentColor,
 } from "./internal/elements/event-card"
-import { CalendarMonthView } from "./internal/elements/month-view"
-import {
-  CalendarDayView,
-  CalendarWeekView,
-} from "./internal/elements/time-grid-view"
 import {
   compactSlotHeight,
   defaultMaxHour,
@@ -77,7 +74,6 @@ export type CalendarRootProps = {
   onEventResize?: (operation: CalendarResizeOperation) => void
   onEventResizeRequest?: (operation: CalendarResizeOperation) => void
   onEventSelect?: (occurrence: CalendarOccurrence) => void
-  onEventUpdate?: (operation: CalendarEventUpdateOperation) => void
   onResourceFilterChange?: (resourceIds: string[]) => void
   onSelectedEventChange?: (id?: string) => void
   renderEmptyState?: (props: CalendarEmptyStateRenderProps) => React.ReactNode
@@ -117,7 +113,6 @@ export function CalendarRoot({
   onEventResize,
   onEventResizeRequest,
   onEventSelect,
-  onEventUpdate,
   onResourceFilterChange,
   onSelectedEventChange,
   renderEmptyState,
@@ -134,8 +129,6 @@ export function CalendarRoot({
   view,
   weekStartsOn = 1,
 }: CalendarRootProps) {
-  void onEventUpdate
-
   const [optimisticEvents, setOptimisticEvents] =
     React.useState<CalendarEvent[]>(events)
   const [isHydrated, setIsHydrated] = React.useState(false)

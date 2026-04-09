@@ -6,10 +6,8 @@ import type {
   CalendarCreateOperation,
   CalendarEvent,
   CalendarEventChangeConfirmationContext,
-  CalendarDropTarget,
   CalendarOccurrence,
   CalendarResource,
-  CalendarResizeOperation,
   CalendarView,
   CalendarWeekday,
 } from "../../../types"
@@ -26,13 +24,12 @@ import {
 import type { CalendarEventMenuPosition, CalendarRootProps } from "../../shared"
 
 import {
+  useCalendarActionHelpers,
+} from "./use-calendar-core-actions"
+import {
+  createOccurrenceInteractionCallbacks,
   commitOptimisticMove,
   commitOptimisticResize,
-  formatCalendarAnnouncementRange,
-  handleCalendarEventKeyCommand,
-  moveOccurrenceWithDropTarget,
-  resizeOccurrenceWithDropTarget,
-  selectCalendarOccurrence,
   withResolvedOccurrenceScope,
 } from "./event-operations"
 
@@ -117,9 +114,20 @@ export function useCalendarEventActions({
     React.useState<CalendarOccurrence | null>(null)
   const [isKeyboardShortcutsOpen, setIsKeyboardShortcutsOpen] =
     React.useState(false)
-  const [liveAnnouncement, setLiveAnnouncement] = React.useState("")
-  const eventDetailsEnabled =
-    eventDetails !== undefined && eventDetails !== false
+  const {
+    announce,
+    formatAnnouncementRange,
+    liveAnnouncement,
+    runEventKeyCommand,
+    selectOccurrence,
+  } = useCalendarActionHelpers({
+    hourCycle,
+    locale,
+    onEventSelect,
+    onSelectedEventChange,
+    slotDuration,
+    timeZone,
+  })
   const openEventDetailsOnSelect =
     typeof eventDetails === "object"
       ? (eventDetails.openOnSelect ?? true)
@@ -135,20 +143,8 @@ export function useCalendarEventActions({
   const keyboardShortcutsKeyTriggerEnabled =
     keyboardShortcutsTrigger === "both" || keyboardShortcutsTrigger === "?"
 
-  const announce = React.useCallback((message: string) => {
-    setLiveAnnouncement(message)
-  }, [])
-
-  const formatAnnouncementRange = React.useCallback(
-    (start: Date, end: Date, allDay: boolean | undefined) => {
-      return formatCalendarAnnouncementRange(start, end, allDay, {
-        hourCycle,
-        locale,
-        timeZone,
-      })
-    },
-    [hourCycle, locale, timeZone]
-  )
+  const eventDetailsEnabled =
+    eventDetails !== undefined && eventDetails !== false
 
   React.useEffect(() => {
     if (!isHydrated || !keyboardShortcutsKeyTriggerEnabled) {
@@ -213,10 +209,7 @@ export function useCalendarEventActions({
     } = {}
   ) {
     setContextMenu(null)
-    selectCalendarOccurrence(occurrence, {
-      onEventSelect,
-      onSelectedEventChange,
-    })
+    selectOccurrence(occurrence)
 
     if (options.openDetails ?? openEventDetailsOnSelect) {
       openEventDetails(occurrence)
@@ -456,37 +449,22 @@ export function useCalendarEventActions({
     })
   }
 
-  function moveOccurrenceWithTarget(
-    occurrence: CalendarOccurrence,
-    target: CalendarDropTarget,
-    dragOffsetMinutes = 0
-  ) {
-    moveOccurrenceWithDropTarget(occurrence, target, dragOffsetMinutes, {
-      canMove: Boolean(onEventMove),
-      onMoveOperation: (operation) =>
-        requestEventChange({
-          action: "move",
-          ...withResolvedOccurrenceScope(operation),
-        }),
-      slotDuration,
-    })
-  }
-
-  function resizeOccurrenceWithTarget(
-    occurrence: CalendarOccurrence,
-    edge: "start" | "end",
-    target: CalendarDropTarget
-  ) {
-    resizeOccurrenceWithDropTarget(occurrence, edge, target, {
-      canResize: Boolean(onEventResize),
-      onResizeOperation: (operation) =>
-        requestEventChange({
-          action: "resize",
-          ...withResolvedOccurrenceScope(operation),
-        }),
-      slotDuration,
-    })
-  }
+  const occurrenceInteractions = createOccurrenceInteractionCallbacks({
+    canMove: Boolean(onEventMove),
+    canResize: Boolean(onEventResize),
+    onMoveOperation: (operation) =>
+      requestEventChange({
+        action: "move",
+        ...withResolvedOccurrenceScope(operation),
+      }),
+    onResizeOperation: (operation) =>
+      requestEventChange({
+        action: "resize",
+        ...withResolvedOccurrenceScope(operation),
+      }),
+    runEventKeyCommand,
+    slotDuration,
+  })
 
   function handleDuplicateEvent(occurrence: CalendarOccurrence) {
     if (!canDuplicateOccurrence(occurrence)) {
@@ -540,24 +518,7 @@ export function useCalendarEventActions({
     occurrence: CalendarOccurrence,
     event: React.KeyboardEvent<HTMLButtonElement>
   ) {
-    handleCalendarEventKeyCommand({
-      announce,
-      canMove: Boolean(onEventMove),
-      canResize: Boolean(onEventResize),
-      event,
-      occurrence,
-      onMoveOperation: (operation) =>
-        requestEventChange({
-          action: "move",
-          ...withResolvedOccurrenceScope(operation),
-        }),
-      onResizeOperation: (operation) =>
-        requestEventChange({
-          action: "resize",
-          ...withResolvedOccurrenceScope(operation),
-        }),
-      slotDuration,
-    })
+    occurrenceInteractions.handleEventKeyCommand(occurrence, event)
   }
 
   return {
@@ -586,12 +547,13 @@ export function useCalendarEventActions({
     keyboardShortcutsKeyTriggerEnabled,
     keyboardShortcutsEnabled,
     liveAnnouncement,
-    moveOccurrenceWithTarget,
+    moveOccurrenceWithTarget: occurrenceInteractions.moveOccurrenceWithTarget,
     openEventDetails,
     openEventDetailsOnSelect,
     pendingEventChange,
     requestEventCreate,
-    resizeOccurrenceWithTarget,
+    resizeOccurrenceWithTarget:
+      occurrenceInteractions.resizeOccurrenceWithTarget,
     setDetailsOccurrence,
     setIsKeyboardShortcutsOpen,
   }

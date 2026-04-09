@@ -3,9 +3,13 @@ import type { PointerEvent as ReactPointerEvent } from "react"
 
 import { cn } from "../../lib/utils"
 
-import type { CalendarClassNames } from "../../../types"
+import type { CalendarClassNames, CalendarDropTarget } from "../../../types"
 import { getCalendarSlotClassName } from "../../../utils"
 
+import {
+  getCalendarDropTargetDataAttributes,
+  useCalendarDropTargetRegistration,
+} from "../root/drop-target-registry"
 import { formatTimeGridSlotLabel } from "./time-grid-utils"
 
 type TimeSlotDropZoneProps = {
@@ -51,6 +55,18 @@ export function TimeSlotDropZone({
   slotId,
   timeZone,
 }: TimeSlotDropZoneProps) {
+  const dropTarget = React.useMemo<CalendarDropTarget>(
+    () => ({
+      day,
+      kind: "slot",
+      minuteOfDay,
+    }),
+    [day, minuteOfDay]
+  )
+  const dropTargetRef = useCalendarDropTargetRegistration<HTMLDivElement>(
+    dropTarget
+  )
+
   return (
     <div
       aria-disabled={blocked || undefined}
@@ -64,9 +80,7 @@ export function TimeSlotDropZone({
       data-calendar-grid-active={
         active && focusVisible ? "true" : undefined
       }
-      data-calendar-drop-target-day={day.toISOString()}
-      data-calendar-drop-target-kind="slot"
-      data-calendar-drop-target-minute={minuteOfDay}
+      {...getCalendarDropTargetDataAttributes(dropTarget)}
       id={slotId}
       className={getCalendarSlotClassName(
         classNames,
@@ -92,6 +106,7 @@ export function TimeSlotDropZone({
         onBeginCreate(day, minuteOfDay)
       }}
       onPointerEnter={() => onExtendCreate(day, minuteOfDay)}
+      ref={dropTargetRef}
       role="gridcell"
     />
   )

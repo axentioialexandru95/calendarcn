@@ -2,6 +2,16 @@ import * as React from "react"
 
 import type { CalendarDropTarget } from "../../../types"
 
+export type CalendarDropTargetAttributes = Partial<
+  Record<
+    | "data-calendar-drop-target-day"
+    | "data-calendar-drop-target-kind"
+    | "data-calendar-drop-target-minute"
+    | "data-calendar-drop-target-resource-id",
+    string
+  >
+>
+
 type DropTargetDatasetSource = {
   dataset?: {
     calendarDropTargetDay?: string
@@ -14,7 +24,9 @@ type DropTargetDatasetSource = {
 const registeredDropTargets = new WeakMap<object, CalendarDropTarget>()
 const registeredDropTargetElements = new Set<HTMLElement>()
 
-export function getCalendarDropTargetDataAttributes(target: CalendarDropTarget) {
+export function getCalendarDropTargetDataAttributes(
+  target: CalendarDropTarget
+): CalendarDropTargetAttributes {
   return {
     "data-calendar-drop-target-day": target.day.toISOString(),
     "data-calendar-drop-target-kind": target.kind,
@@ -43,35 +55,18 @@ export function registerCalendarDropTarget(
 export function useCalendarDropTargetRegistration<T extends HTMLElement>(
   target: CalendarDropTarget
 ) {
-  const cleanupRef = React.useRef<(() => void) | null>(null)
-  const elementRef = React.useRef<T | null>(null)
-  const targetRegistrationKey = React.useMemo(() => {
-    return [
-      target.kind,
-      target.day.getTime(),
-      target.resourceId ?? "",
-      target.kind === "slot" ? target.minuteOfDay : "",
-    ].join(":")
-  }, [target])
+  const targetRef = React.useRef(target)
 
   React.useEffect(() => {
-    cleanupRef.current?.()
-    cleanupRef.current = null
+    targetRef.current = target
+  }, [target])
 
-    if (!elementRef.current) {
+  return React.useCallback((element: T | null) => {
+    if (!element) {
       return
     }
 
-    cleanupRef.current = registerCalendarDropTarget(elementRef.current, target)
-
-    return () => {
-      cleanupRef.current?.()
-      cleanupRef.current = null
-    }
-  }, [target, targetRegistrationKey])
-
-  return React.useCallback((element: T | null) => {
-    elementRef.current = element
+    return registerCalendarDropTarget(element, targetRef.current)
   }, [])
 }
 

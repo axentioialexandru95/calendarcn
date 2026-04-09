@@ -22,6 +22,7 @@ import {
   getCalendarDropTargetFromElement,
   getRegisteredCalendarDropTargetElements,
 } from "./drop-target-registry"
+import { createExternalStore } from "./external-store"
 
 export const dragActivationDistance = 6
 export const touchLongPressDelay = 320
@@ -384,28 +385,13 @@ export function getDragSurfaceRect(target: EventTarget | null): DOMRect | null {
   )
 }
 
-export function getCalendarDropTargetFromPoint(
-  clientX: number,
-  clientY: number
-): CalendarDropTarget | null {
-  if (typeof document === "undefined") {
-    return null
-  }
-
-  const match =
-    document
-      .elementsFromPoint(clientX, clientY)
-      .find((element): element is HTMLElement => {
-        return (
-          element instanceof HTMLElement &&
-          getCalendarDropTargetFromElement(element) !== null
-        )
-      }) ?? getFallbackCalendarDropTargetElement(clientX, clientY)
-
-  return getCalendarDropTargetFromElement(match)
+export function createCalendarDropTargetStore() {
+  return createExternalStore<CalendarDropTarget | null>(null, {
+    isEqual: areDropTargetsEqual,
+  })
 }
 
-function getFallbackCalendarDropTargetElement(
+export function getClosestRegisteredDropTargetElement(
   clientX: number,
   clientY: number
 ): HTMLElement | null {
@@ -438,11 +424,51 @@ function getFallbackCalendarDropTargetElement(
   return matches[0] ?? null
 }
 
-export function getTimeGridDropTargetFromPoint(
+export function resolveCalendarDropTargetAtPoint(
+  clientX: number,
+  clientY: number,
+  options?: {
+    fallbackTarget?: CalendarDropTarget | null
+  }
+): CalendarDropTarget | null {
+  const directTarget = getCalendarDropTargetFromPoint(clientX, clientY)
+
+  if (directTarget) {
+    return directTarget
+  }
+
+  return options?.fallbackTarget ?? null
+}
+
+export function getCalendarDropTargetFromPoint(
   clientX: number,
   clientY: number
 ): CalendarDropTarget | null {
-  const target = getCalendarDropTargetFromPoint(clientX, clientY)
+  if (typeof document === "undefined") {
+    return null
+  }
+
+  const match =
+    document
+      .elementsFromPoint(clientX, clientY)
+      .find((element): element is HTMLElement => {
+        return (
+          element instanceof HTMLElement &&
+          getCalendarDropTargetFromElement(element) !== null
+        )
+      }) ?? getClosestRegisteredDropTargetElement(clientX, clientY)
+
+  return getCalendarDropTargetFromElement(match)
+}
+
+export function getTimeGridDropTargetFromPoint(
+  clientX: number,
+  clientY: number,
+  fallbackTarget?: CalendarDropTarget | null
+): CalendarDropTarget | null {
+  const target = resolveCalendarDropTargetAtPoint(clientX, clientY, {
+    fallbackTarget,
+  })
 
   return target?.kind === "slot" ? target : null
 }
@@ -450,7 +476,8 @@ export function getTimeGridDropTargetFromPoint(
 export function getResizeDropTargetFromPoint(
   _variant: CalendarEventVariant,
   clientX: number,
-  clientY: number
+  clientY: number,
+  fallbackTarget?: CalendarDropTarget | null
 ): CalendarDropTarget | null {
-  return getTimeGridDropTargetFromPoint(clientX, clientY)
+  return getTimeGridDropTargetFromPoint(clientX, clientY, fallbackTarget)
 }

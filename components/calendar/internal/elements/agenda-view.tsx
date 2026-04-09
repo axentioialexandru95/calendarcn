@@ -15,6 +15,10 @@ import {
   getDayEvents,
   getEventMetaLabel,
 } from "../../utils"
+import {
+  getCalendarDropTargetDataAttributes,
+  useCalendarDropTargetRegistration,
+} from "./root/drop-target-registry"
 import { CalendarEventCard, getResolvedAccentColor } from "./event-card"
 import type {
   CalendarAgendaViewProps,
@@ -119,6 +123,16 @@ function AgendaDayGroup({
   timeZone,
 }: AgendaDayGroupProps) {
   const headingId = `calendar-agenda-heading-${day.getTime()}`
+  const dropTarget = React.useMemo(
+    () => ({
+      day,
+      kind: "day" as const,
+    }),
+    [day]
+  )
+  const dropTargetRef = useCalendarDropTargetRegistration<HTMLElement>(
+    dropTarget
+  )
   const dragPreviewEvent = getPreviewEventForDay(dragPreviewOccurrence, day)
   const displayEvents = mergePreviewEvent(events, dragPreviewEvent)
   const isDragTarget =
@@ -139,8 +153,8 @@ function AgendaDayGroup({
           isDragTarget ? "bg-muted/50" : ""
         )
       )}
-      data-calendar-drop-target-day={day.toISOString()}
-      data-calendar-drop-target-kind="day"
+      {...getCalendarDropTargetDataAttributes(dropTarget)}
+      ref={dropTargetRef}
       role="listitem"
     >
       <div className="space-y-1">

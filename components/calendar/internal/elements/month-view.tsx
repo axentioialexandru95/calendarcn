@@ -14,6 +14,10 @@ import {
   isOutsideMonth,
   isToday,
 } from "../../utils"
+import {
+  getCalendarDropTargetDataAttributes,
+  useCalendarDropTargetRegistration,
+} from "./root/drop-target-registry"
 import { CalendarEventCard, getResolvedAccentColor } from "./event-card"
 import { maxMonthEvents, type SharedViewProps } from "../shared"
 
@@ -108,6 +112,16 @@ function MonthDayCell({
   shouldSuppressEventClick,
   timeZone,
 }: MonthDayCellProps) {
+  const dropTarget = React.useMemo(
+    () => ({
+      day,
+      kind: "day" as const,
+    }),
+    [day]
+  )
+  const dropTargetRef = useCalendarDropTargetRegistration<HTMLElement>(
+    dropTarget
+  )
   const events = getDayEvents(occurrences, day)
   const dragPreviewEvent = getPreviewEventForDay(dragPreviewOccurrence, day)
   const mergedEvents = mergePreviewEvent(events, dragPreviewEvent)
@@ -172,8 +186,8 @@ function MonthDayCell({
               : "bg-background"
         )
       )}
-      data-calendar-drop-target-day={day.toISOString()}
-      data-calendar-drop-target-kind="day"
+      {...getCalendarDropTargetDataAttributes(dropTarget)}
+      ref={dropTargetRef}
       role="gridcell"
     >
       <div className="flex items-center justify-between">
