@@ -21,7 +21,10 @@ import {
   type ActiveDragInteraction,
   type ActiveResizeState,
 } from "./root-utils"
-import type { ExternalStore as ImportedExternalStore } from "./external-store"
+import {
+  createExternalStore,
+  type ExternalStore as ImportedExternalStore,
+} from "./external-store"
 
 type UseCalendarPointerInteractionsOptions = {
   announce: (message: string) => void
@@ -63,6 +66,15 @@ function createFrameThrottledDragOverlayStore() {
   return createExternalStore<DragOverlayPosition | null>(null, {
     frameThrottle: true,
   })
+}
+
+function getPointerDistance(
+  startClientX: number,
+  startClientY: number,
+  currentClientX: number,
+  currentClientY: number
+) {
+  return Math.hypot(currentClientX - startClientX, currentClientY - startClientY)
 }
 
 function resolvePointerDragMove(
