@@ -79,8 +79,7 @@ function formatCommand(command: string, entries: string[]) {
   }
 
   return `${command} \\
-  ${entries.join(" \\
-  ")}`
+  ${entries.join(" \\\n  ")}`
 }
 
 function createInstallCommand(itemNames: string[]) {

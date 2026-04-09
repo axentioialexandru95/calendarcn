@@ -1,25 +1,25 @@
 import * as React from "react"
 
-import { addDays, addMinutes } from "date-fns"
-
 import type {
   CalendarCreateOperation,
+  CalendarDropTarget,
   CalendarEvent,
   CalendarEventMenuPosition,
   CalendarMoveOperation,
   CalendarOccurrence,
   CalendarResizeOperation,
 } from "../../../types"
-import {
-  applyMoveOperation,
-  applyResizeOperation,
-  canMoveOccurrence,
-  canResizeOccurrence,
-  clampResize,
-  formatEventTimeLabel,
-} from "../../../utils"
 
-import { getMoveOperation, getResizeOperation } from "./root-utils"
+import {
+  commitOptimisticMove,
+  commitOptimisticResize,
+  formatCalendarAnnouncementRange,
+  handleCalendarEventKeyCommand,
+  moveOccurrenceWithDropTarget,
+  resizeOccurrenceWithDropTarget,
+  selectCalendarOccurrence,
+  withResolvedOccurrenceScope,
+} from "./event-operations"
 
 type UseCalendarCoreActionsOptions = {
   hourCycle?: 12 | 24
@@ -69,22 +69,22 @@ export function useCalendarCoreActions({
     setLiveAnnouncement(message)
   }, [])
 
-  function formatAnnouncementRange(
-    start: Date,
-    end: Date,
-    allDay: boolean | undefined
-  ) {
-    return formatEventTimeLabel(start, end, {
-      allDay,
-      hourCycle,
-      locale,
-      timeZone,
-    })
-  }
+  const formatAnnouncementRange = React.useCallback(
+    (start: Date, end: Date, allDay: boolean | undefined) => {
+      return formatCalendarAnnouncementRange(start, end, allDay, {
+        hourCycle,
+        locale,
+        timeZone,
+      })
+    },
+    [hourCycle, locale, timeZone]
+  )
 
   function handleSelectEvent(occurrence: CalendarOccurrence) {
-    onSelectedEventChange?.(occurrence.occurrenceId)
-    onEventSelect?.(occurrence)
+    selectCalendarOccurrence(occurrence, {
+      onEventSelect,
+      onSelectedEventChange,
+    })
   }
 
   function commitCreateEvent(operation: CalendarCreateOperation) {
@@ -128,37 +128,16 @@ export function useCalendarCoreActions({
   }
 
   function commitMoveEvent(operation: CalendarMoveOperation) {
-    if (!onEventMove) {
-      return
-    }
-
-    const nextOperation = {
-      ...operation,
-      scope:
-        operation.scope ??
-        (operation.occurrence.isRecurringInstance ? "series" : "occurrence"),
-    } as const
-
-    setOptimisticEvents((currentEvents) =>
-      applyMoveOperation(currentEvents, nextOperation)
-    )
-    onEventMove(nextOperation)
-    announce(
-      `Moved ${nextOperation.occurrence.title} to ${formatAnnouncementRange(
-        nextOperation.nextStart,
-        nextOperation.nextEnd,
-        nextOperation.allDay ?? nextOperation.occurrence.allDay
-      )}.`
-    )
+    commitOptimisticMove(operation, {
+      announce,
+      formatAnnouncementRange,
+      onEventMove,
+      setOptimisticEvents,
+    })
   }
 
   function requestMoveEvent(operation: CalendarMoveOperation) {
-    const nextOperation = {
-      ...operation,
-      scope:
-        operation.scope ??
-        (operation.occurrence.isRecurringInstance ? "series" : "occurrence"),
-    } as const
+    const nextOperation = withResolvedOccurrenceScope(operation)
 
     if (
       shouldBlockTimedRange(
@@ -180,37 +159,16 @@ export function useCalendarCoreActions({
   }
 
   function commitResizeEvent(operation: CalendarResizeOperation) {
-    if (!onEventResize) {
-      return
-    }
-
-    const nextOperation = {
-      ...operation,
-      scope:
-        operation.scope ??
-        (operation.occurrence.isRecurringInstance ? "series" : "occurrence"),
-    } as const
-
-    setOptimisticEvents((currentEvents) =>
-      applyResizeOperation(currentEvents, nextOperation)
-    )
-    onEventResize(nextOperation)
-    announce(
-      `Resized ${nextOperation.occurrence.title} to ${formatAnnouncementRange(
-        nextOperation.nextStart,
-        nextOperation.nextEnd,
-        nextOperation.occurrence.allDay
-      )}.`
-    )
+    commitOptimisticResize(operation, {
+      announce,
+      formatAnnouncementRange,
+      onEventResize,
+      setOptimisticEvents,
+    })
   }
 
   function requestResizeEvent(operation: CalendarResizeOperation) {
-    const nextOperation = {
-      ...operation,
-      scope:
-        operation.scope ??
-        (operation.occurrence.isRecurringInstance ? "series" : "occurrence"),
-    } as const
+    const nextOperation = withResolvedOccurrenceScope(operation)
 
     if (
       shouldBlockTimedRange(
@@ -233,36 +191,26 @@ export function useCalendarCoreActions({
 
   function moveOccurrenceWithTarget(
     occurrence: CalendarOccurrence,
-    target: Parameters<typeof getMoveOperation>[1],
+    target: CalendarDropTarget,
     dragOffsetMinutes = 0
   ) {
-    if (
-      (!onEventMove && !onEventMoveRequest) ||
-      !canMoveOccurrence(occurrence)
-    ) {
-      return
-    }
-
-    requestMoveEvent(
-      getMoveOperation(occurrence, target, dragOffsetMinutes, slotDuration)
-    )
+    moveOccurrenceWithDropTarget(occurrence, target, dragOffsetMinutes, {
+      canMove: Boolean(onEventMove || onEventMoveRequest),
+      onMoveOperation: requestMoveEvent,
+      slotDuration,
+    })
   }
 
   function resizeOccurrenceWithTarget(
     occurrence: CalendarOccurrence,
     edge: "start" | "end",
-    target: Parameters<typeof getResizeOperation>[2]
+    target: CalendarDropTarget
   ) {
-    if (
-      (!onEventResize && !onEventResizeRequest) ||
-      !canResizeOccurrence(occurrence)
-    ) {
-      return
-    }
-
-    requestResizeEvent(
-      getResizeOperation(occurrence, edge, target, slotDuration)
-    )
+    resizeOccurrenceWithDropTarget(occurrence, edge, target, {
+      canResize: Boolean(onEventResize || onEventResizeRequest),
+      onResizeOperation: requestResizeEvent,
+      slotDuration,
+    })
   }
 
   function handleOpenContextMenu(
@@ -281,85 +229,15 @@ export function useCalendarCoreActions({
     occurrence: CalendarOccurrence,
     event: React.KeyboardEvent<HTMLButtonElement>
   ) {
-    const dayDelta =
-      event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
-    const minuteDelta =
-      event.key === "ArrowUp"
-        ? -slotDuration
-        : event.key === "ArrowDown"
-          ? slotDuration
-          : 0
-
-    if (dayDelta === 0 && minuteDelta === 0) {
-      return
-    }
-
-    event.preventDefault()
-
-    if (event.shiftKey && (onEventResize || onEventResizeRequest)) {
-      if (!canResizeOccurrence(occurrence)) {
-        announce("This event cannot be resized.")
-        return
-      }
-
-      requestResizeEvent({
-        occurrence,
-        edge: "end",
-        nextStart: occurrence.start,
-        nextEnd: clampResize(
-          addMinutes(addDays(occurrence.end, dayDelta), minuteDelta),
-          occurrence.start,
-          "end",
-          slotDuration
-        ),
-        previousStart: occurrence.start,
-        previousEnd: occurrence.end,
-        scope: occurrence.isRecurringInstance ? "series" : "occurrence",
-      })
-      return
-    }
-
-    if (event.altKey && (onEventResize || onEventResizeRequest)) {
-      if (!canResizeOccurrence(occurrence)) {
-        announce("This event cannot be resized.")
-        return
-      }
-
-      requestResizeEvent({
-        occurrence,
-        edge: "start",
-        nextStart: clampResize(
-          addMinutes(addDays(occurrence.start, dayDelta), minuteDelta),
-          occurrence.end,
-          "start",
-          slotDuration
-        ),
-        nextEnd: occurrence.end,
-        previousStart: occurrence.start,
-        previousEnd: occurrence.end,
-        scope: occurrence.isRecurringInstance ? "series" : "occurrence",
-      })
-      return
-    }
-
-    if (!onEventMove && !onEventMoveRequest) {
-      announce("This event cannot be moved.")
-      return
-    }
-
-    if (!canMoveOccurrence(occurrence)) {
-      announce("This event cannot be moved.")
-      return
-    }
-
-    requestMoveEvent({
+    handleCalendarEventKeyCommand({
+      announce,
+      canMove: Boolean(onEventMove || onEventMoveRequest),
+      canResize: Boolean(onEventResize || onEventResizeRequest),
+      event,
       occurrence,
-      nextStart: addMinutes(addDays(occurrence.start, dayDelta), minuteDelta),
-      nextEnd: addMinutes(addDays(occurrence.end, dayDelta), minuteDelta),
-      previousStart: occurrence.start,
-      previousEnd: occurrence.end,
-      allDay: occurrence.allDay,
-      scope: occurrence.isRecurringInstance ? "series" : "occurrence",
+      onMoveOperation: requestMoveEvent,
+      onResizeOperation: requestResizeEvent,
+      slotDuration,
     })
   }
 

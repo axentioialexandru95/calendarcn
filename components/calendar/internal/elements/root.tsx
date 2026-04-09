@@ -137,6 +137,9 @@ export function CalendarRoot({
 }: CalendarRootProps) {
   const [optimisticEvents, setOptimisticEvents] =
     React.useState<CalendarEvent[]>(events)
+  const [internalSelectedEventId, setInternalSelectedEventId] = React.useState<
+    string | undefined
+  >(() => selectedEventId)
   const [isHydrated, setIsHydrated] = React.useState(false)
   const allResourceIds = React.useMemo(
     () => resources?.map((resource) => resource.id) ?? [],
@@ -210,6 +213,7 @@ export function CalendarRoot({
     weekZoomIndex,
     Math.max(0, weekZoomDayCounts.length - 1)
   )
+  const resolvedSelectedEventId = selectedEventId ?? internalSelectedEventId
   const activeWeekZoomDayCount = weekZoomDayCounts[resolvedWeekZoomIndex] ?? 1
   const zoomedWeekDays = React.useMemo(
     () =>
@@ -359,6 +363,10 @@ export function CalendarRoot({
   React.useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  React.useEffect(() => {
+    setInternalSelectedEventId(selectedEventId)
+  }, [selectedEventId])
 
   React.useEffect(() => {
     if (resolvedView === "week" || resolvedView === "day") {
@@ -569,6 +577,14 @@ export function CalendarRoot({
     [blockedRanges, resolvedView]
   )
 
+  const handleSelectedEventChange = React.useCallback(
+    (nextSelectedEventId?: string) => {
+      setInternalSelectedEventId(nextSelectedEventId)
+      onSelectedEventChange?.(nextSelectedEventId)
+    },
+    [onSelectedEventChange]
+  )
+
   const actions = useCalendarEventActions({
     createEventSheet,
     date,
@@ -589,7 +605,7 @@ export function CalendarRoot({
     onEventSelect,
     onEventUpdate,
     onNavigate,
-    onSelectedEventChange,
+    onSelectedEventChange: handleSelectedEventChange,
     onToday,
     optimisticEvents,
     resolvedHiddenDays,
@@ -662,7 +678,7 @@ export function CalendarRoot({
     resources,
     scrollToTime,
     secondaryTimeZone,
-    selectedEventId,
+    selectedEventId: resolvedSelectedEventId,
     shouldBlockTimedRange,
     shouldSuppressEventClick: pointer.shouldSuppressEventClick,
     showCreatePreviewMeta,
@@ -678,12 +694,12 @@ export function CalendarRoot({
 
   React.useEffect(() => {
     if (
-      selectedEventId &&
+      resolvedSelectedEventId &&
       !derived.occurrences.some(
-        (occurrence) => occurrence.occurrenceId === selectedEventId
+        (occurrence) => occurrence.occurrenceId === resolvedSelectedEventId
       )
     ) {
-      onSelectedEventChange?.(undefined)
+      handleSelectedEventChange(undefined)
     }
 
     if (
@@ -698,9 +714,9 @@ export function CalendarRoot({
   }, [
     detailsOccurrence,
     derived.occurrences,
-    onSelectedEventChange,
+    handleSelectedEventChange,
     setDetailsOccurrence,
-    selectedEventId,
+    resolvedSelectedEventId,
   ])
 
   return (

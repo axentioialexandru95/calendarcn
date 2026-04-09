@@ -18,6 +18,11 @@ import {
   setMinuteOfDay,
 } from "../../../utils"
 
+import {
+  getCalendarDropTargetFromElement,
+  getRegisteredCalendarDropTargetElements,
+} from "./drop-target-registry"
+
 export const dragActivationDistance = 6
 export const touchLongPressDelay = 320
 export const touchGestureMoveSlop = 10
@@ -393,33 +398,29 @@ export function getCalendarDropTargetFromPoint(
       .find((element): element is HTMLElement => {
         return (
           element instanceof HTMLElement &&
-          !!element.dataset.calendarDropTargetKind
+          getCalendarDropTargetFromElement(element) !== null
         )
       }) ?? getFallbackCalendarDropTargetElement(clientX, clientY)
 
-  if (!match) {
-    return null
-  }
-
-  return parseCalendarDropTargetElement(match)
+  return getCalendarDropTargetFromElement(match)
 }
 
 function getFallbackCalendarDropTargetElement(
   clientX: number,
   clientY: number
 ): HTMLElement | null {
-  const matches = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-calendar-drop-target-kind]")
-  ).filter((element) => {
-    const rect = element.getBoundingClientRect()
+  const matches = Array.from(getRegisteredCalendarDropTargetElements()).filter(
+    (element) => {
+      const rect = element.getBoundingClientRect()
 
-    return (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    )
-  })
+      return (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      )
+    }
+  )
 
   if (matches.length === 0) {
     return null
@@ -435,51 +436,6 @@ function getFallbackCalendarDropTargetElement(
   })
 
   return matches[0] ?? null
-}
-
-function parseCalendarDropTargetElement(
-  match: HTMLElement
-): CalendarDropTarget | null {
-  const kind = match.dataset.calendarDropTargetKind
-  const dayValue = match.dataset.calendarDropTargetDay
-  const resourceId =
-    match.dataset.calendarDropTargetResourceId?.trim() || undefined
-
-  if (!kind || !dayValue) {
-    return null
-  }
-
-  const day = new Date(dayValue)
-
-  if (Number.isNaN(day.getTime())) {
-    return null
-  }
-
-  if (kind === "slot") {
-    const minuteValue = match.dataset.calendarDropTargetMinute
-    const minuteOfDay = Number(minuteValue)
-
-    if (minuteValue === undefined || !Number.isFinite(minuteOfDay)) {
-      return null
-    }
-
-    return {
-      kind,
-      day,
-      minuteOfDay,
-      resourceId,
-    }
-  }
-
-  if (kind === "day" || kind === "all-day") {
-    return {
-      kind,
-      day,
-      resourceId,
-    }
-  }
-
-  return null
 }
 
 export function getTimeGridDropTargetFromPoint(

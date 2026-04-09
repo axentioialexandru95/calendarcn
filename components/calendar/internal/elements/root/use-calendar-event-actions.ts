@@ -15,23 +15,26 @@ import type {
 } from "../../../types"
 import {
   applyEventUpdateOperation,
-  applyMoveOperation,
-  applyResizeOperation,
   canArchiveOccurrence,
   canDeleteOccurrence,
   canDuplicateOccurrence,
-  canMoveOccurrence,
   canOpenEventDetails,
-  canResizeOccurrence,
-  clampResize,
-  formatEventTimeLabel,
   getNextVisibleDay,
   setMinuteOfDay,
   shiftDate,
 } from "../../../utils"
 import type { CalendarEventMenuPosition, CalendarRootProps } from "../../shared"
 
-import { getMoveOperation, getResizeOperation } from "./root-utils"
+import {
+  commitOptimisticMove,
+  commitOptimisticResize,
+  formatCalendarAnnouncementRange,
+  handleCalendarEventKeyCommand,
+  moveOccurrenceWithDropTarget,
+  resizeOccurrenceWithDropTarget,
+  selectCalendarOccurrence,
+  withResolvedOccurrenceScope,
+} from "./event-operations"
 
 type UseCalendarEventActionsOptions = {
   createEventSheet: CalendarRootProps["createEventSheet"]
@@ -136,6 +139,17 @@ export function useCalendarEventActions({
     setLiveAnnouncement(message)
   }, [])
 
+  const formatAnnouncementRange = React.useCallback(
+    (start: Date, end: Date, allDay: boolean | undefined) => {
+      return formatCalendarAnnouncementRange(start, end, allDay, {
+        hourCycle,
+        locale,
+        timeZone,
+      })
+    },
+    [hourCycle, locale, timeZone]
+  )
+
   React.useEffect(() => {
     if (!isHydrated || !keyboardShortcutsKeyTriggerEnabled) {
       return
@@ -175,19 +189,6 @@ export function useCalendarEventActions({
     }
   }, [isHydrated, keyboardShortcutsKeyTriggerEnabled])
 
-  function formatAnnouncementRange(
-    start: Date,
-    end: Date,
-    allDay: boolean | undefined
-  ) {
-    return formatEventTimeLabel(start, end, {
-      allDay,
-      hourCycle,
-      locale,
-      timeZone,
-    })
-  }
-
   function closeContextMenu() {
     setContextMenu(null)
   }
@@ -212,8 +213,10 @@ export function useCalendarEventActions({
     } = {}
   ) {
     setContextMenu(null)
-    onSelectedEventChange?.(occurrence.occurrenceId)
-    onEventSelect?.(occurrence)
+    selectCalendarOccurrence(occurrence, {
+      onEventSelect,
+      onSelectedEventChange,
+    })
 
     if (options.openDetails ?? openEventDetailsOnSelect) {
       openEventDetails(occurrence)
@@ -357,55 +360,21 @@ export function useCalendarEventActions({
 
   function commitEventChange(context: CalendarEventChangeConfirmationContext) {
     if (context.action === "move") {
-      const operation = {
-        allDay: context.allDay,
-        nextEnd: context.nextEnd,
-        nextStart: context.nextStart,
-        occurrence: context.occurrence,
-        previousEnd: context.previousEnd,
-        previousStart: context.previousStart,
-        scope:
-          context.scope ??
-          (context.occurrence.isRecurringInstance ? "series" : "occurrence"),
-      } as const
-
-      setOptimisticEvents((currentEvents) =>
-        applyMoveOperation(currentEvents, operation)
-      )
-      onEventMove?.(operation)
-      announce(
-        `Moved ${context.occurrence.title} to ${formatAnnouncementRange(
-          context.nextStart,
-          context.nextEnd,
-          context.allDay ?? context.occurrence.allDay
-        )}.`
-      )
+      commitOptimisticMove(context, {
+        announce,
+        formatAnnouncementRange,
+        onEventMove,
+        setOptimisticEvents,
+      })
       return
     }
 
-    const operation = {
-      edge: context.edge,
-      nextEnd: context.nextEnd,
-      nextStart: context.nextStart,
-      occurrence: context.occurrence,
-      previousEnd: context.previousEnd,
-      previousStart: context.previousStart,
-      scope:
-        context.scope ??
-        (context.occurrence.isRecurringInstance ? "series" : "occurrence"),
-    } as const
-
-    setOptimisticEvents((currentEvents) =>
-      applyResizeOperation(currentEvents, operation)
-    )
-    onEventResize?.(operation)
-    announce(
-      `Resized ${context.occurrence.title} to ${formatAnnouncementRange(
-        context.nextStart,
-        context.nextEnd,
-        context.occurrence.allDay
-      )}.`
-    )
+    commitOptimisticResize(context, {
+      announce,
+      formatAnnouncementRange,
+      onEventResize,
+      setOptimisticEvents,
+    })
   }
 
   function commitEventUpdate(nextEvent: CalendarEvent) {
@@ -492,19 +461,14 @@ export function useCalendarEventActions({
     target: CalendarDropTarget,
     dragOffsetMinutes = 0
   ) {
-    if (!onEventMove || !canMoveOccurrence(occurrence)) {
-      return
-    }
-
-    const operation = getMoveOperation(
-      occurrence,
-      target,
-      dragOffsetMinutes,
-      slotDuration
-    )
-    requestEventChange({
-      action: "move",
-      ...operation,
+    moveOccurrenceWithDropTarget(occurrence, target, dragOffsetMinutes, {
+      canMove: Boolean(onEventMove),
+      onMoveOperation: (operation) =>
+        requestEventChange({
+          action: "move",
+          ...withResolvedOccurrenceScope(operation),
+        }),
+      slotDuration,
     })
   }
 
@@ -513,14 +477,14 @@ export function useCalendarEventActions({
     edge: "start" | "end",
     target: CalendarDropTarget
   ) {
-    if (!onEventResize || !canResizeOccurrence(occurrence)) {
-      return
-    }
-
-    const operation = getResizeOperation(occurrence, edge, target, slotDuration)
-    requestEventChange({
-      action: "resize",
-      ...operation,
+    resizeOccurrenceWithDropTarget(occurrence, edge, target, {
+      canResize: Boolean(onEventResize),
+      onResizeOperation: (operation) =>
+        requestEventChange({
+          action: "resize",
+          ...withResolvedOccurrenceScope(operation),
+        }),
+      slotDuration,
     })
   }
 
@@ -576,95 +540,23 @@ export function useCalendarEventActions({
     occurrence: CalendarOccurrence,
     event: React.KeyboardEvent<HTMLButtonElement>
   ) {
-    const dayDelta =
-      event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
-    const minuteDelta =
-      event.key === "ArrowUp"
-        ? -slotDuration
-        : event.key === "ArrowDown"
-          ? slotDuration
-          : 0
-
-    if (dayDelta === 0 && minuteDelta === 0) {
-      return
-    }
-
-    event.preventDefault()
-
-    if (event.shiftKey && onEventResize) {
-      if (!canResizeOccurrence(occurrence)) {
-        announce("This event cannot be resized.")
-        return
-      }
-
-      const operation: CalendarResizeOperation = {
-        occurrence,
-        edge: "end",
-        nextStart: occurrence.start,
-        nextEnd: clampResize(
-          addMinutes(addDays(occurrence.end, dayDelta), minuteDelta),
-          occurrence.start,
-          "end",
-          slotDuration
-        ),
-        previousStart: occurrence.start,
-        previousEnd: occurrence.end,
-        scope: occurrence.isRecurringInstance ? "series" : "occurrence",
-      }
-
-      requestEventChange({
-        action: "resize",
-        ...operation,
-      })
-      return
-    }
-
-    if (event.altKey && onEventResize) {
-      if (!canResizeOccurrence(occurrence)) {
-        announce("This event cannot be resized.")
-        return
-      }
-
-      const operation: CalendarResizeOperation = {
-        occurrence,
-        edge: "start",
-        nextStart: clampResize(
-          addMinutes(addDays(occurrence.start, dayDelta), minuteDelta),
-          occurrence.end,
-          "start",
-          slotDuration
-        ),
-        nextEnd: occurrence.end,
-        previousStart: occurrence.start,
-        previousEnd: occurrence.end,
-        scope: occurrence.isRecurringInstance ? "series" : "occurrence",
-      }
-
-      requestEventChange({
-        action: "resize",
-        ...operation,
-      })
-      return
-    }
-
-    if (!onEventMove || !canMoveOccurrence(occurrence)) {
-      announce("This event cannot be moved.")
-      return
-    }
-
-    const operation = {
+    handleCalendarEventKeyCommand({
+      announce,
+      canMove: Boolean(onEventMove),
+      canResize: Boolean(onEventResize),
+      event,
       occurrence,
-      nextStart: addMinutes(addDays(occurrence.start, dayDelta), minuteDelta),
-      nextEnd: addMinutes(addDays(occurrence.end, dayDelta), minuteDelta),
-      previousStart: occurrence.start,
-      previousEnd: occurrence.end,
-      allDay: occurrence.allDay,
-      scope: occurrence.isRecurringInstance ? "series" : "occurrence",
-    } as const
-
-    requestEventChange({
-      action: "move",
-      ...operation,
+      onMoveOperation: (operation) =>
+        requestEventChange({
+          action: "move",
+          ...withResolvedOccurrenceScope(operation),
+        }),
+      onResizeOperation: (operation) =>
+        requestEventChange({
+          action: "resize",
+          ...withResolvedOccurrenceScope(operation),
+        }),
+      slotDuration,
     })
   }
 

@@ -1,0 +1,135 @@
+import * as React from "react"
+
+import type { CalendarDropTarget } from "../../../types"
+
+type DropTargetDatasetSource = {
+  dataset?: {
+    calendarDropTargetDay?: string
+    calendarDropTargetKind?: string
+    calendarDropTargetMinute?: string
+    calendarDropTargetResourceId?: string
+  }
+}
+
+const registeredDropTargets = new WeakMap<object, CalendarDropTarget>()
+const registeredDropTargetElements = new Set<HTMLElement>()
+
+export function getCalendarDropTargetDataAttributes(target: CalendarDropTarget) {
+  return {
+    "data-calendar-drop-target-day": target.day.toISOString(),
+    "data-calendar-drop-target-kind": target.kind,
+    "data-calendar-drop-target-minute":
+      target.kind === "slot" ? String(target.minuteOfDay) : undefined,
+    "data-calendar-drop-target-resource-id": target.resourceId,
+  }
+}
+
+export function registerCalendarDropTarget(
+  element: HTMLElement,
+  target: CalendarDropTarget
+) {
+  registeredDropTargets.set(element, target)
+  registeredDropTargetElements.add(element)
+
+  return () => {
+    if (registeredDropTargets.get(element) === target) {
+      registeredDropTargets.delete(element)
+    }
+
+    registeredDropTargetElements.delete(element)
+  }
+}
+
+export function useCalendarDropTargetRegistration<T extends HTMLElement>(
+  target: CalendarDropTarget
+) {
+  const cleanupRef = React.useRef<(() => void) | null>(null)
+  const elementRef = React.useRef<T | null>(null)
+  const targetRegistrationKey = React.useMemo(() => {
+    return [
+      target.kind,
+      target.day.getTime(),
+      target.resourceId ?? "",
+      target.kind === "slot" ? target.minuteOfDay : "",
+    ].join(":")
+  }, [target])
+
+  React.useEffect(() => {
+    cleanupRef.current?.()
+    cleanupRef.current = null
+
+    if (!elementRef.current) {
+      return
+    }
+
+    cleanupRef.current = registerCalendarDropTarget(elementRef.current, target)
+
+    return () => {
+      cleanupRef.current?.()
+      cleanupRef.current = null
+    }
+  }, [target, targetRegistrationKey])
+
+  return React.useCallback((element: T | null) => {
+    elementRef.current = element
+  }, [])
+}
+
+export function getRegisteredCalendarDropTargetElements() {
+  return registeredDropTargetElements
+}
+
+export function parseCalendarDropTargetDataset(
+  source: DropTargetDatasetSource | null | undefined
+): CalendarDropTarget | null {
+  const kind = source?.dataset?.calendarDropTargetKind
+  const dayValue = source?.dataset?.calendarDropTargetDay
+  const resourceId =
+    source?.dataset?.calendarDropTargetResourceId?.trim() || undefined
+
+  if (!kind || !dayValue) {
+    return null
+  }
+
+  const day = new Date(dayValue)
+
+  if (Number.isNaN(day.getTime())) {
+    return null
+  }
+
+  if (kind === "slot") {
+    const minuteValue = source?.dataset?.calendarDropTargetMinute
+    const minuteOfDay = Number(minuteValue)
+
+    if (minuteValue === undefined || !Number.isFinite(minuteOfDay)) {
+      return null
+    }
+
+    return {
+      kind,
+      day,
+      minuteOfDay,
+      resourceId,
+    }
+  }
+
+  if (kind === "day" || kind === "all-day") {
+    return {
+      kind,
+      day,
+      resourceId,
+    }
+  }
+
+  return null
+}
+
+export function getCalendarDropTargetFromElement(
+  element: (DropTargetDatasetSource & object) | null | undefined
+): CalendarDropTarget | null {
+  if (!element) {
+    return null
+  }
+
+  return registeredDropTargets.get(element) ?? parseCalendarDropTargetDataset(element)
+}
