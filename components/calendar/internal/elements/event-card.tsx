@@ -468,7 +468,7 @@ function ResizeHandle({
       data-calendar-resize-handle={edge}
       data-testid={`calendar-resize-handle-${event.sourceEventId}-${edge}`}
       className={cn(
-        "absolute inset-x-0 z-20 h-4 touch-none select-none",
+        "absolute left-1/2 z-20 h-4 w-14 -translate-x-1/2 touch-none select-none",
         edge === "start"
           ? "top-0 cursor-ns-resize"
           : "bottom-0 cursor-ns-resize"

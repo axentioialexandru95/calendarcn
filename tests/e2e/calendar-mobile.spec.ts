@@ -70,9 +70,17 @@ test.describe("calendar mobile touch interactions", () => {
     const { context, page } = await createMobilePage(browser)
 
     try {
+      const standupEvent = page.getByTestId("calendar-event-standup-time-grid")
+      const eventPoint = await getLocatorPoint(standupEvent)
+
+      await dispatchTouchPointerDown(standupEvent, eventPoint)
+      await dispatchTouchPointerEvent(standupEvent, "pointerup", eventPoint)
+      await expect(standupEvent).toHaveAttribute("data-selected", "true")
+
       const resizeHandle = page.getByTestId(
         "calendar-resize-handle-standup-end"
       )
+      await expect(resizeHandle).toBeVisible()
       const startPoint = await getLocatorPoint(resizeHandle)
       const targetSlot = await getDayGrid(page, 1)
         .locator('[data-calendar-drop-target-minute="570"]')
@@ -85,9 +93,7 @@ test.describe("calendar mobile touch interactions", () => {
       await page.waitForTimeout(50)
       await dispatchWindowPointer(page, "pointerup", targetPoint)
 
-      await expect(
-        page.getByTestId("calendar-event-standup-time-grid")
-      ).toHaveAttribute("aria-label", /09:00 - 10:00/i)
+      await expect(standupEvent).toHaveAttribute("aria-label", /09:00 - 10:00/i)
     } finally {
       await context.close()
     }
