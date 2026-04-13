@@ -6,8 +6,10 @@ import {
   CalendarCnHeroSection,
   CalendarCnIntegrationSection,
   CalendarCnThemesSection,
+  CalendarCnUseCasesSection,
 } from "@/components/marketing/sections"
 import landingContent from "@/content/calendarcn-landing.json"
+import { homepageAudience, seoLandingPages } from "@/lib/marketing/seo-pages"
 
 export function CalendarCnLanding({
   initialDateIso,
@@ -20,6 +22,11 @@ export function CalendarCnLanding({
       <CalendarCnHeroSection
         content={landingContent.hero}
         initialDateIso={initialDateIso}
+      />
+      <CalendarCnUseCasesSection
+        audience={homepageAudience}
+        content={landingContent.useCases}
+        items={seoLandingPages}
       />
       <CalendarCnComponentsSection content={landingContent.components} />
       <CalendarCnCapabilitiesSection content={landingContent.capabilities} />

@@ -12,6 +12,7 @@ import {
 
 import { CalendarShowcase } from "@/components/calendar/calendar-showcase"
 import { Button } from "@/components/ui/button"
+import { siteConfig } from "@/lib/site-config"
 
 type CalendarCnHeroSnippetProps = {
   content: {
@@ -25,7 +26,6 @@ type CalendarCnHeroSnippetProps = {
   initialDateIso: string
 }
 
-const publicOrigin = "https://calendarcn.phantomtechind.com"
 const shellTokenPattern =
   /(https?:\/\/[^\s]+)|(\b(?:npx|pnpm|npm|bun)\b)|(\b(?:add|install)\b)|(\b(?:shadcn@latest|calendarcn\.json)\b)|([/.@_-][A-Za-z0-9/_:-]*)/g
 
@@ -34,7 +34,7 @@ export function CalendarCnHeroSnippet({
   initialDateIso,
 }: CalendarCnHeroSnippetProps) {
   const [copied, setCopied] = React.useState(false)
-  const origin = publicOrigin
+  const origin = siteConfig.url
 
   const commands = React.useMemo(
     () => content.commands.map((line) => line.replaceAll("{origin}", origin)),
@@ -50,13 +50,13 @@ export function CalendarCnHeroSnippet({
   }
 
   return (
-    <div className="relative w-full min-w-0 max-w-6xl">
+    <div className="relative w-full max-w-6xl min-w-0">
       <div className="pointer-events-none absolute inset-x-8 -bottom-10 h-36 rounded-full bg-primary/10 blur-3xl dark:bg-primary/12" />
 
       <div className="mx-auto mb-12 w-full max-w-xl text-left">
         <div className="relative rounded-[calc(var(--radius)*1.05)] border border-border/70 bg-background/75 px-3 py-2.5 pr-12 shadow-xs">
           <div className="scrollbar-hidden overflow-x-auto">
-            <code className="block w-max min-w-full whitespace-nowrap pr-2 font-mono text-[12px] leading-5 text-foreground sm:text-[13px]">
+            <code className="block w-max min-w-full pr-2 font-mono text-[12px] leading-5 whitespace-nowrap text-foreground sm:text-[13px]">
               {highlightCommandLine(commands[0])}
             </code>
           </div>

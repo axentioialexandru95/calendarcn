@@ -1,7 +1,15 @@
+import Link from "next/link"
+
 import { CalendarCnHeroSnippet } from "@/components/marketing/hero/snippet"
+import { Button } from "@/components/ui/button"
 
 type CalendarCnHeroSectionProps = {
   content: {
+    actions: Array<{
+      href: string
+      label: string
+      variant: string
+    }>
     badge: string
     body: string
     points: string[]
@@ -63,7 +71,37 @@ export function CalendarCnHeroSection({
             <p className="mx-auto max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
               {content.body}
             </p>
-
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {content.actions.map((action) => (
+                <Button
+                  key={action.href}
+                  asChild
+                  size="lg"
+                  variant={toButtonVariant(action.variant)}
+                >
+                  <Link href={action.href}>
+                    {action.label}
+                    {action.variant === "primary" ? (
+                      <span aria-hidden className="text-base">
+                        {"->"}
+                      </span>
+                    ) : null}
+                  </Link>
+                </Button>
+              ))}
+            </div>
+            <div className="grid gap-3 text-left sm:grid-cols-3">
+              {content.points.map((point) => (
+                <article
+                  key={point}
+                  className="rounded-[calc(var(--radius)*1.3)] border border-border/70 bg-card/78 p-4 shadow-xs"
+                >
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {point}
+                  </p>
+                </article>
+              ))}
+            </div>
           </div>
 
           <CalendarCnHeroSnippet
@@ -74,4 +112,15 @@ export function CalendarCnHeroSection({
       </div>
     </section>
   )
+}
+
+function toButtonVariant(variant: string) {
+  switch (variant) {
+    case "ghost":
+      return "ghost"
+    case "secondary":
+      return "outline"
+    default:
+      return "default"
+  }
 }

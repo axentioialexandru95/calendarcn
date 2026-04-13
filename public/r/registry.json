@@ -68,6 +68,18 @@
           "type": "registry:component"
         },
         {
+          "path": "components/calendar/internal/elements/root/drop-target-registry.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/event-operations.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/calendar/internal/elements/root/external-store.ts",
+          "type": "registry:component"
+        },
+        {
           "path": "components/calendar/internal/elements/root/use-calendar-core-actions.ts",
           "type": "registry:component"
         },

@@ -6,6 +6,10 @@
       "href": "/docs"
     },
     {
+      "label": "Use cases",
+      "href": "#use-cases"
+    },
+    {
       "label": "Components",
       "href": "#components"
     },
@@ -22,6 +26,23 @@
     "badge": "Shadcn-native calendar primitives",
     "title": "Scheduling primitives for shadcn apps that need real interaction.",
     "body": "CalendarCN gives you a reusable scheduler with month, week, day, and agenda views, recurring events, resource lanes, drag-and-drop editing, resize handles, and typed callbacks you can wire into your own state and persistence.",
+    "actions": [
+      {
+        "label": "Install now",
+        "href": "/docs/calendar#installation",
+        "variant": "primary"
+      },
+      {
+        "label": "Read docs",
+        "href": "/docs/calendar",
+        "variant": "secondary"
+      },
+      {
+        "label": "Open demo",
+        "href": "/calendar-lab",
+        "variant": "ghost"
+      }
+    ],
     "snippet": {
       "eyebrow": "Quick start",
       "title": "Install the calendar directly into your app",
@@ -35,6 +56,13 @@
       "Recurring events, resources, drag, resize, and selection built in",
       "Token-driven styling that fits the rest of your shadcn app"
     ]
+  },
+  "useCases": {
+    "eyebrow": "Qualified routes",
+    "title": "Start from the route that matches your product.",
+    "body": "CalendarCN is strongest for teams embedding scheduling into a React or Next.js product. These routes filter out generic calendar-app intent and move qualified visitors straight into the right install and docs path.",
+    "bestFitTitle": "Best fit",
+    "notForTitle": "Not for"
   },
   "snapshot": {
     "eyebrow": "What you get",

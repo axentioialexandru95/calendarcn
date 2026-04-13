@@ -8,3 +8,4 @@ export {
   CalendarCnSectionHeading,
 } from "./primitives"
 export { CalendarCnThemesSection } from "./themes"
+export { CalendarCnUseCasesSection } from "./use-cases"

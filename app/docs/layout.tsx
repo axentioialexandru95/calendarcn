@@ -4,15 +4,12 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs"
 
 import { CalendarCnLogo } from "@/components/marketing/branding/logo"
 import { docsSource } from "@/lib/docs/source"
+import { siteConfig } from "@/lib/site-config"
 
-export default function DocsRootLayout({
-  children,
-}: {
-  children: ReactNode
-}) {
+export default function DocsRootLayout({ children }: { children: ReactNode }) {
   return (
     <DocsLayout
-      githubUrl="https://github.com/axentioialexandru95/calendarcn"
+      githubUrl={siteConfig.repoUrl}
       links={[
         {
           text: "Home",
@@ -21,7 +18,9 @@ export default function DocsRootLayout({
         },
       ]}
       nav={{
-        title: <CalendarCnLogo className="gap-2" iconClassName="size-7 rounded-lg" />,
+        title: (
+          <CalendarCnLogo className="gap-2" iconClassName="size-7 rounded-lg" />
+        ),
         transparentMode: "none",
         url: "/",
       }}

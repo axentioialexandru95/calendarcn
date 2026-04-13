@@ -1,10 +1,10 @@
 import registry from "@/registry.json"
+import { siteConfig } from "@/lib/site-config"
 
 type RegistryItem = (typeof registry.items)[number]
 
 export const calendarRegistryNamespace = "@calendarcn"
-export const calendarRegistryOrigin =
-  "https://calendarcn.phantomtechind.com/r"
+export const calendarRegistryOrigin = siteConfig.registryOrigin
 
 export function stripRegistryReference(value: string) {
   return value.replace(/^@[^/]+\//, "")
