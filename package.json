@@ -22,7 +22,9 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "registry:build": "node scripts/registry-build.mjs",
-    "registry:check": "pnpm registry:build && node scripts/registry-check.mjs"
+    "registry:check": "pnpm registry:build && node scripts/registry-check.mjs",
+    "registry:serve:local": "node scripts/serve-local-registry.mjs",
+    "smoke:starter-consumer": "node scripts/smoke-test-starter-consumer.mjs"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.10",
