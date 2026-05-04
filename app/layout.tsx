@@ -5,7 +5,7 @@ import { RootProvider } from "fumadocs-ui/provider/next"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { defaultMetadataTitle, siteKeywords } from "@/lib/seo"
-import { absoluteUrl, siteConfig } from "@/lib/site-config"
+import { absoluteUrl, siteConfig, socialPreview } from "@/lib/site-config"
 
 export const metadata: Metadata = {
   applicationName: siteConfig.name,
@@ -29,10 +29,12 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        alt: "CalendarCN social preview",
-        height: 630,
-        url: absoluteUrl("/opengraph-image"),
-        width: 1200,
+        alt: socialPreview.alt,
+        height: socialPreview.height,
+        secureUrl: absoluteUrl(socialPreview.path),
+        type: socialPreview.type,
+        url: absoluteUrl(socialPreview.path),
+        width: socialPreview.width,
       },
     ],
     locale: "en_US",
@@ -60,7 +62,16 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     description: siteConfig.description,
-    images: [absoluteUrl("/twitter-image")],
+    images: [
+      {
+        alt: socialPreview.alt,
+        height: socialPreview.twitterHeight,
+        secureUrl: absoluteUrl(socialPreview.twitterPath),
+        type: socialPreview.type,
+        url: absoluteUrl(socialPreview.twitterPath),
+        width: socialPreview.width,
+      },
+    ],
     title: defaultMetadataTitle,
   },
 }

@@ -8,6 +8,16 @@ export const siteConfig = {
   url: "https://calendarcn.phantomtechind.com",
 } as const
 
+export const socialPreview = {
+  alt: "CalendarCN social preview",
+  height: 630,
+  path: "/social-preview.png",
+  twitterHeight: 600,
+  twitterPath: "/social-preview-twitter.png",
+  type: "image/png",
+  width: 1200,
+} as const
+
 export const starterInstallCommand = `npx shadcn@latest add ${siteConfig.registryOrigin}/calendarcn.json`
 
 export const primitiveInstallCommand = [

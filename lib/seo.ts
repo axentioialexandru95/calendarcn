@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { absoluteUrl, siteConfig } from "@/lib/site-config"
+import { absoluteUrl, siteConfig, socialPreview } from "@/lib/site-config"
 
 export const defaultMetadataTitle =
   "Open-source scheduling primitives for shadcn/ui apps"
@@ -24,10 +24,21 @@ type PageMetadataOptions = {
 }
 
 const socialImage = {
-  alt: "CalendarCN social preview",
-  height: 630,
-  url: absoluteUrl("/opengraph-image"),
-  width: 1200,
+  alt: socialPreview.alt,
+  height: socialPreview.height,
+  secureUrl: absoluteUrl(socialPreview.path),
+  type: socialPreview.type,
+  url: absoluteUrl(socialPreview.path),
+  width: socialPreview.width,
+} as const
+
+const twitterImage = {
+  alt: socialPreview.alt,
+  height: socialPreview.twitterHeight,
+  secureUrl: absoluteUrl(socialPreview.twitterPath),
+  type: socialPreview.type,
+  url: absoluteUrl(socialPreview.twitterPath),
+  width: socialPreview.width,
 } as const
 
 export function createPageMetadata({
@@ -61,7 +72,7 @@ export function createPageMetadata({
     twitter: {
       card: "summary_large_image",
       description,
-      images: [absoluteUrl("/twitter-image")],
+      images: [twitterImage],
       title,
     },
   }
